@@ -55,6 +55,7 @@ int dr_photo_find(const char *folder,int from,int direction,int *slot_out) {
     /* from is the current slot, -1 starts a new forward search. */
     if(from<-1 || from>=DR_PHOTO_MAX)return 0;
     for(int n=0;n<DR_PHOTO_MAX;n++) {
+        /* Avoid signed overflow if DR_PHOTO_MAX increases in later ports. */
         int slot=(from+direction*(n+1))%DR_PHOTO_MAX;
         if(slot<0)slot+=DR_PHOTO_MAX;
         if(existing_photo(folder,slot)) {*slot_out=slot;return 1;}
