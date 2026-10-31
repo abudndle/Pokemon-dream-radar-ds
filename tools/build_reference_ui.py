@@ -41,7 +41,7 @@ d.rounded_rectangle((13,12,239,32),radius=4,fill=(39,103,161,155))
 # Share exactly the same title geometry as the renderer and touch hitboxes.
 title_header=(root/'source/title_panes_generated.h').read_text()
 pane_block=title_header.split('dr_title_panes[4] = {',1)[1].split('};',1)[0]
-title_rects=[tuple(map(int,parts)) for parts in re.findall(r'\\{(\\d+),(\\d+),(\\d+),(\\d+)\\}',pane_block)]
+title_rects=[tuple(map(int,parts)) for parts in re.findall(r'\{(\d+),(\d+),(\d+),(\d+)\}',pane_block)]
 assert len(title_rects)==4, 'expected 4 extracted title pane rectangles'
 for xx,yy,ww,hh in title_rects:
  d.rounded_rectangle((xx,yy,xx+ww-1,yy+hh-1),radius=3,fill=(21,83,111,210),outline=(67,196,234,225),width=2)
