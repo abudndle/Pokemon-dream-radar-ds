@@ -409,7 +409,7 @@ void game_fire(Game *g) {
 /* Item IDs and quantities are separate. Previously the item ID was the
    array index; version-3 saves are migrated in game_load(). */
 int game_item_slot_kind(const Game *g, int slot) {
-    if(slot<0 || slot>=MAX_ITEMS || !g->save.pending_items[slot])return -1;
+    if(!g || slot<0 || slot>=MAX_ITEMS || !g->save.pending_items[slot])return -1;
     int type=(int)g->save.reserved[2+slot]-1;
     return (type>=0 && type<RESEARCH_ITEM_TYPES) ? type : -1;
 }
