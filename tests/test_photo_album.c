@@ -42,7 +42,9 @@ int main(void) {
     assert(!dr_photo_read(path,dst,DR_PHOTO_W*DR_PHOTO_H));
     char other[256];snprintf(other,sizeof other,"%s/photo_001.bmp",dir);
     assert(!truncate(other,63));
+    for(size_t i=0;i<DR_PHOTO_W*DR_PHOTO_H;i++)dst[i]=0x1357;
     assert(!dr_photo_read(other,dst,DR_PHOTO_W*DR_PHOTO_H));
+    for(size_t i=0;i<DR_PHOTO_W*DR_PHOTO_H;i++)assert(dst[i]==0x1357);
     unlink(path);unlink(other);rmdir(dir);
     puts("PASS: indexed SD photo album, no overwrites, BMP pixel roundtrip, corrupt/truncated rejects");
     return 0;
