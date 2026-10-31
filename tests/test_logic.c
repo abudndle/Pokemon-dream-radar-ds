@@ -16,6 +16,15 @@ static void complete_sphere(Game *g, int extension) {
 int main(void) {
     Game g;game_new(&g,0xf00d);
     assert(g.save.upgrades[0]==1 && g.save.cloud_count==5);
+    assert(!game_buy(NULL,0,0));
+    g.save.orbs=1000;
+    g.save.upgrades[0]=0;
+    assert(!game_buy(&g,0,0) && g.save.orbs==1000);
+    g.save.upgrades[0]=6;
+    assert(!game_buy(&g,0,0) && g.save.orbs==1000);
+    g.save.upgrades[0]=1;
+    g.save.orbs=0;
+
     assert(game_identify_cart("ADAE")==GAME_DIAMOND);
     assert(game_identify_cart("APAJ")==GAME_PEARL);
     assert(game_identify_cart("CPUF")==GAME_PLATINUM);
