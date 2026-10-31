@@ -22,6 +22,11 @@ def pane_hit(pane, x, y):
         return False
     if len(corners)!=4 or any(not isinstance(p,(list,tuple)) or len(p)!=2 or not all(isinstance(v,(int,float)) and math.isfinite(v) for v in p) for p in corners):
         return False
+    # A fully transparent pane cannot be a visible interactive target even
+    # when supplied by an older or manually generated retargeted layout.
+    alpha=pane.get("effective_alpha",255)
+    if not isinstance(alpha,(int,float)) or not math.isfinite(alpha) or alpha<=0:
+        return False
     # Export ordering is TL,TR,BL,BR. Traverse the perimeter clockwise.
     quad=[corners[i] for i in (0,1,3,2)]
     signs=[]
