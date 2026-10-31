@@ -1192,6 +1192,9 @@ running_dsi=isDSiMode();
     /* Initialise the launcher filesystem before mounting NitroFS.  When
        launched from TWiLight Menu++ the ROM's NitroFS may be backed by SD;
        mounting it first can fail even when the bundled art is present. */
+    /* TWiLight Menu++/nds-bootstrap and flashcart loaders may expose the
+       ROM's NitroFS even when writable DLDI storage is unavailable.
+       Keep asset mounting independent of save-media availability. */
     have_storage=fatInitDefault();
     have_romfs=nitroFSInit(NULL);
     cache_backgrounds();
