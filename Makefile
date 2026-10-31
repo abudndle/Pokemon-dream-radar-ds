@@ -91,6 +91,7 @@ test-host:
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/reference_layout.c source/game.c tests/test_reference_layout.c -o build/test_reference_layout
 	./build/test_reference_layout
 	python3 tests/test_title_asset_geometry.py
+	python3 tests/test_original_ui_audit.py
 	python3 tests/test_original_pane_geometry.py
 	python3 tests/test_pane_retarget.py
 	python3 tests/test_nds_header.py
