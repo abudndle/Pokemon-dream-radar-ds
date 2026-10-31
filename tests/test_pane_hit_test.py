@@ -4,6 +4,8 @@ import sys
 root=pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(root/"tools"))
 from pane_hit_test import pane_hit, pane_at
+from retarget_panes import convert
+import json
 
 def pane(corners,visible=True):
     return {"world_corners_ds":corners,"world_bounds_ds":[min(p[0] for p in corners),min(p[1] for p in corners),max(p[0] for p in corners),max(p[1] for p in corners)],"effective_visible":visible}
@@ -31,4 +33,13 @@ assert pane_at({"panes":[parent]},100,100) is None
 sibling=pane([[20,20],[40,20],[20,40],[40,40]])
 sibling["name"]="later sibling"
 assert pane_at({"panes":[parent,sibling]},25,25)["name"]=="later sibling"
-print("PASS: transformed UI quadrilateral touch tests and topmost nested picking")
+# Exercise the picker against original extracted layouts, not only synthetic
+# geometry, and ensure the returned pane itself is hittable.
+source=json.loads((root/"ui_mapping/original_pane_geometry.json").read_text())
+assert len(source["layouts"])==22
+for original in source["layouts"]:
+    layout=convert(original)
+    for x,y in ((0,0),(32,48),(128,96),(224,160),(255,191)):
+        selected=pane_at(layout,x,y)
+        assert selected is None or pane_hit(selected,x,y)
+print("PASS: transformed UI quadrilateral touch tests, picking, and 22 layout integration")
