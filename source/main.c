@@ -768,7 +768,10 @@ static void render(void) {
         }
         print(bottom,16,112,have_storage?CYAN:PINK,
               dr_research_save_status(have_storage,game.requested_save));
-        print(bottom,38,165,WHITE,"A: RETURN TO LAB");
+        if(game.radar_resume_pending) {
+            print(bottom,10,147,CYAN,"Remaining clouds and Orbs saved");
+            print(bottom,15,165,WHITE,"A: RESUME RADAR  B: LAB");
+        } else print(bottom,38,165,WHITE,"A: RETURN TO LAB");
         break;}
     case STATE_REPLACE: {
         load_bg("menu_top.raw",top,0x8824);
@@ -1159,7 +1162,14 @@ static void finish_story_dialogue(void) {
     }
     switch_screen(STATE_LAB);
 }
-static void from_results(void) {
+static void from_results(int continue_search) {
+    if(continue_search && game_resume_radar(&game)) {
+        /* Resume the existing clouds, saved Orb colors and aim state. */
+        camera_on();
+        return;
+    }
+    /* Back leaves the unfinished hunt with no additional reward. */
+    game_finish_pending_radar(&game);
     unsigned stage=game.save.reserved[0]+1;
     if(stage<=3 && game.save.story_phase>=stage) {
         game.story_event=(int)stage;
@@ -1264,7 +1274,11 @@ static void handle_key(int keys,int down,touchPosition *touch) {
         }
         return;
     }
-    if(game.screen==STATE_RESULTS){if(down&(KEY_A|KEY_B|KEY_TOUCH))from_results();return;}
+    if(game.screen==STATE_RESULTS){
+        if(down&(KEY_A|KEY_B|KEY_TOUCH))
+            from_results((down&(KEY_A|KEY_TOUCH))!=0 && (down&KEY_B)==0);
+        return;
+    }
     if(game.screen==STATE_ALBUM) {
         if(down&KEY_RIGHT)album_select(1);
         if(down&KEY_LEFT)album_select(-1);
