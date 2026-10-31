@@ -1,6 +1,7 @@
 #include "dr_mesh.h"
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 #define DR_MESH_MAX_VERTICES 65535u
 #define DR_MESH_MAX_TRIANGLES 2048u
 
@@ -49,6 +50,41 @@ int dr_mesh_decode(const unsigned char *bytes,size_t size,DrMesh *out) {
     }
     /* Out is changed only on success; caller owns decoded allocations. */
     *out=tmp;
+    return 1;
+}
+
+/* The loader is deliberately read-only. The file must have the exact DRM1
+ * size implied by its header before any bulk allocation is attempted. */
+int dr_mesh_load_file(const char *path,DrMesh *out) {
+    if(!path || !*path || !out)return 0;
+    FILE *f=fopen(path,"rb");
+    if(!f)return 0;
+    unsigned char header[8];
+    int ok=fread(header,1,sizeof header,f)==sizeof header &&
+           memcmp(header,"DRM1",4)==0;
+    size_t length=0;
+    if(ok) {
+        unsigned nv=rd16(header+4),nt=rd16(header+6);
+        if(!nv || nv>DR_MESH_MAX_VERTICES ||
+           !nt || nt>DR_MESH_MAX_TRIANGLES)ok=0;
+        else length=8u+6u*(size_t)nv+6u*(size_t)nt;
+    }
+    if(ok) {
+        if(fseek(f,0,SEEK_END)!=0 || ftell(f)!=(long)length ||
+           fseek(f,0,SEEK_SET)!=0)ok=0;
+    }
+    unsigned char *bytes=NULL;
+    if(ok) {
+        bytes=(unsigned char*)malloc(length);
+        if(!bytes || fread(bytes,1,length,f)!=length)ok=0;
+    }
+    if(fclose(f)!=0)ok=0;
+    DrMesh next={0};
+    if(ok)ok=dr_mesh_decode(bytes,length,&next);
+    free(bytes);
+    if(!ok)return 0;
+    dr_mesh_free(out);
+    *out=next;
     return 1;
 }
 
