@@ -12,9 +12,10 @@ def check_rom(path):
     if not buf[:12].rstrip(b'\x00\x20'):
         raise ValueError("ROM title is blank")
     sections = []
-    for label, off in (("ARM9", 0x20), ("ARM7", 0x30),
-                       ("NitroFS FNT", 0x40), ("NitroFS FAT", 0x48)):
-        start, size = struct.unpack_from("<II", buf, off)
+    for label, offset_pos, size_pos in (("ARM9", 0x20, 0x2C), ("ARM7", 0x30, 0x3C),
+                                       ("NitroFS FNT", 0x40, 0x44), ("NitroFS FAT", 0x48, 0x4C)):
+        start = struct.unpack_from("<I", buf, offset_pos)[0]
+        size = struct.unpack_from("<I", buf, size_pos)[0]
         if start < 0x200 or size == 0 or start + size > len(buf):
             raise ValueError(f"{label} has an invalid or missing range")
         sections.append((start, start + size, label))
