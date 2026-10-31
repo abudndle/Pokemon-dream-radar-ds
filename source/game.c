@@ -131,6 +131,10 @@ int game_load(Game *g, const char *file) {
             if(s.reserved[2+i]<1 || s.reserved[2+i]>RESEARCH_ITEM_TYPES)return 0;
         }
     }
+    /* Any in-memory migration changes checksummed fields. Keep the live
+       record internally consistent before the repaired snapshot is written. */
+    if(migrated_item_layout || repaired_background)
+        s.checksum=game_checksum(&s);
     g->save = s;
     if(migrated_item_layout || repaired_background)g->requested_save=1;
     /* The three secret research extensions persist in unused reserved bytes,
