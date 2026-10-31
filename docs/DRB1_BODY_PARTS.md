@@ -11,7 +11,7 @@ For species index `00` (through `25`), keep files from the same private model so
 - SD or supported DS flashcart: `sd:/DreamRadarDSi/Models/pokemon_00.drm` (or `fat:/...`) plus optional `pokemon_00.drt`, `pokemon_00.dra`, `pokemon_00.drb`.
 - Private NitroFS build: `nitro:/pokemon_00.drm` plus optional `pokemon_00.drt`, `pokemon_00.dra`, `pokemon_00.drb`.
 
-Runtime chooses **valid DRB1 first**, then valid DRA1 if DRB1 is unavailable, then the unmodified DRM1 mesh (which can still rotate as a whole). A missing/invalid mesh keeps the original 2D Pokémon art fallback, and items stay 2D sprites. Both the flat-shaded and DRT1 textured renderers accept animated geometry without changing vertex IDs, triangles or UV indices.
+Runtime chooses **valid DRK1 weighted hierarchy first**, then valid DRB1 rigid parts, then valid DRA1 if those are unavailable, then unmodified DRM1 geometry (see [DRK1_SKINNING.md](DRK1_SKINNING.md)). A missing/invalid mesh keeps the original 2D Pokémon art fallback, and items stay 2D sprites. Both the flat-shaded and DRT1 textured renderers accept animated geometry without changing vertex IDs, triangles or UV indices.
 
 Changing the loaded species releases animation and mesh scratch buffers. Each animation loops and interpolates deterministically in integer arithmetic, with no per-frame allocation.
 
