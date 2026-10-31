@@ -105,7 +105,12 @@ int dr_photo_save_new(const char *folder,int *next_slot,const uint16_t *src,size
         char file[256];
         if(!photo_path(file,sizeof file,folder,slot))return 0;
         struct stat st;if(stat(file,&st)==0)continue;
-        if(!dr_photo_write(file,src,count))return 0;
+        if(!dr_photo_write(file,src,count)) {
+            /* If another writer claimed the slot, try the next number;
+               genuine I/O failures still stop the save. */
+            if(stat(file,&st)==0)continue;
+            return 0;
+        }
         *next_slot=(slot+1)%DR_PHOTO_MAX;
         return 1;
     }
