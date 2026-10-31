@@ -5,6 +5,11 @@
 static void begin_capture(Game *g,int ext) {
     game_begin_search(g,ext);
     assert(g->screen==STATE_RADAR);
+    /* Isolate one pink target and make the Basic Extension's random
+       encounter roll deterministic; this test is about the timer. */
+    g->active_clouds=1;
+    g->clouds[0].kind=1;
+    g->save.random_seed=1;
     g->aim_x=g->clouds[0].x;
     g->aim_y=g->clouds[0].y;
     game_fire(g);
