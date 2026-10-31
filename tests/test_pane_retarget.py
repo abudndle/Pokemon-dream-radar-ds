@@ -24,6 +24,9 @@ with tempfile.TemporaryDirectory() as d:
             assert isinstance(p["alpha"],int) and 0<=p["alpha"]<=255
             assert len(p["rotation"])==3 and len(p["scale"])==2
             assert isinstance(p["translation_z"],(int,float))
+            assert len(p["world_translation_ds"])==2
+            assert len(p["world_scale"])==2
+            assert isinstance(p["world_rotation_z"],(int,float))
             assert len(p["translation_ds"])==2
             assert len(p["size_ds"])==2
             for c in p["children"]:verify(c)
@@ -48,4 +51,21 @@ for field,value in (("size",0),("translation",math.inf),("scale",math.nan)):
         pass
     else:
         raise AssertionError("invalid original geometry was accepted: "+field)
+# Parent translations, rotation and scale must propagate to nested children.
+synthetic={
+    "file":"synthetic.bclyt",
+    "panes":[{
+        "name":"root","type":"pan1","flags":0,"origin":0,"alpha":255,
+        "translation":[0,0,0],"rotation":[0,0,90],"scale":[2,2],"size":[400,240],
+        "children":[{
+            "name":"child","type":"pan1","flags":0,"origin":0,"alpha":255,
+            "translation":[10,0,0],"rotation":[0,0,0],"scale":[1,1],"size":[20,20],
+            "children":[]
+        }]
+    }]
+}
+child=convert(synthetic)["panes"][0]["children"][0]
+assert child["world_translation_ds"]==[0.0,16.0]
+assert child["world_rotation_z"]==90
+assert child["world_scale"]==[2,2]
 print("PASS: 22 original UI pane hierarchies retargeted to DS viewport")
