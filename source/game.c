@@ -266,6 +266,8 @@ void game_begin_search(Game *g, int ext) {
     g->screen=STATE_RADAR;
     g->capture_hp=0;g->cloud_hit=0;
     g->session_orbs=0; g->session_caught=-1;g->session_item=-1;
+    /* Starting a new radar scan must not expose the previous species. */
+    g->session_species=-1;
     g->replace_kind=REPLACE_NONE;g->replace_confirm=0;g->replaced_slot=-1;
     g->session_type=0;g->freeze_frames=0;g->slow_frames=0;
     g->aim_x=128;g->aim_y=90;
