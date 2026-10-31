@@ -341,7 +341,7 @@ int game_use_support(Game *g, int slot) {
     } else {
         /* Never spend an Energy Recharge if its timer cannot increase.
            Saturate the addition without overflowing signed arithmetic. */
-        if (g->capture_timeout >= 2147483647) return 0;
+        if (g->capture_timeout <= 0 || g->capture_timeout >= 2147483647) return 0;
         if (g->capture_timeout > 2147483647 - 1500)
             g->capture_timeout = 2147483647;
         else g->capture_timeout += 1500;
