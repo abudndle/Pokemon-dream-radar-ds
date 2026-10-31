@@ -6,6 +6,15 @@
 int main(void) {
     Game g;
     game_new(&g,7);
+    g.save.last_cloud_time=0;
+    g.requested_save=0;
+    game_regen_clouds(&g,0);
+    assert(g.save.last_cloud_time==0 && !g.requested_save);
+    game_regen_clouds(&g,1000);
+    assert(g.save.last_cloud_time==1000 && g.requested_save);
+    g.requested_save=0;
+    game_regen_clouds(&g,1001);
+    assert(!g.requested_save);
     g.save.cloud_count=0;
     g.save.last_cloud_time=1000;
     game_regen_clouds(&g,1299);
