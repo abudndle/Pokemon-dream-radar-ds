@@ -53,6 +53,8 @@ int main(void) {
     g.capture_timeout=1;
     g.session_caught=20;g.session_item=4;g.session_species=20;g.session_type=1;
     g.capture_hp=150;
+    /* This test manually injects another independent encounter. */
+    g.search_counted=0;
     unsigned before_expiry=g.save.searches;
     game_tick(&g);
     assert(g.screen==STATE_RESULTS && g.capture_timeout==0);
