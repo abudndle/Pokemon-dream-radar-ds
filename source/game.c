@@ -416,6 +416,9 @@ void game_capture(Game *g) {
     /* Full: pause safely for a deliberate slot choice. No data changes yet. */
     g->replace_selected=0;
     g->replace_confirm=0;
+    /* Encounter has stopped while the player decides what to keep. */
+    g->freeze_frames=0;
+    g->slow_frames=0;
     g->screen=STATE_REPLACE;
     msg(g,"Storage full: choose a slot to replace, or press B to keep it.");
 }
