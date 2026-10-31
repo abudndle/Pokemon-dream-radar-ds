@@ -1,3 +1,22 @@
+## Sphere energy-ball attacks and beam defense (DS adaptation)
+
+Capture encounters now include a single moving energy-ball attack. The ball
+spawns from the sphere, travels toward the player's current aim point and
+can be **dodged by moving the reticle** or **destroyed by shooting it**.
+A successful hit costs up to 180 frames (3 seconds) from the active capture
+timer and can force the normal escape result when time reaches zero. Freeze
+and slow support effects suspend or slow projectile movement.
+
+The projectile is drawn on the DS/DSi upper screen as a contrasting
+energy ring. It is runtime-only and clears on capture, escape, Back and
+new encounters; it never changes the private save format. Automated tests
+cover spawn, interception, collision, time penalty, freeze and cleanup.
+
+This is **partial original feature coverage**: the retail game has
+species-dependent projectile patterns, multiple balls and varied hit
+penalties. These are not fully reconstructed. Its gyroscopic aiming is
+replaced by D-pad/stylus controls on DS hardware.
+
 ## Dream Orb colors and next-search Pokémon preference (DS adaptation)
 
 The DS port now tracks four original Dream Orb colors: **pink**, **green**,
