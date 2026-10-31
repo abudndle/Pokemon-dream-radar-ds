@@ -9,7 +9,7 @@ are rejected explicitly. Converted files are not committed to this repository.
 Example with a privately extracted English title logo:
 
 ```sh
-python3 tools/convert_bclim_spr.py /private/game/LocalizeTex/Tex_Title_En/timg/titlelogo00.bclim /private/DreamRadarDSi/Sprites/logo.spr
+python3 tools/convert_bclim_spr.py /private/game/LocalizeTex/Tex_Title_En/timg/titlelogo00.bclim /private/DreamRadarDSi/Sprites/logo.spr --max-width 230 --max-height 115
 ```
 
 Copy the resulting `.spr` to `sd:/DreamRadarDSi/Sprites/` on DSi or
