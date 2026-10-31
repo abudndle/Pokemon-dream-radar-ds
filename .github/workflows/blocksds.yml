@@ -20,7 +20,15 @@ jobs:
       - name: Compile both targets in BlocksDS image
         run: |
           docker run --rm -v "$PWD:/workspace" -w /workspace \
-            skylyrac/blocksds:slim-latest sh scripts/build_both.sh
+            skylyrac/blocksds:slim-latest sh -eu -c '
+              for platform in ds dsi; do
+                make "PLATFORM=$platform" check-sdk
+                make "PLATFORM=$platform" -j2
+                rom="dream_radar_${platform}.nds"
+                test -s "$rom"
+                python3 scripts/check_nds.py "$rom"
+              done
+            '
       - name: Upload untested ROMs
         uses: actions/upload-artifact@v4
         with:
