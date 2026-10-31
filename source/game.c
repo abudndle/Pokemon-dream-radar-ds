@@ -373,17 +373,33 @@ static void start_sphere(Game *g) {
 }
 /* Support effects belong to gameplay state, never the renderer. A failed
    activation must not consume inventory or trigger a save. */
+SupportStatus game_support_status(const Game *g, int slot) {
+    if (!g || slot < 0 || slot >= 3 || g->screen != STATE_SPHERE ||
+        g->capture_timeout <= 0) return SUPPORT_UNAVAILABLE;
+    /* Show ongoing effects even after the last charge has been spent. */
+    if ((slot == 0 && g->freeze_frames > 0) ||
+        (slot == 1 && g->slow_frames > 0)) return SUPPORT_ACTIVE;
+    if (g->save.goods[slot] == 0) return SUPPORT_EMPTY;
+    if (g->save.goods[slot] > 9 ||
+        (slot == 2 && g->capture_timeout == INT_MAX)) return SUPPORT_UNAVAILABLE;
+    return SUPPORT_READY;
+}
 int game_use_support(Game *g, int slot) {
-    if (!g || g->screen != STATE_SPHERE || g->capture_timeout <= 0 ||
-        slot < 0 || slot >= 3 || g->save.goods[slot] == 0 ||
-        g->save.goods[slot] > 9) return 0;
-    /* Do not consume another effect item while its full effect is active. */
+    if (!g || slot < 0 || slot >= 3) return 0;
+    SupportStatus status = game_support_status(g,slot);
+    if (status != SUPPORT_READY) {
+        if (status == SUPPORT_ACTIVE) msg(g,"This support effect is still active.");
+        else if (status == SUPPORT_EMPTY) msg(g,"No charges left. Restock in the Development Lab.");
+        else msg(g,"Support unavailable. Use it during an active encounter.");
+        return 0;
+    }
+    /* Preserve every remaining effect frame; never spend a charge refreshing. */
     if (slot == 0) {
-        if (g->freeze_frames >= 300) return 0;
         g->freeze_frames = 300;
+        msg(g,"Vortex Charge: target frozen for 5 seconds.");
     } else if (slot == 1) {
-        if (g->slow_frames >= 300) return 0;
         g->slow_frames = 300;
+        msg(g,"Dragnet Charge: target slowed for 5 seconds.");
     } else {
         /* Never spend an Energy Recharge if its timer cannot increase.
            Saturate the addition without overflowing signed arithmetic. */
@@ -391,6 +407,7 @@ int game_use_support(Game *g, int slot) {
         if (g->capture_timeout > 2147483647 - 1500)
             g->capture_timeout = 2147483647;
         else g->capture_timeout += 1500;
+        msg(g,"Energy Recharge: encounter time extended.");
     }
     g->save.goods[slot]--;
     g->requested_save = 1;
@@ -614,7 +631,9 @@ void game_tick(Game *g) {
         int frozen_this_frame = g->freeze_frames > 0;
         int slowed_this_frame = g->slow_frames > 0;
         if (g->freeze_frames>0) g->freeze_frames--;
-        if (g->slow_frames>0) g->slow_frames--;
+        /* Freeze already prevents all movement. Preserve Dragnet's remaining
+           duration until the frozen frame ends instead of wasting it. */
+        if (g->slow_frames>0 && !frozen_this_frame) g->slow_frames--;
         if (!frozen_this_frame && (!slowed_this_frame || g->save.frames_played%3==0)) {
             /* Use wide intermediates: malformed velocities must never trigger
                signed overflow before the viewport clamp. */
@@ -644,31 +663,42 @@ void game_tick(Game *g) {
         }
     }
 }
-int game_buy(Game *g, int kind, int idx) {
-    if (!g) return 0;
+PurchaseStatus game_purchase_status(const Game *g,int kind,int idx,int *cost) {
     static const int costs[]={0,100,500,1000,1500};
+    if(cost)*cost=0;
+    if(!g || idx<0 || idx>=3)return PURCHASE_INVALID;
+    int price;
     if (kind==0) {
-        if (idx<0 || idx>=3) return 0;
         int level=g->save.upgrades[idx];
-        if (level<1 || level>5) {msg(g,"Invalid equipment level.");return 0;}
-        if (level==5) {msg(g,"Already at maximum level.");return 0;}
-        int cost=costs[level];
-        if (g->save.orbs<(uint32_t)cost) {msg(g,"Not enough Dream Orbs.");return 0;}
-        g->save.orbs-=cost;g->save.upgrades[idx]++;g->requested_save=1;
-        msg(g,"Equipment upgraded!");return 1;
+        if(level<1 || level>5)return PURCHASE_INVALID;
+        if(level==5)return PURCHASE_MAX;
+        price=costs[level];
+    } else if(kind==1) {
+        if(g->save.goods[idx]>9)return PURCHASE_INVALID;
+        if(g->save.goods[idx]==9)return PURCHASE_FULL;
+        price=idx==0?100:50;
+    } else return PURCHASE_INVALID;
+    if(cost)*cost=price;
+    return g->save.orbs<(uint32_t)price?PURCHASE_POOR:PURCHASE_READY;
+}
+int game_buy(Game *g, int kind, int idx) {
+    if(!g)return 0;
+    int cost=0;
+    PurchaseStatus status=game_purchase_status(g,kind,idx,&cost);
+    if(status!=PURCHASE_READY) {
+        if(status==PURCHASE_MAX)msg(g,"Already at maximum level.");
+        else if(status==PURCHASE_FULL)msg(g,"Cannot carry more.");
+        else if(status==PURCHASE_POOR)msg(g,"Not enough Dream Orbs.");
+        else if(idx>=0 && idx<3 && kind==0)msg(g,"Invalid equipment level.");
+        else if(idx>=0 && idx<3 && kind==1)msg(g,"Invalid support inventory.");
+        return 0;
     }
-    if (kind==1) {
-        if (idx<0 || idx>=3)return 0;
-        int cost=(idx==0) ? 100 : 50;
-        /* Capacity is checked first so a full inventory reports the
-           actionable reason even when the player also lacks Dream Orbs. */
-        if (g->save.goods[idx]>9) {msg(g,"Invalid support inventory.");return 0;}
-        if (g->save.goods[idx]==9) {msg(g,"Cannot carry more.");return 0;}
-        if (g->save.orbs<(uint32_t)cost) {msg(g,"Not enough Dream Orbs.");return 0;}
-        g->save.orbs-=cost;g->save.goods[idx]++;g->requested_save=1;
-        msg(g,"Support item purchased!");return 1;
-    }
-    return 0;
+    g->save.orbs-=(uint32_t)cost;
+    if(kind==0)g->save.upgrades[idx]++;
+    else g->save.goods[idx]++;
+    g->requested_save=1;
+    msg(g,kind==0?"Equipment upgraded!":"Support item purchased!");
+    return 1;
 }
 static uint32_t pending_signature(const Game *g) {
     uint32_t h=2166136261u;

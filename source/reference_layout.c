@@ -1,4 +1,36 @@
 #include "reference_layout.h"
+#include <stdio.h>
+void dr_shop_purchase_label(const Game *g,int row,char *text,size_t size) {
+    if(!text || !size)return;
+    int cost=0;
+    PurchaseStatus status=row>=0 && row<6?
+        game_purchase_status(g,row/3,row%3,&cost):PURCHASE_INVALID;
+    if(status==PURCHASE_READY)snprintf(text,size,"BUY %d",cost);
+    else if(status==PURCHASE_POOR)
+        snprintf(text,size,"NEED %lu",(unsigned long)((uint32_t)cost-g->save.orbs));
+    else snprintf(text,size,"%s",status==PURCHASE_MAX?"MAX":
+                  status==PURCHASE_FULL?"FULL":"INVALID");
+}
+void dr_support_label(const Game *g,int slot,char *text,size_t size) {
+    if(!text || !size)return;
+    SupportStatus status=game_support_status(g,slot);
+    if(status==SUPPORT_ACTIVE) {
+        int frames=slot==0?g->freeze_frames:g->slow_frames;
+        /* Round up without overflowing; bound the label for damaged state. */
+        int seconds=frames/60+(frames%60!=0);
+        if(seconds>99)seconds=99;
+        snprintf(text,size,"%s %ds",slot==1 && g->freeze_frames>0?"HOLD":"ON",seconds);
+    } else snprintf(text,size,"%s",status==SUPPORT_READY?"READY":
+                    status==SUPPORT_EMPTY?"EMPTY":"WAIT");
+}
+void dr_capture_timer_label(const Game *g,char *text,size_t size) {
+    if(!text || !size)return;
+    int frames=g && g->capture_timeout>0?g->capture_timeout:0;
+    int seconds=frames/60+(frames%60!=0);
+    /* Stay inside the 55-pixel timer panel even with a saturated timer. */
+    if(seconds>9999)snprintf(text,size,"9999s+");
+    else snprintf(text,size,"%ds",seconds);
+}
 void dr_support_center(int index,int *x,int *y) {
     static const int cx[3]={67,190,128},cy[3]={101,101,151};
     if(x)*x=index>=0 && index<3?cx[index]:-1;
