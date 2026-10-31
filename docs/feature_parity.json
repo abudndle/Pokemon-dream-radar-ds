@@ -105,12 +105,13 @@
       "id": "sphere_projectiles",
       "feature": "Original sphere projectile/penalty attacks",
       "status": "partial",
-      "gap": "DS/DSi Legendary captures now launch three simultaneous, separately shootable energy balls; ordinary profiles retain staggered attacks. Independent collision, dodge/beam defense, class-specific penalties and cleanup are implemented; exact retail per-species patterns remain unverified.",
+      "gap": "Legendary attacks launch three simultaneous energy balls, while ordinary attacks remain staggered. One impact penalty per frame, nearest-ball beam defense, and encounter cleanup are covered by host regression tests; original per-species patterns remain unverified.",
       "evidence": [
         "source/game.c",
         "source/main.c",
         "tests/test_capture_profiles.c",
-        "tests/test_sphere_projectiles.c"
+        "tests/test_sphere_projectiles.c",
+        "tests/test_projectile_fairness.c"
       ]
     },
     {
