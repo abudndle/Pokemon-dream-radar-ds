@@ -22,6 +22,24 @@ static void collect_cloud_color(Game *g,int color) {
     g->save.frames_played=(uint32_t)(color*45+3);
     assert(game_orb_live_color(g)==(OrbColor)color);
     game_fire(g);
+    assert(g->screen==STATE_RADAR && game_active_dream_orbs(g)>=3);
+    assert(g->session_orbs==0); /* Breaking a cloud does not grant currency. */
+    for(int shot=0;shot<DREAM_ORB_CHAIN_LIMIT && g->screen==STATE_RADAR;shot++) {
+        int slot=-1;
+        for(int i=0;i<MAX_DREAM_ORBS;i++)
+            if(g->dream_orbs[i].alive){slot=i;break;}
+        assert(slot>=0);
+        g->aim_x=g->dream_orbs[slot].x;
+        g->aim_y=g->dream_orbs[slot].y;
+        /* Each separate orb changes color independently while waiting.
+           Aim for the requested color before firing, without using time
+           ticks that would move the orb out from under the reticle. */
+        unsigned off=g->dream_orbs[slot].color_phase%4u;
+        unsigned target=((unsigned)color+4u-off)%4u;
+        g->save.frames_played=target*45u+3u;
+        assert(game_dream_orb_color(g,slot)==(OrbColor)color);
+        game_fire(g);
+    }
     assert(g->screen==STATE_RESULTS && g->session_orbs>=3);
     assert(g->session_color_counts[color]==g->session_orbs);
     assert(game_orb_color(g)==(OrbColor)color);
