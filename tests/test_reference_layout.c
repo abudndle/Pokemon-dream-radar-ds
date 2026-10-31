@@ -10,6 +10,10 @@ int main(void) {
     assert(!dr_quad_hit(quad,129,129));
     assert(!dr_quad_hit(quad,-1,100));
     assert(!dr_quad_hit(NULL,100,100));
+    /* Untrusted pane data must never overflow convex polygon arithmetic. */
+    const int invalid_quad[8]={2147483647,0,0,2147483647,-2147483647,0,0,-2147483647};
+    assert(!dr_quad_hit(invalid_quad,100,100));
+
     const int flat[8]={20,20,20,20,20,20,20,20};
     assert(!dr_quad_hit(flat,20,20));
     for(int count=6;count<=7;count++) {
