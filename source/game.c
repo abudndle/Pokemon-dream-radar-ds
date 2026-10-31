@@ -458,7 +458,8 @@ int game_cancel_pending_replace(Game *g) {
     return 1;
 }
 void game_tick(Game *g) {
-    g->save.frames_played++;
+    /* The play-time counter is persisted as uint32_t; never wrap to zero. */
+    if (g->save.frames_played<UINT32_MAX)g->save.frames_played++;
     if (g->messages>0)g->messages--;
     if (g->screen==STATE_SPHERE) {
         /* Apply effects to the entire current frame before decrementing.
