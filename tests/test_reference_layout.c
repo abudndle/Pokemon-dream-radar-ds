@@ -41,6 +41,15 @@ int main(void) {
             assert(dr_lab_hit(128,y+22,count)==-1);
         }
     }
+    /* Confirm every on-screen transfer cell matches its documented rectangle
+       and the shared quadrilateral picker at all interior pixel locations. */
+    for(int i=0;i<12;i++) {
+        int rx,ry,rw,rh;
+        dr_transfer_slot_rect(i,&rx,&ry,&rw,&rh);
+        for(int yy=ry;yy<ry+rh;yy++)
+            for(int xx=rx;xx<rx+rw;xx++)
+                assert(dr_transfer_slot_at(xx,yy)==i);
+    }
     /* Original title layout: visual rectangles and touch targets must agree. */
     for(int i=0;i<4;i++) {
         const DrPaneRect *r=&dr_title_panes[i];
