@@ -214,6 +214,9 @@ void game_secret_key(Game *g, int key) {
     }
 }
 void game_begin_search(Game *g, int ext) {
+    if (!g) return;
+    /* Never restart an encounter or replace an unresolved storage choice. */
+    if (g->screen==STATE_RADAR || g->screen==STATE_SPHERE || g->screen==STATE_REPLACE) return;
     if (ext<0 || ext>=EXT_COUNT || !game_extension_unlocked(g,ext)) { msg(g,"This Extension is locked.");return; }
     /* All three cloud-based research modes need at least one cloud.
        Never charge a paid extension when there is nothing to scan. */
