@@ -823,24 +823,22 @@ static int save_photo(void) {
                              camera_last_frame, PIXELS);
 }
 static void album_select(int direction) {
-    int slot=-1;
-    /* Direction 0 means rescan from the start; otherwise wrap from current. */
-    int from=direction==0?-1:album_slot;
-    /* A corrupt BMP should not prevent browsing later valid photographs.
-       Search each numbered slot at most once, preserving the current image
-       if no readable replacement exists. */
+    /* Visit each numbered slot only once. Calling dr_photo_find repeatedly
+       for corrupt BMPs previously performed up to one million stat() calls. */
     if(photo_storage_ready) {
+        int step=direction<0?-1:1;
+        int start=direction==0 || album_slot<0
+                ? (step<0?DR_PHOTO_MAX-1:0)
+                : (album_slot+step+DR_PHOTO_MAX)%DR_PHOTO_MAX;
         for(int attempt=0;attempt<DR_PHOTO_MAX;attempt++) {
-            if(!dr_photo_find(photo_dir,from,direction<0?-1:1,&slot))break;
+            int slot=(start+step*attempt+DR_PHOTO_MAX)%DR_PHOTO_MAX;
             char path[128];
             snprintf(path,sizeof path,"%s/photo_%03d.bmp",photo_dir,slot);
-            /* Decode into idle transfer memory first: a truncated BMP must
-               not partially overwrite the photograph being displayed. */
+            /* Failed decoding must not overwrite the displayed photograph. */
             if(dr_photo_read(path,camera_frame,PIXELS)) {
                 memcpy(camera_last_frame,camera_frame,sizeof camera_last_frame);
                 album_slot=slot;album_loaded=1;return;
             }
-            from=slot;
         }
     }
     if(direction==0) {album_slot=-1;album_loaded=0;}
