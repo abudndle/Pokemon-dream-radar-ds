@@ -19,6 +19,15 @@ int main(void) {
     assert(g.screen==STATE_RESULTS && g.session_caught==-1);
     game_fire(&g);
     assert(g.save.caught_count==count);
+    /* Corrupt negative timeouts must also resolve, not trap a capture. */
+    game_new(&g,29);
+    g.screen=STATE_SPHERE;
+    g.capture_timeout=-42;
+    g.freeze_frames=50;
+    g.slow_frames=50;
+    game_tick(&g);
+    assert(g.screen==STATE_RESULTS && g.capture_timeout==0);
+    assert(g.freeze_frames==0 && g.slow_frames==0);
     /* Invalid touchscreen coordinates never award shots or mutate clouds. */
     game_new(&g,91);
     game_begin_search(&g,EXT_BASIC);
