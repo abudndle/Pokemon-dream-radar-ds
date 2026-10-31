@@ -546,11 +546,13 @@ void game_tick(Game *g) {
     }
 }
 int game_buy(Game *g, int kind, int idx) {
+    if (!g) return 0;
     static const int costs[]={0,100,500,1000,1500};
     if (kind==0) {
         if (idx<0 || idx>=3) return 0;
         int level=g->save.upgrades[idx];
-        if (level>=5) {msg(g,"Already at maximum level.");return 0;}
+        if (level<1 || level>5) {msg(g,"Invalid equipment level.");return 0;}
+        if (level==5) {msg(g,"Already at maximum level.");return 0;}
         int cost=costs[level];
         if (g->save.orbs<(uint32_t)cost) {msg(g,"Not enough Dream Orbs.");return 0;}
         g->save.orbs-=cost;g->save.upgrades[idx]++;g->requested_save=1;
