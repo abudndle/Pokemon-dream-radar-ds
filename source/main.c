@@ -258,7 +258,7 @@ static void render_search_bottom(void) {
     /* Keep the original Back hotspot at the bottom right. */
 }
 /* Camera-free virtual view using the existing fallback artwork on DS/DS Lite. */
-static void render_ds_search_sandbox(void) {
+static void render_ds_search_sandbox(int show_clouds) {
     load_bg("game_top.raw",top,0x8844);
     const int pan_x=(game.aim_x-128)/5;
     const int pan_y=(game.aim_y-96)/5;
@@ -272,7 +272,7 @@ static void render_ds_search_sandbox(void) {
         if(sy>=SH)sy=SH-1;
         top[y*SW+x]=scene[sy*SW+sx];
     }
-    for(int i=0;i<game.active_clouds;i++) {
+    if(show_clouds) for(int i=0;i<game.active_clouds;i++) {
         const Cloud *c=&game.clouds[i];
         if(!c->alive)continue;
         const int sx=c->x-game.aim_x+128;
@@ -281,13 +281,15 @@ static void render_ds_search_sandbox(void) {
             draw_sprite(top,S_CLOUD_WHITE,sx-16,sy-16);
     }
     draw_sprite(top,S_RETICLE,112,80);
-    char line[32];
-    snprintf(line,sizeof line,"CLOUDS %d/%d",dr_remaining_clouds(&game),game.active_clouds);
-    rect(top,2,2,121,17,0x8421);
-    print(top,6,6,WHITE,line);
+    if(show_clouds) {
+        char line[32];
+        snprintf(line,sizeof line,"CLOUDS %d/%d",dr_remaining_clouds(&game),game.active_clouds);
+        rect(top,2,2,121,17,0x8421);
+        print(top,6,6,WHITE,line);
+    }
 }
 static void render_radar_top(void) {
-    if(!running_dsi) {render_ds_search_sandbox();return;}
+    if(!running_dsi) {render_ds_search_sandbox(1);return;}
     load_bg("radar_overview.raw",top,0x8844);
     char line[40];int white=0,pink=0;
     dr_radar_counts(&game,&white,&pink);
@@ -494,7 +496,7 @@ static void render(void) {
             if(!running_dsi || !game.camera_active || !game.camera_ok) {
                 /* DS and camera-disabled DSi retain the same camera-free aiming
                  * perspective during the capture encounter. */
-                render_ds_search_sandbox();
+                render_ds_search_sandbox(0);
                 draw_sprite(top,S_ORB,game.sphere_x-game.aim_x+128-29,
                             game.sphere_y-game.aim_y+96-29);
             } else {
