@@ -111,6 +111,9 @@ static int export_unique_research(void) {
 
 typedef struct {u16 w,h;u16 *pixels;} Sprite;
 static Sprite sprites[68];
+/* The bundled Pokemon/item sprites were converted from the original 3DS
+   game. Their ordering follows the actual NitroFS sprite manifest. */
+enum {S_ORIGINAL_POKEMON_FIRST=17,S_ORIGINAL_ITEM_FIRST=43};
 enum {S_LOGO,S_CLOUD,S_YELLOW,S_RETICLE,S_ORB,S_SHOP,S_ICON,S_BURNET,S_UP_BEAM,S_UP_ENERGY,S_UP_SCOPE,S_GOOD0,S_GOOD1,S_GOOD2,S_RADAR_PINK,S_RADAR_DARK,S_RADAR_ARROW,S_CLOUD_WHITE=66,S_CLOUD_PINK=67};
 static const char *sprite_files[]={"logo.spr","cloud.spr","cloud_yellow.spr","reticle.spr","orb.spr","shop.spr","icon.spr","burnet.spr","upgrade_beam.spr","upgrade_energy.spr","upgrade_scope.spr",
     "support_0.spr","support_1.spr","support_2.spr",
@@ -569,16 +572,38 @@ static void render(void) {
                 /* DS and camera-disabled DSi retain the same camera-free aiming
                  * perspective during the capture encounter. */
                 render_ds_search_sandbox(0);
-                draw_sprite(top,S_ORB,game.sphere_x-game.aim_x+128-29,
-                            game.sphere_y-game.aim_y+96-29);
+                /* Until genuine optimized 3D models are available,
+                   display the extracted species/item art rather than a
+                   generic placeholder target. */
+                int art=-1;
+                if(game.session_type==0 && game.session_species>=0 && game.session_species<26)
+                    art=S_ORIGINAL_POKEMON_FIRST+game.session_species;
+                else if(game.session_type==1 && game.session_item>=0 && game.session_item<23)
+                    art=S_ORIGINAL_ITEM_FIRST+game.session_item;
+                int px=game.sphere_x-game.aim_x+128;
+                int py=game.sphere_y-game.aim_y+96;
+                if(art>=0 && sprites[art].pixels)
+                    draw_sprite(top,art,px-(int)sprites[art].w/2,py-(int)sprites[art].h/2);
+                else draw_sprite(top,S_ORB,px-29,py-29);
                 /* Draw sight after the orb so the target cannot hide the crosshair. */
                 draw_sprite(top,S_RETICLE,112,80);
             } else {
                 render_camera_background();
                 /* Use the same world-to-view transform as cloud hunting.
                  * A centered shot now matches game_fire() in both modes. */
-                draw_sprite(top,S_ORB,game.sphere_x-game.aim_x+128-29,
-                            game.sphere_y-game.aim_y+96-29);
+                /* Until genuine optimized 3D models are available,
+                   display the extracted species/item art rather than a
+                   generic placeholder target. */
+                int art=-1;
+                if(game.session_type==0 && game.session_species>=0 && game.session_species<26)
+                    art=S_ORIGINAL_POKEMON_FIRST+game.session_species;
+                else if(game.session_type==1 && game.session_item>=0 && game.session_item<23)
+                    art=S_ORIGINAL_ITEM_FIRST+game.session_item;
+                int px=game.sphere_x-game.aim_x+128;
+                int py=game.sphere_y-game.aim_y+96;
+                if(art>=0 && sprites[art].pixels)
+                    draw_sprite(top,art,px-(int)sprites[art].w/2,py-(int)sprites[art].h/2);
+                else draw_sprite(top,S_ORB,px-29,py-29);
             }
             progress_bar(9,4,181,game.capture_hp,240,GOLD);
             char tx[32];snprintf(tx,sizeof tx,"%d",game.capture_timeout/60);
