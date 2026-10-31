@@ -259,7 +259,7 @@ void game_begin_search(Game *g, int ext) {
             c->x=0;c->y=0; /* Inactive clouds never need random placement. */
         }
         c->alive=(i<g->active_clouds);c->cooldown=0;
-        c->kind=((i%5)==0 || ext!=EXT_BASIC)?1:0;
+        c->kind=c->alive && (((i%5)==0 || ext!=EXT_BASIC)?1:0);
     }
 }
 static int choice_species(Game *g) {
