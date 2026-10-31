@@ -58,6 +58,8 @@ test-host:
 	./build/test_capture_timeout_policy
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c tests/test_encounter_types.c -o build/test_encounter_types
 	./build/test_encounter_types
+	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c tests/test_orb_colors.c -o build/test_orb_colors
+	./build/test_orb_colors
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c tests/test_simulator_item_rewards.c -o build/test_simulator_item_rewards
 	./build/test_simulator_item_rewards
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c tests/test_cloud_recharge.c -o build/test_cloud_recharge
