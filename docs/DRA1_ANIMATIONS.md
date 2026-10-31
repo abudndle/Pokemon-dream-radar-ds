@@ -10,7 +10,7 @@ Store a DRA1 sidecar alongside the matching mesh:
 - For a DS flashcart, use the equivalent `fat:/DreamRadarDSi/Models/` path.
 - For private NitroFS builds, the optional model and companions are `nitro:/pokemon_00.drm`, `nitro:/pokemon_00.drt`, and `nitro:/pokemon_00.dra`.
 
-Indices run from `00` to `25`. A sidecar is only loaded after a valid mesh from the same storage source. When both `DRB1` and `DRA1` animations are present, **DRB1 rigid body-part animation takes priority** (see [DRB1_BODY_PARTS.md](DRB1_BODY_PARTS.md)). A missing or invalid DRA1 file leaves the original model's rigid rotation intact; missing textures keep the flat-color fallback, and missing meshes keep 2D Pokémon artwork. **Items remain 2D sprites.**
+Indices run from `00` to `25`. A sidecar is only loaded after a valid mesh from the same storage source. When DRK1, DRB1 and DRA1 are all available, **DRK1 weighted hierarchy takes priority**, then DRB1 rigid parts, then DRA1 vertex offsets (see [DRK1_SKINNING.md](DRK1_SKINNING.md)). A missing or invalid DRA1 file leaves the original model's rigid rotation intact; missing textures keep the flat-color fallback, and missing meshes keep 2D Pokémon artwork. **Items remain 2D sprites.**
 
 Animation time starts when the cached species changes. Each keyframe lasts a configurable number of gameplay ticks. Linear interpolation blends to the next frame and loops continuously, including from last to first. The system never allocates RAM per rendered frame; it writes into one reused scratch mesh and passes that geometry to both textured and flat-shaded renderers.
 
