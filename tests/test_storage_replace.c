@@ -7,6 +7,7 @@
 
 static void fake_capture(Game *g,int kind,int id) {
     g->screen=STATE_SPHERE;
+    g->capture_timeout=100; /* Valid encounters must have time remaining. */
     g->session_type=kind;
     g->session_species=id;
     g->session_item=id;
@@ -108,7 +109,13 @@ int main(void) {
     Game old;game_new(&old,42);
     old.save.pending_items[4]=7;
     memset(old.save.reserved+2,0,7);
-    assert(game_save(&old,path));
+    /* Modern writes reject this obsolete layout; model a real old save by
+       serializing the already-checksummed legacy bytes directly. */
+    assert(!game_save(&old,path));
+    old.save.checksum=game_checksum(&old.save);
+    FILE *legacy_save=fopen(path,"wb");assert(legacy_save);
+    assert(fwrite(&old.save,1,sizeof old.save,legacy_save)==sizeof old.save);
+    assert(fclose(legacy_save)==0);
     Game migrated;game_new(&migrated,123);
     assert(game_load(&migrated,path));
     assert(migrated.requested_save);
