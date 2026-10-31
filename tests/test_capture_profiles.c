@@ -91,26 +91,48 @@ int main(void) {
     for(int i=0;i<15;i++)game_tick(&g);
     assert(g.capture_motion_ticks-moves<=5);
 
-    /* Legendary projectiles are issued in three-ball staggered volleys.
-       Destroying one via the beam leaves the remaining volleys pending. */
+    /* A legendary volley now creates three simultaneous but independently
+       shootable balls. Each sibling remains active if another is destroyed. */
     g=base(18,EXT_DIALGA,0);
     g.projectile_enabled=1;
     g.projectile_cooldown=0;
     g.aim_x=220;g.aim_y=170;
     game_tick(&g);
-    assert(g.projectile_active && g.projectile_queued==2);
-    g.aim_x=g.projectile_x;g.aim_y=g.projectile_y;
-    game_fire(&g);
-    assert(!g.projectile_active && g.projectile_queued==2);
-    assert(g.projectile_cooldown==12);
-    g.aim_x=220;g.aim_y=170;
-    for(int i=0;i<13;i++)game_tick(&g);
-    assert(g.projectile_active && g.projectile_queued==1);
-    g.aim_x=g.projectile_x;g.aim_y=g.projectile_y;
-    game_fire(&g);
-    g.aim_x=220;g.aim_y=170;
-    for(int i=0;i<13;i++)game_tick(&g);
     assert(g.projectile_active && g.projectile_queued==0);
+    assert(g.projectile_extra[0].active && g.projectile_extra[1].active);
+    assert(g.projectile_extra[0].x<g.projectile_x);
+    assert(g.projectile_extra[1].x>g.projectile_x);
+    int hp=g.capture_hp;
+    g.aim_x=g.projectile_extra[0].x;
+    g.aim_y=g.projectile_extra[0].y;
+    game_fire(&g);
+    assert(!g.projectile_extra[0].active);
+    assert(g.projectile_extra[1].active && g.projectile_active);
+    g.aim_x=g.projectile_extra[1].x;
+    g.aim_y=g.projectile_extra[1].y;
+    game_fire(&g);
+    assert(!g.projectile_extra[1].active && g.projectile_active);
+    g.aim_x=g.projectile_x;g.aim_y=g.projectile_y;
+    game_fire(&g);
+    assert(!g.projectile_active && g.capture_hp==hp);
+    assert(g.projectile_hits==0);
+
+    /* Freeze applies to the whole simultaneous fan; hitting an extra ball
+       causes the same bounded penalty as hitting the primary. */
+    g=base(18,EXT_DIALGA,0);
+    g.projectile_enabled=1;g.projectile_active=0;
+    g.projectile_extra[0].active=1;
+    g.projectile_extra[0].x=100;g.projectile_extra[0].y=100;
+    g.projectile_extra[0].vx=1;g.projectile_extra[0].vy=0;
+    g.projectile_extra[0].ttl=20;
+    g.aim_x=101;g.aim_y=100;
+    g.capture_timeout=1000;
+    g.freeze_frames=3;
+    for(int i=0;i<3;i++)game_tick(&g);
+    assert(g.projectile_extra[0].x==100 && g.projectile_hits==0);
+    game_tick(&g);
+    assert(g.projectile_hits==1 && !g.projectile_extra[0].active);
+    assert(g.capture_timeout==996-legendary.attack_penalty);
 
     /* An actual impact deducts a profile-specific bounded amount. */
     g=base(18,EXT_DIALGA,0);
