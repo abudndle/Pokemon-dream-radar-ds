@@ -435,7 +435,8 @@ static void accept_pokemon(Game *g, int species) {
         g->save.story_phase++;
     if(species>=18 && species<=22)
         g->save.legends_caught |= (uint8_t)(1u<<(species-18));
-    g->save.caught_count++;
+    /* Keep lifetime capture records monotonic at the save format limit. */
+    if(g->save.caught_count<UINT32_MAX)g->save.caught_count++;
     g->session_caught=species;
 }
 static void conclude_capture(Game *g) {
