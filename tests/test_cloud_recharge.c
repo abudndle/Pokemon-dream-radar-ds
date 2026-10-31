@@ -71,6 +71,13 @@ int main(void) {
     g.save.upgrades[2]=0;
     game_regen_clouds(&g,100000);
     assert(g.save.cloud_count==10);
+    /* Near UINT32_MAX the anchor advances without wrapping. */
+    game_new(&g,21);
+    g.save.last_cloud_time=UINT32_MAX-601u;
+    g.save.cloud_count=0;
+    game_regen_clouds(&g,UINT32_MAX);
+    assert(g.save.cloud_count==2);
+    assert(g.save.last_cloud_time==UINT32_MAX-1u);
     puts("PASS: recharge intervals, huge clock jumps, caps, clock rollback");
     return 0;
 }
