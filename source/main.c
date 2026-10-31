@@ -222,7 +222,7 @@ static DrMesh encounter_mesh;
 static int encounter_mesh_species=-1;
 static int encounter_mesh_attempted;
 static int draw_encounter_mesh(int species,int x,int y) {
-    if(species<0 || species>=26 || !have_romfs)return 0;
+    if(species<0 || species>=26 || (!have_storage && !have_romfs))return 0;
     if(species!=encounter_mesh_species) {
         dr_mesh_free(&encounter_mesh);
         encounter_mesh_species=species;
@@ -230,24 +230,23 @@ static int draw_encounter_mesh(int species,int x,int y) {
     }
     if(!encounter_mesh_attempted) {
         encounter_mesh_attempted=1;
-        char name[64];
-        snprintf(name,sizeof name,"nitro:/pokemon_%02d.drm",species);
-        FILE *f=fopen(name,"rb");
-        if(f) {
-            if(fseek(f,0,SEEK_END)==0) {
-                long length=ftell(f);
-                /* Same 2048-triangle limit as the portable DRM1 decoder. */
-                if(length>=20 && length<=8+6*65535+6*2048 &&
-                   fseek(f,0,SEEK_SET)==0) {
-                    unsigned char *data=malloc((size_t)length);
-                    if(data) {
-                        if(fread(data,1,(size_t)length,f)==(size_t)length)
-                            dr_mesh_decode(data,(size_t)length,&encounter_mesh);
-                        free(data);
-                    }
-                }
-            }
-            fclose(f);
+        /* Private user-exported meshes take precedence without requiring an
+           NDS rebuild. DS flashcarts use fat:/, DSi uses sd:/ when mounted. */
+        if(have_storage && storage_root) {
+            char path[128];
+            int n=snprintf(path,sizeof path,
+                           "%sDreamRadarDSi/Models/pokemon_%02d.drm",
+                           storage_root,species);
+            if(n>0 && n<(int)sizeof path)
+                dr_mesh_load_file(path,&encounter_mesh);
+        }
+        /* A missing or invalid storage mesh may fall back to a model explicitly
+           bundled in NitroFS. Neither path is shipped with actual 3DS models. */
+        if(!encounter_mesh.vertex && have_romfs) {
+            char path[64];
+            int n=snprintf(path,sizeof path,"nitro:/pokemon_%02d.drm",species);
+            if(n>0 && n<(int)sizeof path)
+                dr_mesh_load_file(path,&encounter_mesh);
         }
     }
     if(!encounter_mesh.vertex)return 0;
