@@ -29,4 +29,8 @@ with tempfile.TemporaryDirectory() as d:
     corrupt=audit(snapshot,empty)
     assert corrupt["invalid_layout_sources"]==["damaged.bclyt"]
     assert corrupt["unmatched_layout_sources"]==["damaged.bclyt"]
+    # A valid CLYT magic + little-endian BOM must not be flagged as corrupt.
+    fake.write_bytes(b"CLYT\\xff\\xfe\\x14\\x00")
+    valid=audit(snapshot,empty)
+    assert valid["invalid_layout_sources"]==[]
 print("PASS: original UI source inventory distinguishes 22 snapshots from bundled sources")
