@@ -43,6 +43,18 @@ assert len(sprites)==68
 assert sprites[17:43]==[f"pokemon_{i:02d}.spr" for i in range(26)]
 assert sprites[43:66]==[f"item_{i:02d}.spr" for i in range(23)]
 assert sprites[66:]==["radar_cloud_white.spr","radar_cloud_pink.spr"]
+# Cross-check every runtime sprite filename against the packaged verifier.
+# This catches adding original graphics in source without shipping them in
+# NitroFS, and prevents silent ordering/manifest drift.
+from verify_assets import SPRITES, BITMAPS
+assert len(sprites)==len(SPRITES)
+assert len(set(sprites))==len(sprites)
+assert set(sprites)==set(SPRITES)
+background_manifest=main_source.split("static const char *const bg_files[] = {",1)[1].split("};",1)[0]
+backgrounds=re.findall(r'"([^"]+\.raw)"',background_manifest)
+assert len(backgrounds)==len(BITMAPS)
+assert len(set(backgrounds))==len(backgrounds)
+assert set(backgrounds)==set(BITMAPS)
 assert "S_ORIGINAL_POKEMON_FIRST=17,S_ORIGINAL_ITEM_FIRST=43" in main_source
 assert main_source.count("draw_original_encounter_art();")==2
 assert "else draw_sprite(top,S_ORB,px-29,py-29);" in main_source
