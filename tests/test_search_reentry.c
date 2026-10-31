@@ -35,12 +35,26 @@ int main(void) {
     assert(!game_leave_search(&g)); /* Repeated Back must not double-count. */
     g.screen=STATE_SPHERE;
     g.capture_timeout=20;g.freeze_frames=4;g.slow_frames=6;
-    g.session_caught=5;g.session_item=9;g.session_type=1;
+    g.session_caught=5;g.session_item=9;g.session_species=18;g.session_type=1;
+    g.capture_hp=200;
     g.save.searches=12;
     assert(game_leave_search(&g));
     assert(g.save.searches==13 && g.capture_timeout==0);
     assert(g.freeze_frames==0 && g.slow_frames==0);
-    assert(g.session_caught==-1 && g.session_item==-1 && g.session_type==0);
+    assert(g.session_caught==-1 && g.session_item==-1 && g.session_species==-1 && g.session_type==0);
+    assert(g.capture_hp==0);
+    /* Expired captures must also discard unearned encounter metadata. */
+    g.screen=STATE_SPHERE;
+    g.capture_timeout=1;
+    g.session_caught=20;g.session_item=4;g.session_species=20;g.session_type=1;
+    g.capture_hp=150;
+    unsigned before_expiry=g.save.searches;
+    game_tick(&g);
+    assert(g.screen==STATE_RESULTS && g.capture_timeout==0);
+    assert(g.save.searches==before_expiry+1);
+    assert(g.session_caught==-1 && g.session_item==-1 && g.session_species==-1);
+    assert(g.session_type==0 && g.capture_hp==0);
+    assert(!game_leave_search(&g));
     puts("PASS: searches cannot overwrite active gameplay or pending storage choices");
     return 0;
 }
