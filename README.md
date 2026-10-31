@@ -1,3 +1,6 @@
+this is ai project dont look into this page please i was originally trying to keep it private but i cant do that 
+anynore so dont mind the notes and messages you read in the code
+im just playing with ai for fun
 **LATEST — Screenshot cloud radar / camera search / transfer tray milestone:** See `SCREENSHOT_SEARCH_TRANSFER_MILESTONE.md`, `preview/cloud_search_transfer_triptych.png`, and `nitrofs/` for actual source UI and original extracted Pokémon/item sprites. Transfer to retail games is **not** implemented.
 
 **NEW — Reference-screen fidelity update:** The title-screen menu now matches
