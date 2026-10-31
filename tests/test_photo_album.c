@@ -39,7 +39,9 @@ int main(void) {
     unsigned char zero[4]={0,0,0,0};
     assert(fwrite(zero,1,4,badsize)==4);
     assert(fclose(badsize)==0);
+    for(size_t i=0;i<DR_PHOTO_W*DR_PHOTO_H;i++)dst[i]=0x2468;
     assert(!dr_photo_read(path,dst,DR_PHOTO_W*DR_PHOTO_H));
+    for(size_t i=0;i<DR_PHOTO_W*DR_PHOTO_H;i++)assert(dst[i]==0x2468);
     /* A saved image with the correct header remains readable. */
     assert(unlink(path)==0);
     assert(dr_photo_write(path,src,DR_PHOTO_W*DR_PHOTO_H));
