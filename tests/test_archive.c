@@ -15,6 +15,13 @@ int main(void) {
     g.save.legends_caught=(1<<0)|(1<<4);
     g.save.pending_items[2]=3;
     assert(!game_release_archived_pending(NULL));
+    g.save.pending[0]=255;
+    assert(!game_export(&g,"/tmp/dr-invalid-species-export.txt"));
+    g.save.pending[0]=18;
+    g.save.pending_items[2]=3;
+    g.save.reserved[4]=255;
+    assert(!game_export(&g,"/tmp/dr-invalid-item-export.txt"));
+    g.save.reserved[4]=3;
     g.save.pending_count=MAX_CAUGHT+1;
     g.pending_export_signature=1234;
     assert(!game_release_archived_pending(&g));
