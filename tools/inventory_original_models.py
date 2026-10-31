@@ -46,7 +46,7 @@ def compare_inventories(expected, actual):
             size = entry.get("bytes")
             digest = entry.get("sha256")
             if (not isinstance(path, str) or not path or path.startswith("/") or
-                "\\\\" in path or ".." in path.split("/") or
+                chr(92) in path or ".." in path.split("/") or
                 not isinstance(size, int) or isinstance(size, bool) or size < 0 or
                 not isinstance(digest, str) or len(digest) != 64 or
                 any(c not in "0123456789abcdef" for c in digest)):
