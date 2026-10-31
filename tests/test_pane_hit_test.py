@@ -1,3 +1,4 @@
+import math
 import pathlib
 import sys
 root=pathlib.Path(__file__).resolve().parents[1]
@@ -18,4 +19,5 @@ assert pane_hit(diamond,100,100)
 assert not pane_hit(diamond,71,71)
 assert not pane_hit(diamond,129,129)
 assert not pane_hit(pane([[20,20]]*4),20,20)
+assert not pane_hit(pane([[10,10],[30,10],[10,30],[math.inf,30]]),20,20)
 print("PASS: transformed UI quadrilateral touch tests")
