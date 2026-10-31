@@ -36,6 +36,17 @@ int main(void) {
     denied.save.checksum=0xAABBCCDDu;
     assert(!game_save(&denied,"/this/directory/does/not/exist/dream-radar.sav"));
     assert(denied.save.checksum==0xAABBCCDDu);
+    /* Successful serialization writes a valid checksum to disk without
+       mutating the live snapshot or its stale checksum. */
+    char standalone[TW_MAX_PATH];
+    assert(snprintf(standalone,sizeof standalone,"%s/direct.sav",root)<(int)sizeof standalone);
+    Game direct;game_new(&direct,31);
+    direct.save.orbs=77;
+    direct.save.checksum=0xBEEFu;
+    assert(game_save(&direct,standalone));
+    assert(direct.save.checksum==0xBEEFu);
+    Game loaded;game_new(&loaded,1);
+    assert(game_load(&loaded,standalone) && loaded.save.orbs==77);
     Game g;game_new(&g,1);
     g.save.orbs=123;
     assert(save_backend_write(&backend,&g));
