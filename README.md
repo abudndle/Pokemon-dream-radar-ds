@@ -1,3 +1,34 @@
+## Dream Orb colors and next-search Pokémon preference (DS adaptation)
+
+The DS port now tracks four original Dream Orb colors: **pink**, **green**,
+**orange**, and **blue**. Green unlocks after Tornadus, orange after
+Thundurus, and blue after Landorus. While scanning, the color changes every
+45 frames; waiting before shooting a non-Pokémon cloud lets you collect
+a different color. The search HUD shows `LAST` (the saved color driving
+the current scan) and `LIVE` (the color awarded by the next cloud hit).
+
+At the end of a search, the dominant collected color is saved to unused
+bytes 12 and 13 of the existing v3 homebrew save, without changing its size.
+Old saves without that marker migrate to pink. A search that collects no
+orbs leaves the previous dominant color intact. The *next* scan selects
+ordinary Pokémon from the original color-affinity groups. Examples:
+Smoochum requires blue, Togepi requires green, Ralts prefers green or
+orange, and Spiritomb prefers pink or blue.
+
+**Not full original behavior:** The DS adaptation currently grants
+3–7 orbs at once when a cloud is hit and assigns that batch the live
+color. The original game generates moving individual orbs that change
+color independently, can split into timed chains, and use exact
+unrecovered encounter weights. Therefore color probability and chaining
+are not yet 1:1 despite test coverage. The orb preview advances on
+45-frame intervals as a practical D-pad/stylus alternative; it is not
+a reproduction of the original motion-controlled AR shooting.
+
+Original gameplay references:
+- https://bulbapedia.bulbagarden.net/wiki/Dream_Radar
+- https://www.smogon.com/ingame/guides/dream_radar
+- https://www.serebii.net/dreamradar/pokemon.shtml
+
 ## Full original gameplay feature coverage
 
 **This is still an unfinished DS/DSi demake, not a 1:1 original-game port.**
