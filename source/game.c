@@ -150,8 +150,12 @@ int game_save(Game *g, const char *file) {
     SaveData snapshot=g->save;
     /* Do not truncate a valid save with a runtime record the loader would
        reject. Check the gameplay-critical bounded fields before fopen(). */
-    if(snapshot.pending_count>MAX_CAUGHT || snapshot.cloud_count>MAX_CLOUDS ||
+    if(snapshot.magic!=SAVE_MAGIC || snapshot.version!=SAVE_VERSION ||
+       snapshot.pending_count>MAX_CAUGHT || snapshot.cloud_count>MAX_CLOUDS ||
        snapshot.story_phase>3 || (snapshot.legends_caught & ~31u) ||
+       snapshot.intro_seen>1 || snapshot.optical_aim>1 ||
+       snapshot.camera_enabled>1 || snapshot.reserved[0]>3 ||
+       snapshot.reserved[1]>7 ||
        snapshot.reserved[8]!=ITEM_LAYOUT_MARKER)return 0;
     for(int i=0;i<3;i++)
         if(snapshot.upgrades[i]<1 || snapshot.upgrades[i]>5 ||
