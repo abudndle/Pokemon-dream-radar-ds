@@ -45,6 +45,13 @@ int main(void) {
     assert(g.screen==STATE_RADAR);
     int w,p;dr_radar_counts(&g,&w,&p);
     assert(w+p==dr_remaining_clouds(&g));
+    /* kind=1 draws pink artwork; kind=0 draws white artwork. */
+    int expected_white=0,expected_pink=0;
+    for(int i=0;i<g.active_clouds;i++) {
+        if(g.clouds[i].kind)expected_pink++;
+        else expected_white++;
+    }
+    assert(w==expected_white && p==expected_pink);
     assert(dr_remaining_clouds(&g)==g.active_clouds);
     for(int i=0;i<g.active_clouds;i++){
         g.clouds[i].alive=0;
