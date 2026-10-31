@@ -323,7 +323,8 @@ void game_fire(Game *g) {
     if (g->screen==STATE_RADAR) {
         /* When hit circles overlap, choose the closest cloud, not the
            lowest array index. This keeps stylus aiming deterministic. */
-        int selected=-1, nearest=19*19;
+        int selected=-1;
+        int64_t nearest=19*19;
         for (int i=0;i<g->active_clouds && i<MAX_CLOUDS;i++) {
             const Cloud *c=&g->clouds[i];
             int64_t dx=(int64_t)c->x-g->aim_x,dy=(int64_t)c->y-g->aim_y;
