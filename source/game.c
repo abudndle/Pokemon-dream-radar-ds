@@ -331,8 +331,14 @@ static void start_sphere(Game *g) {
 int game_use_support(Game *g, int slot) {
     if (!g || g->screen != STATE_SPHERE || slot < 0 || slot >= 3 ||
         g->save.goods[slot] == 0 || g->save.goods[slot] > 9) return 0;
-    if (slot == 0) g->freeze_frames = 300;
-    else if (slot == 1) g->slow_frames = 300;
+    /* Do not consume another effect item while its full effect is active. */
+    if (slot == 0) {
+        if (g->freeze_frames >= 300) return 0;
+        g->freeze_frames = 300;
+    } else if (slot == 1) {
+        if (g->slow_frames >= 300) return 0;
+        g->slow_frames = 300;
+    }
     else {
         /* Never spend an Energy Recharge if its timer cannot increase.
            Saturate the addition without overflowing signed arithmetic. */
