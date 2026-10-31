@@ -60,6 +60,13 @@ int main(void) {
     assert(dr_support_at(128,26)==-1);
     assert(dr_support_at(245,179)==-1);
     assert(dr_support_at(-1,100)==-1);
+    /* Footer control boundaries remain pixel-identical after quad integration. */
+    assert(dr_transfer_button_at(9,157)==-1);
+    assert(dr_transfer_button_at(120,157)==-1);
+    assert(dr_transfer_button_at(137,157)==-1);
+    assert(dr_transfer_button_at(246,157)==-1);
+    assert(dr_transfer_button_at(119,189)==0);
+    assert(dr_transfer_button_at(245,189)==1);
     assert(dr_transfer_button_at(27,171)==0);
     assert(dr_transfer_button_at(188,171)==1);
     assert(dr_transfer_button_at(125,20)==-1);
