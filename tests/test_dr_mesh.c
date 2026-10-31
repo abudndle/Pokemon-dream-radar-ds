@@ -2,6 +2,8 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
+#include <unistd.h>
 static const unsigned char triangle[]={
  'D','R','M','1',3,0,1,0,
  0,0,0,0,0,0, 0,16,0,0,0,0, 0,0,0,16,0,0,
@@ -49,6 +51,31 @@ int main(void){
     assert(rotated[32*64+32]==0xffff);
     assert(rotated[40*64+24]==0xffff);
     assert(!dr_mesh_wireframe_yaw(&m,rotated,64,64,16,48,16,0xffff,16));
+    /* The standalone model-file loader must accept only exact, complete
+       DRM1 files and preserve an already loaded mesh after any failure. */
+    char path[]="/tmp/dr_mesh_XXXXXX";
+    int fd=mkstemp(path);assert(fd>=0);
+    FILE *file=fdopen(fd,"wb");assert(file);
+    assert(fwrite(triangle,1,sizeof triangle,file)==sizeof triangle);
+    assert(fclose(file)==0);
+    DrMesh from_file={0};
+    assert(dr_mesh_load_file(path,&from_file));
+    assert(from_file.vertices==3 && from_file.triangles==1);
+    assert(from_file.vertex[1].x==4096);
+    assert(!dr_mesh_load_file("",&from_file));
+    assert(!dr_mesh_load_file("/tmp/dr_nonexistent_mesh_test_file.drm",&from_file));
+    assert(from_file.vertices==3 && from_file.vertex[1].x==4096);
+    file=fopen(path,"ab");assert(file);
+    assert(fputc(0xAA,file)!=EOF && fclose(file)==0);
+    assert(!dr_mesh_load_file(path,&from_file));
+    assert(from_file.vertices==3 && from_file.vertex[1].x==4096);
+    file=fopen(path,"wb");assert(file);
+    assert(fwrite(triangle,1,sizeof triangle-1,file)==sizeof triangle-1);
+    assert(fclose(file)==0);
+    assert(!dr_mesh_load_file(path,&from_file));
+    assert(from_file.vertex[1].x==4096);
+    dr_mesh_free(&from_file);
+    assert(unlink(path)==0);
     dr_mesh_free(&m);
     assert(!m.vertex && !m.triangle);
     unsigned char bad[sizeof triangle];
