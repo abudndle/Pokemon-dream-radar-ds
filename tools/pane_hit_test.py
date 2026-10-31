@@ -16,6 +16,8 @@ def pane_hit(pane, x, y):
     if x < bounds[0] or x > bounds[2] or y < bounds[1] or y > bounds[3]:
         return False
     corners=pane["world_corners_ds"]
+    if len(corners)!=4 or any(len(p)!=2 or not all(math.isfinite(v) for v in p) for p in corners):
+        return False
     # Export ordering is TL,TR,BL,BR. Traverse the perimeter clockwise.
     quad=[corners[i] for i in (0,1,3,2)]
     signs=[]
