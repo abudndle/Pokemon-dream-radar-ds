@@ -85,7 +85,17 @@ int main(void) {
             int x=cx+dx,y=cy+dy;
             if(x<0||x>=256||y<0||y>=192)continue;
             int in_region=(2*(dx<0?-dx:dx)+(dy<0?-dy:dy)<=105);
-            if(in_region)assert(dr_support_at(x,y)==k);
+            if(in_region) {
+                /* Earlier support pads win if the touch regions overlap. */
+                int expected=k;
+                for(int prev=0;prev<k;prev++) {
+                    int px,py;dr_support_center(prev,&px,&py);
+                    int ax=x-px,ay=y-py;
+                    if(ax<0)ax=-ax;if(ay<0)ay=-ay;
+                    if(ax<=44 && ay<=39 && 2*ax+ay<=105) {expected=prev;break;}
+                }
+                assert(dr_support_at(x,y)==expected);
+            }
         }
     }
     assert(dr_support_at(67,101)==0);
