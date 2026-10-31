@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 static uint16_t le16(const unsigned char *p) {
     return (uint16_t)((unsigned)p[0] | ((unsigned)p[1]<<8));
@@ -68,9 +70,12 @@ done:
 }
 int dr_photo_write(const char *filename,const uint16_t *src,size_t count) {
     if(!filename || !src || count<DR_PHOTO_W*DR_PHOTO_H)return 0;
-    /* Do not overwrite an old user photo. */
-    struct stat st;if(stat(filename,&st)==0)return 0;
-    FILE *f=fopen(filename,"wb");if(!f)return 0;
+    /* Exclusive creation avoids overwriting a photo if another writer
+       creates the filename after the album slot scan. */
+    int fd=open(filename,O_WRONLY|O_CREAT|O_EXCL,0600);
+    if(fd<0)return 0;
+    FILE *f=fdopen(fd,"wb");
+    if(!f) { close(fd);remove(filename);return 0; }
     unsigned char head[54]={0}, row[DR_PHOTO_W*3];
     head[0]='B';head[1]='M';
     put32(head+2,54+DR_PHOTO_W*DR_PHOTO_H*3);put32(head+10,54);
