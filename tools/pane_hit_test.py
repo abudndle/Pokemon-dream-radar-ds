@@ -32,6 +32,14 @@ def pane_hit(pane, x, y):
     area=sum(quad[i][0]*quad[(i+1)%4][1]-quad[(i+1)%4][0]*quad[i][1] for i in range(4))
     if abs(area)<1e-8:
         return False
+    # A bow-tie or concave quad is not a valid convex BCLYT pane. Reject it
+    # rather than accidentally making an inverted or self-crossing touch area.
+    turns=[]
+    for i in range(4):
+        a,b,c=quad[i],quad[(i+1)%4],quad[(i+2)%4]
+        turns.append((b[0]-a[0])*(c[1]-b[1])-(b[1]-a[1])*(c[0]-b[0]))
+    if not (all(v>=-1e-6 for v in turns) or all(v<=1e-6 for v in turns)):
+        return False
     return all(v>=-1e-6 for v in signs) or all(v<=1e-6 for v in signs)
 
 def pane_at(layout, x, y):
