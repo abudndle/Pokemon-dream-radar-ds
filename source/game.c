@@ -537,7 +537,10 @@ void game_capture(Game *g) {
 int game_replace_pending(Game *g, int slot) {
     if(!g || g->screen!=STATE_REPLACE)return 0;
     if(g->replace_kind==REPLACE_POKEMON) {
-        if(slot<0 || slot>=g->save.pending_count ||
+        /* Both the selected slot and saved queue length must fit the actual
+           six-element array, even when runtime state is damaged. */
+        if(g->save.pending_count>MAX_CAUGHT ||
+           slot<0 || slot>=MAX_CAUGHT || slot>=g->save.pending_count ||
            g->replace_value<0 || g->replace_value>25)return 0;
         invalidate_archive(g);
         g->save.pending[slot]=(uint8_t)g->replace_value;
