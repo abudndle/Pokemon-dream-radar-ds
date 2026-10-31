@@ -57,6 +57,10 @@ int main(void) {
     assert(game_identify_cart("IRDO")==GAME_WHITE2);
     assert(game_identify_cart("MEEP")==GAME_UNKNOWN);
     assert(game_extension_unlocked(&g,EXT_BASIC));
+    assert(!game_extension_unlocked(NULL,EXT_BASIC));
+    assert(!game_extension_unlocked(&g,-1));
+    assert(!game_extension_unlocked(&g,EXT_COUNT));
+
     assert(!game_extension_unlocked(&g,EXT_TORNADUS));
     assert(!game_extension_unlocked(&g,EXT_DIALGA));
     g.save.total_orbs=401;g.save.orbs=400;
