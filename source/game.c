@@ -296,7 +296,8 @@ static void start_sphere(Game *g) {
        from the original encounter/item tables. */
     static const int item_pool_sizes[4]={6,11,17,23};
     int phase=g->save.story_phase>3?3:g->save.story_phase;
-    g->session_item=(int)(rnd(g)%(uint32_t)item_pool_sizes[phase]);
+    /* Pokemon-only encounters must not roll or expose an unrelated item. */
+    g->session_item=g->session_type ? (int)(rnd(g)%(uint32_t)item_pool_sizes[phase]) : -1;
 }
 /* Support effects belong to gameplay state, never the renderer. A failed
    activation must not consume inventory or trigger a save. */
