@@ -68,6 +68,9 @@ int dr_photo_read(const char *filename,uint16_t *dst,size_t count) {
     static unsigned char encoded[DR_PHOTO_W*DR_PHOTO_H*3];
     if(fread(encoded,1,sizeof encoded,f)!=sizeof encoded)goto done;
     if(ferror(f))goto done;
+    /* A failed close must not be reported as a successful photo load. */
+    if(fclose(f)!=0)return 0;
+    f=NULL;
     for(int y=0;y<DR_PHOTO_H;y++) {
         const unsigned char *row=encoded+(DR_PHOTO_H-1-y)*DR_PHOTO_W*3;
         for(int x=0;x<DR_PHOTO_W;x++) {
@@ -77,7 +80,7 @@ int dr_photo_read(const char *filename,uint16_t *dst,size_t count) {
     }
     ok=1;
 done:
-    fclose(f);
+    if(f)fclose(f);
     return ok;
 }
 int dr_photo_write(const char *filename,const uint16_t *src,size_t count) {
