@@ -106,6 +106,48 @@ int main(void) {
     assert(g.screen==STATE_RESULTS && g.session_caught==-4);
     assert(g.save.caught_count==0);
     for(int i=0;i<MAX_CAUGHT;i++)assert(g.save.pending[i]==i);
-    puts("PASS: item/Pokémon capture, full-storage replacement, cancellation and results");
+    /* All six research item stacks are full: capture must request a choice. */
+    game_new(&g,56789);
+    g.screen=STATE_SPHERE;
+    g.ext_selection=EXT_RETRIEVAL;
+    g.session_type=1;
+    g.session_item=6;
+    g.session_species=-1;
+    g.capture_timeout=100;
+    for(int i=0;i<MAX_ITEMS;i++) {
+        g.save.pending_items[i]=MAX_ITEM_STACK;
+        g.save.reserved[2+i]=(uint8_t)(i+1);
+    }
+    game_capture(&g);
+    assert(g.screen==STATE_REPLACE && g.replace_kind==REPLACE_ITEM);
+    assert(g.replace_value==6);
+    for(int i=0;i<MAX_ITEMS;i++)assert(g.save.pending_items[i]==MAX_ITEM_STACK);
+    assert(game_replace_pending(&g,3)==1);
+    assert(g.screen==STATE_RESULTS && g.session_caught==-2);
+    assert(g.save.pending_items[3]==1);
+    assert(game_item_slot_kind(&g,3)==6);
+    for(int i=0;i<MAX_ITEMS;i++)if(i!=3)assert(g.save.pending_items[i]==MAX_ITEM_STACK);
+
+    /* Declining a full item-store choice keeps every original item stack. */
+    game_new(&g,67890);
+    g.screen=STATE_SPHERE;
+    g.ext_selection=EXT_DOWSING;
+    g.session_type=1;
+    g.session_item=8;
+    g.session_species=-1;
+    g.capture_timeout=100;
+    for(int i=0;i<MAX_ITEMS;i++) {
+        g.save.pending_items[i]=MAX_ITEM_STACK;
+        g.save.reserved[2+i]=(uint8_t)(i+1);
+    }
+    game_capture(&g);
+    assert(g.screen==STATE_REPLACE && g.replace_kind==REPLACE_ITEM);
+    assert(game_cancel_pending_replace(&g)==1);
+    assert(g.screen==STATE_RESULTS && g.session_caught==-4);
+    for(int i=0;i<MAX_ITEMS;i++) {
+        assert(g.save.pending_items[i]==MAX_ITEM_STACK);
+        assert(game_item_slot_kind(&g,i)==i);
+    }
+    puts("PASS: Pokémon/item captures, storage replacement, cancellation and results");
     return 0;
 }
