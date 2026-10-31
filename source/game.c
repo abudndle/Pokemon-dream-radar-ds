@@ -175,6 +175,7 @@ const char *game_cart_source_name(CartSource source) {
     }
 }
 void game_set_cart_source(Game *g, CartGame cart, CartSource source) {
+    if (!g) return;
     /* A new selection completely REPLACES the previous active game.
        Never aggregate game identities to unlock multiple legends. */
     if (cart < GAME_DIAMOND || cart >= GAME_UNKNOWN || source == CART_SOURCE_NONE ||
