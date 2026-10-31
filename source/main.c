@@ -251,6 +251,15 @@ static void render_search_bottom(void) {
     rect(bottom,53,4,38,16,0x8000);
     snprintf(text,sizeof text,"%d",dr_remaining_clouds(&game));
     print(bottom,60,8,WHITE,text);
+    /* Display live white/pink cloud counts using the original radar palette.
+       These counts update when a cloud is collected, not just on entry. */
+    if(game.screen==STATE_RADAR) {
+        int white=0,pink=0;
+        dr_radar_counts(&game,&white,&pink);
+        snprintf(text,sizeof text,"W:%d P:%d",white,pink);
+        rect(bottom,98,4,103,16,0x8000);
+        print(bottom,108,8,PINK,text);
+    }
     rect(bottom,207,4,45,16,0x8000);
     snprintf(text,sizeof text,"%lu",(unsigned long)game.save.orbs);
     print(bottom,214,8,WHITE,text);
