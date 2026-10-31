@@ -1212,7 +1212,7 @@ static void handle_key(int keys,int down,touchPosition *touch) {
             game.save.camera_enabled=!game.save.camera_enabled;
             /* A deliberate OFF->ON toggle is permission to retry a failed
                camera initialization. Never retry automatically every frame. */
-            if(game.save.camera_enabled)camera_failed_this_run=0;
+            camera_failed_this_run=dr_camera_retry_latch(game.save.camera_enabled,camera_failed_this_run);
             game.requested_save=1;
             snprintf(game.message,sizeof game.message,game.save.camera_enabled ?
                      "DSi camera enabled." : "Camera off: using custom image if selected.");
@@ -1267,7 +1267,7 @@ static void handle_key(int keys,int down,touchPosition *touch) {
             int action=dr_settings_action(running_dsi,game.selection);
             if(action==DR_SETTING_CAMERA){
                 game.save.camera_enabled=!game.save.camera_enabled;
-                if(game.save.camera_enabled)camera_failed_this_run=0;
+                camera_failed_this_run=dr_camera_retry_latch(game.save.camera_enabled,camera_failed_this_run);
                 game.requested_save=1;
             }
             if(action==DR_SETTING_OPTICAL){game.save.optical_aim=!game.save.optical_aim;game.requested_save=1;}
