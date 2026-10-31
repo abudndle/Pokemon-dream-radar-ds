@@ -511,7 +511,8 @@ void game_tick(Game *g) {
             if (g->sphere_y>164) { g->sphere_y=164; if(g->sphere_vy>0) g->sphere_vy=-g->sphere_vy; }
         }
         if (g->capture_timeout>0) g->capture_timeout--;
-        if (!g->capture_timeout) {
+        if (g->capture_timeout<=0) {
+            g->capture_timeout=0;
             g->screen=STATE_RESULTS;g->session_caught=-1;
             g->freeze_frames=0;g->slow_frames=0;
             g->save.searches++;g->requested_save=1;
