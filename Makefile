@@ -90,5 +90,6 @@ test-host:
 	./build/test_original_limits
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/reference_layout.c source/game.c tests/test_reference_layout.c -o build/test_reference_layout
 	./build/test_reference_layout
+	python3 tests/test_original_pane_geometry.py
 	python3 tests/test_nds_header.py
 	python3 tools/verify_assets.py
