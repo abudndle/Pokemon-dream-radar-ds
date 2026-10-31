@@ -120,6 +120,8 @@ test-host:
 	./build/test_mesh_depth
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/dr_mesh.c source/dr_texture.c source/dr_animation.c tests/test_dr_animation.c -o build/test_dr_animation
 	./build/test_dr_animation
+	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/dr_mesh.c source/dr_texture.c source/dr_parts.c tests/test_dr_parts.c -o build/test_dr_parts
+	./build/test_dr_parts
 
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c tests/test_original_limits.c -o build/test_original_limits
 	./build/test_original_limits
@@ -129,6 +131,7 @@ test-host:
 	python3 tests/test_original_ui_audit.py
 	python3 tests/test_pack_drt1.py
 	python3 tests/test_pack_dra1.py
+	python3 tests/test_pack_drb1.py
 	python3 tests/test_original_model_inventory.py
 	python3 tests/test_extracted_obj_converter.py
 	python3 tests/test_stage_pokemon_models.py
