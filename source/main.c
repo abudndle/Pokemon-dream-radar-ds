@@ -176,9 +176,13 @@ static void label_bar(u16 *v,const char *name) {
     print(v,10,8,WHITE,name);
 }
 static void button(u16 *v,int y,const char *name,int selected) {
-    u16 bg=selected ? 0xB1A3 : 0x8424;
-    rect(v,10,y,236,25,bg);border(v,10,y,236,25,selected?GOLD:0xAD68);
-    print(v,19,y+8,selected ? WHITE:GRAY,name);
+    /* Preserve the texture beneath each label rather than painting over it
+       with opaque generic bars. Only selection focus is overlaid live. */
+    if(selected) {
+        border(v,10,y,236,24,WHITE);
+        border(v,12,y+2,232,20,CYAN);
+    }
+    print(v,19,y+8,WHITE,name);
 }
 static void coins(int y) {
     char text[45];snprintf(text,sizeof text,"Dream Orbs: %lu",(unsigned long)game.save.orbs);
