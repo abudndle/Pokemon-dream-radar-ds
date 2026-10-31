@@ -468,6 +468,7 @@ void game_begin_search(Game *g, int ext) {
     g->projectile_active=0;g->projectile_enabled=0;
     g->projectile_hits=0;g->projectile_cooldown=0;
     g->projectile_queued=0;g->capture_motion_ticks=0;
+    memset(g->projectile_extra,0,sizeof g->projectile_extra);
     memset(g->session_color_counts,0,sizeof g->session_color_counts);
     memset(g->dream_orbs,0,sizeof g->dream_orbs);
     g->orb_chain_stage=0;g->orb_chain_valid=0;
@@ -602,7 +603,54 @@ static int projectile_speed(int delta) {
     if(delta<0)return delta< -60?-3:delta< -24?-2:-1;
     return 0;
 }
-static void tick_projectile(Game *g) {
+static int extra_balls_live(const Game *g) {
+    for(int i=0;i<MAX_EXTRA_PROJECTILES;i++)
+        if(g->projectile_extra[i].active)return 1;
+    return 0;
+}
+static void clear_extra_balls(Game *g) {
+    for(int i=0;i<MAX_EXTRA_PROJECTILES;i++)g->projectile_extra[i].active=0;
+}
+static void spawn_legendary_balls(Game *g) {
+    if(game_capture_profile(g).type!=CAPTURE_LEGENDARY)return;
+    for(int i=0;i<MAX_EXTRA_PROJECTILES;i++) {
+        ExtraProjectile *p=&g->projectile_extra[i];
+        int offset=i==0?-18:18;
+        p->x=g->projectile_x+offset;p->y=g->projectile_y;
+        if(p->x<8)p->x=8;
+        if(p->x>247)p->x=247;
+        int target=g->aim_x+offset;
+        if(target<8)target=8;
+        if(target>247)target=247;
+        p->vx=projectile_speed(target-p->x);
+        p->vy=projectile_speed(g->aim_y-p->y);
+        if(!p->vx && !p->vy)p->vy=2;
+        p->ttl=90;p->active=1;
+    }
+}
+static void tick_extra_balls(Game *g) {
+    for(int i=0;i<MAX_EXTRA_PROJECTILES;i++) {
+        ExtraProjectile *p=&g->projectile_extra[i];
+        if(!p->active)continue;
+        if(p->ttl<=1 || p->x<0 || p->x>255 ||
+           p->y<0 || p->y>191) {p->active=0;continue;}
+        p->x+=p->vx;p->y+=p->vy;p->ttl--;
+        if(p->x<0 || p->x>255 || p->y<0 || p->y>191) {
+            p->active=0;continue;
+        }
+        int64_t dx=(int64_t)p->x-g->aim_x;
+        int64_t dy=(int64_t)p->y-g->aim_y;
+        if(g->aim_x>=0 && g->aim_x<=255 &&
+           g->aim_y>=0 && g->aim_y<=191 && dx*dx+dy*dy<=9*9) {
+            p->active=0;
+            if(g->projectile_hits<INT_MAX)g->projectile_hits++;
+            int penalty=game_capture_profile(g).attack_penalty;
+            g->capture_timeout=g->capture_timeout<=penalty?0:
+                               g->capture_timeout-penalty;
+        }
+    }
+}
+static void tick_primary_ball(Game *g) {
     if(!g->projectile_enabled || g->screen!=STATE_SPHERE)return;
     if(g->projectile_active) {
         if(g->projectile_x<0 || g->projectile_x>255 ||
@@ -631,6 +679,7 @@ static void tick_projectile(Game *g) {
         }
         return;
     }
+    if(extra_balls_live(g))return;
     if(g->projectile_cooldown>0){g->projectile_cooldown--;return;}
     if(g->sphere_x<0 || g->sphere_x>255 ||
        g->sphere_y<0 || g->sphere_y>191 ||
@@ -642,15 +691,24 @@ static void tick_projectile(Game *g) {
     if(!g->projectile_vx && !g->projectile_vy)g->projectile_vy=2;
     g->projectile_lifetime=90;
     g->projectile_active=1;
-    if(g->projectile_queued>0)g->projectile_queued--;
+    if(game_capture_profile(g).type==CAPTURE_LEGENDARY) {
+        g->projectile_queued=0;
+        spawn_legendary_balls(g);
+    } else if(g->projectile_queued>0)g->projectile_queued--;
     else g->projectile_queued=game_capture_profile(g).attack_burst-1;
     g->projectile_cooldown=game_capture_profile(g).attack_interval;
+}
+static void tick_projectile(Game *g) {
+    if(!g->projectile_enabled || g->screen!=STATE_SPHERE)return;
+    tick_extra_balls(g);
+    tick_primary_ball(g);
 }
 static void start_sphere(Game *g) {
     g->screen=STATE_SPHERE;
     g->projectile_enabled=1;
     g->projectile_active=0;
     g->projectile_queued=0;
+    clear_extra_balls(g);
     g->capture_motion_ticks=0;
     g->projectile_lifetime=0;
     g->projectile_hits=0;
@@ -768,6 +826,14 @@ void game_fire(Game *g) {
             complete_radar_if_empty(g);
         }
     } else if (g->screen==STATE_SPHERE) {
+        for(int i=0;i<MAX_EXTRA_PROJECTILES;i++) {
+            ExtraProjectile *p=&g->projectile_extra[i];
+            if(!p->active || p->x<0 || p->x>255 ||
+               p->y<0 || p->y>191)continue;
+            int64_t dx=(int64_t)p->x-g->aim_x;
+            int64_t dy=(int64_t)p->y-g->aim_y;
+            if(dx*dx+dy*dy<=12*12){p->active=0;return;}
+        }
         /* Shoot an incoming energy ball before it reaches the aim point. */
         if(g->projectile_active &&
            g->projectile_x>=0 && g->projectile_x<=255 &&
@@ -824,6 +890,7 @@ static void conclude_capture(Game *g) {
     }
     g->projectile_active=0;
     g->projectile_enabled=0;
+    clear_extra_balls(g);
     /* Support effects are encounter-local, including on successful captures
        and when full storage opens a replacement decision. */
     g->freeze_frames=0;
@@ -954,6 +1021,7 @@ int game_resume_radar(Game *g) {
     g->replaced_slot=-1;
     g->projectile_active=0;
     g->projectile_enabled=0;
+    clear_extra_balls(g);
     return 1;
 }
 int game_finish_pending_radar(Game *g) {
@@ -970,6 +1038,7 @@ int game_leave_search(Game *g) {
     discard_radar_entities(g);
     g->projectile_active=0;
     g->projectile_enabled=0;
+    clear_extra_balls(g);
     count_search_once(g);
     g->screen=STATE_RESULTS;
     g->freeze_frames=0;
@@ -1054,6 +1123,7 @@ void game_tick(Game *g) {
             g->capture_timeout=0;
             g->projectile_active=0;
             g->projectile_enabled=0;
+            clear_extra_balls(g);
             g->screen=STATE_RESULTS;g->session_caught=-1;
             g->session_item=-1;g->session_species=-1;g->session_type=0;
             g->capture_hp=0;
