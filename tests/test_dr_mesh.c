@@ -21,6 +21,15 @@ int main(void){
     assert(!dr_mesh_project_vertex(&m.vertex[0],128,96,0,&x,&y));
     assert(!dr_mesh_project_vertex(&m.vertex[0],128,96,257,&x,&y));
     assert(!dr_mesh_project_vertex(&m.vertex[0],128,96,32,NULL,&y));
+    uint16_t framebuffer[64*64]={0};
+    assert(dr_mesh_wireframe(&m,framebuffer,64,64,16,48,16,0xffff));
+    assert(framebuffer[48*64+16]==0xffff);
+    assert(framebuffer[48*64+32]==0xffff);
+    assert(framebuffer[32*64+16]==0xffff);
+    assert(framebuffer[40*64+24]==0xffff);
+    assert(!dr_mesh_wireframe(&m,framebuffer,0,64,16,48,16,0xffff));
+    assert(!dr_mesh_wireframe(&m,NULL,64,64,16,48,16,0xffff));
+    assert(!dr_mesh_wireframe(NULL,framebuffer,64,64,16,48,16,0xffff));
     dr_mesh_free(&m);
     assert(!m.vertex && !m.triangle);
     unsigned char bad[sizeof triangle];
