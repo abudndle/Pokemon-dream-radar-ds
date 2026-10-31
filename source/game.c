@@ -386,6 +386,7 @@ static void spawn_dream_orbs(Game *g,int x,int y,int count,int chain) {
         o->alive=1;
         created++;
     }
+    if(chain==0)g->orb_total_collected=0; /* Per-cloud chain cap. */
     g->orb_group_collected=0;
     g->orb_group_target=(uint8_t)created;
     g->orb_chain_valid=(uint8_t)(already==0 && (chain!=0 || count>=4) && created==count);
