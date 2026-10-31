@@ -1,3 +1,9 @@
+## Optional original encounter mesh rendering milestone
+
+During a Pokémon capture encounter, the game now tries to load a converted `nitro:/pokemon_XX.drm` mesh, where `XX` is the zero-padded encounter species index (00–25). It decodes the bounded `DRM1` data and draws a CPU-side cyan wireframe into the top screen. If the mesh is missing or invalid, the **original extracted 2D Pokémon art remains the fallback**; item encounters retain their 2D artwork. A single species mesh is cached instead of rereading the file each frame. The same shared encounter rendering path is used for camera and non-camera modes.
+
+Converted models must be explicitly added to `nitrofs/` by the builder from lawfully held original game exports; none are included here. This is **optional untextured wireframe rendering**, not a finished original-model reconstruction, skeletal animation playback, a hardware 3D path, or a verified ROM build.
+
 ## Software mesh wireframe milestone
 
 `dr_mesh_wireframe()` draws decoded `DRM1` triangle edges into a caller-owned, 16-bit RGB555 pixel buffer with viewport checks. Its portable Bresenham routine clips out-of-range pixels, and host regression tests exercise a sample triangle. This is a **CPU-side wireframe renderer** only: encounter integration, hidden-surface handling, textured polygons, original animation playback, and a verified DS ROM build remain unfinished. No original model binaries are included.
