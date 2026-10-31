@@ -281,6 +281,9 @@ static void start_sphere(Game *g) {
     g->sphere_x=105;g->sphere_y=90;
     g->sphere_vx=1+(rnd(g)%3);g->sphere_vy=1+(rnd(g)%2);
     g->capture_hp=0;
+    /* Temporary support effects cannot carry over from another encounter. */
+    g->freeze_frames=0;
+    g->slow_frames=0;
     /* Dedicated legendary and special encounters cannot randomly turn into
        an item. Only cloud-search modes roll the item encounter chance. */
     /* Retrieval and Dowsing are item-focused research; ordinary cloud
