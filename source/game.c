@@ -356,6 +356,8 @@ void game_begin_search(Game *g, int ext) {
     g->screen=STATE_RADAR;
     /* A new radar session must not retain the previous sphere timer. */
     g->capture_hp=0;g->capture_timeout=0;g->cloud_hit=0;
+    g->projectile_active=0;g->projectile_enabled=0;
+    g->projectile_hits=0;g->projectile_cooldown=0;
     memset(g->session_color_counts,0,sizeof g->session_color_counts);
     g->search_orb_color=(uint8_t)game_orb_color(g);
     g->session_orbs=0; g->session_caught=-1;g->session_item=-1;
@@ -445,8 +447,64 @@ static int simulator_reward_item(Game *g) {
     if(index<0 || index>=3)return -1;
     return pools[index][rnd(g)%6u];
 }
+/* DS-compatible approximation of the original Sphere's energy-ball attack.
+ * Attack cadence and damage are provisional: originals depend on species.
+ * A moving beam aim can dodge an incoming ball or shoot it directly. */
+static int projectile_speed(int delta) {
+    if(delta>0)return delta>60?3:delta>24?2:1;
+    if(delta<0)return delta< -60?-3:delta< -24?-2:-1;
+    return 0;
+}
+static void tick_projectile(Game *g) {
+    if(!g->projectile_enabled || g->screen!=STATE_SPHERE)return;
+    if(g->projectile_active) {
+        if(g->projectile_x<0 || g->projectile_x>255 ||
+           g->projectile_y<0 || g->projectile_y>191 ||
+           g->projectile_lifetime<=0) {
+            g->projectile_active=0;return;
+        }
+        g->projectile_x+=g->projectile_vx;
+        g->projectile_y+=g->projectile_vy;
+        g->projectile_lifetime--;
+        if(g->projectile_x<0 || g->projectile_x>255 ||
+           g->projectile_y<0 || g->projectile_y>191 ||
+           g->projectile_lifetime<=0) {
+            g->projectile_active=0;return;
+        }
+        int64_t dx=(int64_t)g->projectile_x-g->aim_x;
+        int64_t dy=(int64_t)g->projectile_y-g->aim_y;
+        if(g->aim_x>=0 && g->aim_x<=255 &&
+           g->aim_y>=0 && g->aim_y<=191 &&
+           dx*dx+dy*dy<=9*9) {
+            g->projectile_active=0;
+            if(g->projectile_hits<INT_MAX)g->projectile_hits++;
+            /* A hit costs 3 seconds in this adaptation; exact 3DS penalties
+               are species-specific and have not been verified. */
+            if(g->capture_timeout<=180)g->capture_timeout=0;
+            else g->capture_timeout-=180;
+        }
+        return;
+    }
+    if(g->projectile_cooldown>0){g->projectile_cooldown--;return;}
+    if(g->sphere_x<0 || g->sphere_x>255 ||
+       g->sphere_y<0 || g->sphere_y>191 ||
+       g->aim_x<0 || g->aim_x>255 ||
+       g->aim_y<0 || g->aim_y>191)return;
+    g->projectile_x=g->sphere_x;g->projectile_y=g->sphere_y;
+    g->projectile_vx=projectile_speed(g->aim_x-g->sphere_x);
+    g->projectile_vy=projectile_speed(g->aim_y-g->sphere_y);
+    if(!g->projectile_vx && !g->projectile_vy)g->projectile_vy=2;
+    g->projectile_lifetime=90;
+    g->projectile_active=1;
+    g->projectile_cooldown=120;
+}
 static void start_sphere(Game *g) {
     g->screen=STATE_SPHERE;
+    g->projectile_enabled=1;
+    g->projectile_active=0;
+    g->projectile_cooldown=90;
+    g->projectile_lifetime=0;
+    g->projectile_hits=0;
     g->capture_timeout= (g->ext_selection==EXT_BASIC && g->save.story_phase==0 && g->save.searches==0) ? 9999 * 60 : (90+g->save.upgrades[1]*30)*60;
     g->sphere_x=105;g->sphere_y=90;
     g->sphere_vx=1+(rnd(g)%3);g->sphere_vy=1+(rnd(g)%2);
@@ -549,6 +607,17 @@ void game_fire(Game *g) {
             }
         }
     } else if (g->screen==STATE_SPHERE) {
+        /* Shoot an incoming energy ball before it reaches the aim point. */
+        if(g->projectile_active &&
+           g->projectile_x>=0 && g->projectile_x<=255 &&
+           g->projectile_y>=0 && g->projectile_y<=191) {
+            int64_t px=(int64_t)g->projectile_x-g->aim_x;
+            int64_t py=(int64_t)g->projectile_y-g->aim_y;
+            if(px*px+py*py<=12*12) {
+                g->projectile_active=0;
+                return;
+            }
+        }
         /* An expired encounter must not be captured between timer ticks. */
         if(g->capture_timeout<=0)return;
         /* Sphere coordinates must be on the DS viewport. Squaring two
@@ -586,6 +655,8 @@ static void accept_pokemon(Game *g, int species) {
 }
 static void conclude_capture(Game *g) {
     finish_orb_search(g);
+    g->projectile_active=0;
+    g->projectile_enabled=0;
     /* Support effects are encounter-local, including on successful captures
        and when full storage opens a replacement decision. */
     g->freeze_frames=0;
@@ -702,6 +773,8 @@ int game_cancel_pending_replace(Game *g) {
 int game_leave_search(Game *g) {
     if(!g || (g->screen!=STATE_RADAR && g->screen!=STATE_SPHERE))return 0;
     finish_orb_search(g);
+    g->projectile_active=0;
+    g->projectile_enabled=0;
     if(g->save.searches<UINT32_MAX)g->save.searches++;
     g->screen=STATE_RESULTS;
     g->freeze_frames=0;
@@ -744,10 +817,14 @@ void game_tick(Game *g) {
                 g->sphere_vy=g->sphere_vy==INT32_MIN?INT32_MAX:-g->sphere_vy;
             if (ny>164 && g->sphere_vy>0)g->sphere_vy=-g->sphere_vy;
         }
+        if (!frozen_this_frame && (!slowed_this_frame || g->save.frames_played%3u==0u))
+            tick_projectile(g);
         if (g->capture_timeout>0) g->capture_timeout--;
         if (g->capture_timeout<=0) {
             finish_orb_search(g);
             g->capture_timeout=0;
+            g->projectile_active=0;
+            g->projectile_enabled=0;
             g->screen=STATE_RESULTS;g->session_caught=-1;
             g->session_item=-1;g->session_species=-1;g->session_type=0;
             g->capture_hp=0;
