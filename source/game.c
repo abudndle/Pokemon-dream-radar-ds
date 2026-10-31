@@ -481,9 +481,9 @@ void game_capture(Game *g) {
     if(!g || g->screen!=STATE_SPHERE || g->capture_timeout<=0)return;
     /* Only defined Pokemon (0) and item (1) encounter types award rewards. */
     if(g->session_type!=0 && g->session_type!=1)return;
-    /* Simulator results never take a research slot. */
-    if(g->session_type!=1 &&
-       g->ext_selection>=EXT_SIM_TORNADUS && g->ext_selection<=EXT_SIM_LANDORUS) {
+    /* Simulator results never take a research slot, even if an unexpected
+       encounter type arrives from a damaged or out-of-sync runtime state. */
+    if(g->ext_selection>=EXT_SIM_TORNADUS && g->ext_selection<=EXT_SIM_LANDORUS) {
         g->session_caught=-3;
         conclude_capture(g);
         return;
