@@ -14,6 +14,7 @@ jobs:
           python3 tests/test_nds_header.py
           python3 tools/verify_assets.py
   arm-binaries:
+    needs: host-tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
