@@ -440,10 +440,6 @@ void game_begin_search(Game *g, int ext) {
     if (!g) return;
     /* Never restart an encounter or replace an unresolved storage choice. */
     if (g->screen==STATE_RADAR || g->screen==STATE_SPHERE || g->screen==STATE_REPLACE) return;
-    /* Direct API callers may start from an intermediate results screen.
-       Explicitly discard the old scan instead of silently reusing it. */
-    if(g->screen==STATE_RESULTS && g->radar_resume_pending)
-        game_finish_pending_radar(g);
     if (ext<0 || ext>=EXT_COUNT || !game_extension_unlocked(g,ext)) { msg(g,"This Extension is locked.");return; }
     /* All three cloud-based research modes need at least one cloud.
        Never charge a paid extension when there is nothing to scan. */
@@ -456,6 +452,11 @@ void game_begin_search(Game *g, int ext) {
        capture. No one-time encounter flag changes before acceptance. */
     int price=game_extension_price(ext);
     if (g->save.orbs < (uint32_t)price) {msg(g,"Not enough Dream Orbs for this search."); return;}
+    /* Explicit new-search requests supersede an unfinished radar outing,
+       but only after checking the new extension is valid and affordable.
+       A rejected request must not destroy still-collectible targets. */
+    if(g->screen==STATE_RESULTS && g->radar_resume_pending)
+        game_finish_pending_radar(g);
     g->save.orbs-=price;
     g->requested_save=1;
     g->ext_selection=ext;
