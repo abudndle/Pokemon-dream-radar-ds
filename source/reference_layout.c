@@ -50,9 +50,9 @@ int dr_shop_row_top(int index) {
     return 26 + 24*index;
 }
 int dr_shop_hit(int x,int y) {
-    if(x<4 || x>251 || y<26 || y>=170)return -1;
+    if(x<10 || x>=246 || y<26 || y>=170)return -1;
     int index=(y-26)/24;
-    return index<6?index:-1;
+    return index<6 && y<dr_shop_row_top(index)+22?index:-1;
 }
 int dr_remaining_clouds(const Game *g) {
     int left=0;
