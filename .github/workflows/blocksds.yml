@@ -17,6 +17,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Export retargeted original UI pane geometry
+        run: |
+          python3 tools/retarget_panes.py ui_mapping/original_pane_geometry.json build/original_ui_ds_panes.json
+      - name: Upload DS-scaled original UI layout reference
+        uses: actions/upload-artifact@v4
+        with:
+          name: original-3ds-ui-layouts-ds-coordinates
+          path: build/original_ui_ds_panes.json
+          if-no-files-found: error
       - name: Compile enhanced ROM with DS fallback
         run: |
           docker run --rm -v "$PWD:/workspace" -w /workspace \
