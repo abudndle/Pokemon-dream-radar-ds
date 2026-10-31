@@ -29,6 +29,14 @@ int main(void) {
     assert(!game_buy(&g,1,1) && g.save.orbs==1000 && g.save.goods[1]==255);
     g.save.goods[1]=9;
     assert(!game_buy(&g,1,1) && g.save.orbs==1000);
+    g.save.goods[1]=9;
+    g.save.orbs=0;
+    assert(!game_buy(&g,1,1));
+    assert(strcmp(g.message,"Cannot carry more.")==0);
+    g.save.goods[1]=0;
+    g.save.orbs=100;
+    assert(game_buy(&g,1,1));
+    assert(g.save.goods[1]==1 && g.save.orbs==50);
     g.save.goods[1]=0;
     g.save.orbs=0;
 
