@@ -388,8 +388,13 @@ static void render(void) {
         for(int i=0;i<4;i++) {
             const DrPaneRect *r=&dr_title_panes[i];
             if(game.selection==i)border(bottom,r->x,r->y,r->w,r->h,GOLD);
-            int x=(256-(int)strlen(opts[i])*6)/2;
-            print(bottom,x,r->y+6,WHITE,opts[i]);
+            /* Center each label within its actual extracted menu pane, not
+               the full screen; preserve the original pane positions. */
+            int label_width=(int)strlen(opts[i])*6;
+            int x=r->x+(r->w-label_width)/2;
+            if(x<r->x+3)x=r->x+3;
+            int y=r->y+(r->h-8)/2;
+            print(bottom,x,y,WHITE,opts[i]);
         }
         print(bottom,41,179,CYAN,"B: OPTIONS  A: SELECT");
         break; }
