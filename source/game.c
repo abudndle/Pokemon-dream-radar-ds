@@ -342,6 +342,18 @@ static int choice_species(Game *g) {
     static const int pools[4][6] = {{0,1,2,3,4,0}, {5,6,1,2,4,3}, {7,8,9,10,3,4}, {11,12,13,14,4,8}};
     return pools[minimum(3,g->save.story_phase)][rnd(g)%6];
 }
+/* Approximate original Research Extension encounter bias while waiting for
+ * exact 3DS tables. Retrieval favors Pokemon and Dowsing favors items; they
+ * must never share an unconditional item-only result.
+ * All non-cloud legendary, secret, and simulator extensions remain Pokemon. */
+static int choose_item_encounter(Game *g) {
+    switch(g->ext_selection) {
+        case EXT_BASIC: return (rnd(g)%4u)==0u;       /* 25% items */
+        case EXT_RETRIEVAL: return (rnd(g)%8u)==0u;   /* 12.5% items */
+        case EXT_DOWSING: return (rnd(g)%8u)<7u;      /* 87.5% items */
+        default: return 0;
+    }
+}
 static void start_sphere(Game *g) {
     g->screen=STATE_SPHERE;
     g->capture_timeout= (g->ext_selection==EXT_BASIC && g->save.story_phase==0 && g->save.searches==0) ? 9999 * 60 : (90+g->save.upgrades[1]*30)*60;
@@ -355,11 +367,9 @@ static void start_sphere(Game *g) {
     g->slow_frames=0;
     /* Dedicated legendary and special encounters cannot randomly turn into
        an item. Only cloud-search modes roll the item encounter chance. */
-    /* Retrieval and Dowsing are item-focused research; ordinary cloud
-       hunting retains the provisional one-in-four item encounter roll. */
-    g->session_type = (g->ext_selection==EXT_RETRIEVAL ||
-                       g->ext_selection==EXT_DOWSING ||
-                       (g->ext_selection==EXT_BASIC && (rnd(g)%4)==0)) ? 1:0;
+    /* Item/Pokemon reward distribution depends on the Extension. The
+       thresholds are provisional until the exact original tables are known. */
+    g->session_type = choose_item_encounter(g);
     /* Do not consume a Pokemon species roll for item-only research sessions.
        A non-Pokemon result has no species to transfer or display. */
     g->session_species=g->session_type ? -1 : choice_species(g);
