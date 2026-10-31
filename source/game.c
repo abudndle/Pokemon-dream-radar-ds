@@ -426,7 +426,9 @@ void game_capture(Game *g) {
         if(slot>=0) {
             invalidate_archive(g);
             g->save.reserved[2+slot]=(uint8_t)(item+1);
-            g->save.pending_items[slot]++;
+            /* Item stacks are stored in one byte; never wrap 255 to zero. */
+            if(g->save.pending_items[slot]<UINT8_MAX)
+                g->save.pending_items[slot]++;
             g->session_caught=-2;
             conclude_capture(g);
             return;
