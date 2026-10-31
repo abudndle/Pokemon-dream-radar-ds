@@ -23,6 +23,14 @@ int main(void) {
     assert(snprintf(rom,sizeof rom,"%s/DreamRadarDSi.nds",root) < (int)sizeof rom);
     SaveBackend backend;
     assert(save_backend_init(&backend,root,rom));
+    /* Invalid persistence arguments must fail without dereferencing pointers. */
+    Game invalid;game_new(&invalid,77);
+    assert(!game_load(NULL,"/tmp/missing.drs"));
+    assert(!game_load(&invalid,NULL));
+    assert(!game_load(&invalid,""));
+    assert(!game_save(NULL,"/tmp/missing.drs"));
+    assert(!game_save(&invalid,NULL));
+    assert(!game_save(&invalid,""));
     Game g;game_new(&g,1);
     g.save.orbs=123;
     assert(save_backend_write(&backend,&g));
