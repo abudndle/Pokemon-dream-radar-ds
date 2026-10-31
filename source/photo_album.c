@@ -50,6 +50,7 @@ int dr_photo_read(const char *filename,uint16_t *dst,size_t count) {
     unsigned char head[54];int ok=0;
     if(fread(head,1,sizeof head,f)!=sizeof head)goto done;
     if(head[0]!='B' || head[1]!='M' ||
+       le16(head+6)!=0 || le16(head+8)!=0 ||
        le32(head+2)!=54+DR_PHOTO_W*DR_PHOTO_H*3 ||
        le32(head+10)!=54 || le32(head+14)!=40 ||
        le32(head+18)!=DR_PHOTO_W || le32(head+22)!=DR_PHOTO_H ||
