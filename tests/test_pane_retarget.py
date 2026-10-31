@@ -27,8 +27,9 @@ with tempfile.TemporaryDirectory() as d:
             assert len(p["world_translation_ds"])==2
             assert len(p["world_scale"])==2
             assert len(p["world_size_ds"])==2
+            assert 0<=p["effective_alpha"]<=255
             assert isinstance(p["flag_visible"],bool)
-            assert p["effective_visible"]==(p["flag_visible"] and p["visible_in_viewport"])
+            assert not p["effective_visible"] or (p["flag_visible"] and p["visible_in_viewport"] and p["effective_alpha"]>0)
             assert 0<=p["viewport_coverage"]<=1
             assert isinstance(p["visible_in_viewport"],bool)
             if p["clipped_bounds_ds"] is not None:
@@ -85,4 +86,11 @@ assert child["viewport_coverage"]==0
 assert child["visible_in_viewport"] is False
 assert child["clipped_bounds_ds"] is None
 assert child["effective_visible"] is False
+hidden=copy.deepcopy(synthetic)
+hidden["panes"][0]["flags"]=0
+hidden["panes"][0]["alpha"]=0
+hidden["panes"][0]["children"][0]["flags"]=1
+nested=convert(hidden)["panes"][0]["children"][0]
+assert nested["effective_alpha"]==0
+assert nested["effective_visible"] is False
 print("PASS: 22 original UI pane hierarchies retargeted to DS viewport")
