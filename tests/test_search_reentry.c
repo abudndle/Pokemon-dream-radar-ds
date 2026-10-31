@@ -57,6 +57,15 @@ int main(void) {
     assert(g.session_caught==-1 && g.session_item==-1 && g.session_species==-1);
     assert(g.session_type==0 && g.capture_hp==0);
     assert(!game_leave_search(&g));
+    /* After returning to the menu, a new search must start with no
+       species assigned until an actual sphere encounter begins. */
+    g.save.cloud_count=5;
+    g.session_species=22;
+    g.session_item=8;
+    g.session_caught=14;
+    game_begin_search(&g,EXT_BASIC);
+    assert(g.screen==STATE_RADAR);
+    assert(g.session_species==-1 && g.session_item==-1 && g.session_caught==-1);
     puts("PASS: searches cannot overwrite active gameplay or pending storage choices");
     return 0;
 }
