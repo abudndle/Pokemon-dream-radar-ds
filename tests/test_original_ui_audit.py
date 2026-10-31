@@ -38,7 +38,7 @@ with tempfile.TemporaryDirectory() as d:
 import re
 main_source=(root/"source/main.c").read_text()
 manifest=main_source.split("static const char *sprite_files[]={",1)[1].split("};",1)[0]
-sprites=re.findall(r'"([^"]+\\.spr)"',manifest)
+sprites=re.findall(r'"([^"]+\.spr)"',manifest)
 assert len(sprites)==68
 assert sprites[17:43]==[f"pokemon_{i:02d}.spr" for i in range(26)]
 assert sprites[43:66]==[f"item_{i:02d}.spr" for i in range(23)]
