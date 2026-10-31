@@ -8,7 +8,7 @@ import math
 
 def pane_hit(pane, x, y):
     """Return whether a DS touch point lies inside a visible pane quad."""
-    if not (math.isfinite(x) and math.isfinite(y) and 0 <= x < 256 and 0 <= y < 192):
+    if not (isinstance(x,(int,float)) and isinstance(y,(int,float)) and math.isfinite(x) and math.isfinite(y) and 0 <= x < 256 and 0 <= y < 192):
         return False
     if not pane.get("effective_visible", False):
         return False
