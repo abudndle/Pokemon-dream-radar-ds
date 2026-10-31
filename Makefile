@@ -96,5 +96,6 @@ test-host:
 	python3 tests/test_original_ui_audit.py
 	python3 tests/test_original_pane_geometry.py
 	python3 tests/test_pane_retarget.py
+	python3 tests/test_pane_hit_test.py
 	python3 tests/test_nds_header.py
 	python3 tools/verify_assets.py
