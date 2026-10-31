@@ -26,7 +26,10 @@ int main(void) {
     memcpy(old_pokemon,g.save.pending,sizeof old_pokemon);
     uint8_t old_legends=g.save.legends_caught;
     uint32_t old_caught=g.save.caught_count;
+    g.freeze_frames=180;
+    g.slow_frames=120;
     fake_capture(&g,0,21); /* Ho-Oh */
+    assert(g.freeze_frames==0 && g.slow_frames==0);
     assert(g.screen==STATE_REPLACE && g.replace_kind==REPLACE_POKEMON);
     assert(!game_replace_pending(&g,-1));
     assert(!game_replace_pending(&g,MAX_CAUGHT));
