@@ -23,6 +23,7 @@ static void put32(unsigned char *p,uint32_t v) {
 static int photo_path(char *out,size_t cap,const char *folder,int slot) {
     if(!out || cap<20 || !folder || !*folder || slot<0 || slot>=DR_PHOTO_MAX)return 0;
     size_t n=strlen(folder);
+    /* Keep capacity arithmetic safe even for a very small caller buffer. */
     if(n>cap-20)return 0;
     int r=snprintf(out,cap,"%s%sphoto_%03d.bmp",folder,
                    n && folder[n-1]=='/'?"":"/",slot);
