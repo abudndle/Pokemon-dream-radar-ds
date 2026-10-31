@@ -10,6 +10,11 @@ from collections import Counter
 from pathlib import Path
 from inventory_ncch_romfs import audit
 
+def classify_header(first_byte):
+    if first_byte==0x10:return "lz10"
+    if first_byte==0x11:return "lz11"
+    return "unverified"
+
 def inspect(path):
     image=Path(path).read_bytes()
     romfs_start=struct.unpack_from("<I",image,0x1b0)[0]*512
@@ -26,8 +31,7 @@ def inspect(path):
         results.append({"path":entry["path"],"size":length,
                         "header16_hex":header.hex(),
                         "header_byte":header[0],
-                        "compression":"lz10" if header[0]==0x10 else
-                                      "lz11" if header[0]==0x11 else "unverified"})
+                        "compression":classify_header(header[0])})
     return {"archive_count":len(results),
             "first_byte_counts":dict(sorted(Counter(f"0x{r['header_byte']:02x}" for r in results).items())),
             "archives":results}
