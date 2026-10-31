@@ -1,4 +1,5 @@
 #include "dr_animation.h"
+#include "dr_texture.h"
 #include <assert.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -28,6 +29,16 @@ int main(void) {
     assert(p && p->vertex[0].y==512 && p->vertex[2].y==4608);
     p=dr_animation_frame(&animation,&mesh,4);
     assert(p && p->vertex[0].y==1024 && p->vertex[2].y==5120);
+    /* The generated mesh plugs into both existing encounter renderers. */
+    uint16_t picture[64*64]={0};
+    assert(dr_mesh_solid_yaw(p,picture,64,64,16,48,16,0x7fff,0));
+    assert(picture[31*64+18]==0x7fff);
+    DrTextureUV uv[3]={{0,0},{4096,0},{0,4096}};
+    uint16_t texels[4]={0xffff,0xffff,0xffff,0xffff};
+    DrTexture texture={2,2,3,uv,texels};
+    memset(picture,0,sizeof picture);
+    assert(dr_texture_render_yaw(p,&texture,picture,64,64,16,48,16,0));
+    assert(picture[31*64+18]==0xffff);
     p=dr_animation_frame(&animation,&mesh,6);
     assert(p && p->vertex[0].y==512);
     p=dr_animation_frame(&animation,&mesh,8);
