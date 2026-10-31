@@ -158,6 +158,8 @@ void game_regen_clouds(Game *g, uint32_t now) {
         g->save.cloud_count=(uint8_t)count;
         /* Even when already full, advance the recharge anchor to avoid
            a stockpile of elapsed time instantly refilling spent clouds. */
+        /* The unsigned product is bounded by elapsed, so this addition
+           cannot wrap when now is at or below UINT32_MAX. */
         g->save.last_cloud_time+=steps*300u;
         g->requested_save=1;
     }
