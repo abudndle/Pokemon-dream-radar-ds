@@ -39,9 +39,11 @@
       "id": "dream_clouds",
       "feature": "Dream Cloud generation and shooting",
       "status": "partial",
-      "gap": "Cloud hit detection and recharge work; original distribution and pacing not fully matched.",
+      "gap": "Cloud-to-sphere encounters now preserve remaining unshot clouds and free-floating Orbs after results. A resumes the same scan; B abandons remaining targets; original distribution, cloud reactivity and camera behavior still lack end-to-end validation.",
       "evidence": [
-        "source/game.c"
+        "source/game.c",
+        "source/main.c",
+        "tests/test_radar_resume.c"
       ]
     },
     {
@@ -90,9 +92,12 @@
       "id": "sphere_capture",
       "feature": "Timed sphere chase and beam capture",
       "status": "partial",
-      "gap": "Timed movement, aim, HP and result handling work; original attack patterns differ.",
+      "gap": "Timed sphere targeting, projectiles, storage and per-encounter results are implemented. Multiple encounters within one radar scan now resume without replaying earned rewards or incrementing search count twice; original attack patterns and timing remain provisional.",
       "evidence": [
-        "source/game.c"
+        "source/game.c",
+        "source/main.c",
+        "tests/test_radar_resume.c",
+        "tests/test_sphere_projectiles.c"
       ]
     },
     {
