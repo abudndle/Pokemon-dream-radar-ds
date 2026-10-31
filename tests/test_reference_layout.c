@@ -50,6 +50,15 @@ int main(void) {
     assert(dr_transfer_button_at(27,171)==0);
     assert(dr_transfer_button_at(188,171)==1);
     assert(dr_transfer_button_at(125,20)==-1);
+    assert(dr_transfer_button_at(10,157)==0);
+    assert(dr_transfer_button_at(119,189)==0);
+    assert(dr_transfer_button_at(138,157)==1);
+    assert(dr_transfer_button_at(245,189)==1);
+    assert(dr_transfer_button_at(127,171)==-1);
+    assert(dr_transfer_button_at(9,171)==-1);
+    assert(dr_transfer_button_at(246,171)==-1);
+    assert(dr_transfer_button_at(40,156)==-1);
+    assert(dr_transfer_button_at(40,190)==-1);
     for(int i=0;i<6;i++) {
         assert(dr_transfer_slot_at(30+i*33,45)==i);
         assert(dr_transfer_slot_at(30+i*33,88)==i+6);
