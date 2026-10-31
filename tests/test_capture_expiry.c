@@ -15,6 +15,18 @@ int main(void) {
     uint32_t count=g.save.caught_count;
     game_fire(&g);
     assert(g.screen==STATE_SPHERE && g.capture_hp==239);
+    /* Direct public capture calls must not bypass the expired timer either. */
+    g.session_type=0;
+    g.session_species=4;
+    game_capture(&g);
+    assert(g.screen==STATE_SPHERE && g.save.pending_count==0);
+    assert(g.save.caught_count==0);
+    g.session_type=1;
+    g.session_species=-1;
+    g.session_item=2;
+    game_capture(&g);
+    assert(g.screen==STATE_SPHERE && g.save.pending_items[0]==0);
+    assert(g.save.caught_count==0);
     assert(g.save.caught_count==count);
     game_tick(&g);
     assert(g.screen==STATE_RESULTS && g.session_caught==-1);
