@@ -327,6 +327,9 @@ void game_fire(Game *g) {
         int64_t nearest=19*19;
         for (int i=0;i<g->active_clouds && i<MAX_CLOUDS;i++) {
             const Cloud *c=&g->clouds[i];
+            /* Corrupt or uninitialized coordinates are not hittable. This
+               also bounds squared distances before any arithmetic. */
+            if(c->x<0 || c->x>255 || c->y<0 || c->y>191)continue;
             int64_t dx=(int64_t)c->x-g->aim_x,dy=(int64_t)c->y-g->aim_y;
             int64_t distance=dx*dx+dy*dy;
             if(c->alive && distance<nearest) {
