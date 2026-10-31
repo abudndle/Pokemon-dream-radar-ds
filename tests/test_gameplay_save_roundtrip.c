@@ -48,6 +48,21 @@ int main(void) {
     invalid.save.pending_items[0]=1;
     invalid.save.reserved[2]=0;
     assert(!game_save(&invalid,path));
+    /* Reject every invalid header/settings flag that the loader rejects.
+       Each rejected write must leave the previous valid file in place. */
+    for(int field=0;field<7;field++) {
+        invalid=g;
+        switch(field) {
+            case 0: invalid.save.magic=0;break;
+            case 1: invalid.save.version=SAVE_VERSION+1;break;
+            case 2: invalid.save.intro_seen=2;break;
+            case 3: invalid.save.optical_aim=2;break;
+            case 4: invalid.save.camera_enabled=2;break;
+            case 5: invalid.save.reserved[0]=4;break;
+            case 6: invalid.save.reserved[1]=8;break;
+        }
+        assert(!game_save(&invalid,path));
+    }
     game_new(&loaded,98765);
     assert(game_load(&loaded,path));
     assert(loaded.save.pending_count==1 && loaded.save.pending[0]==15);
