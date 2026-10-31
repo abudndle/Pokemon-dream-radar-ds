@@ -57,6 +57,14 @@ assert len(set(backgrounds))==len(backgrounds)
 assert set(backgrounds)==set(BITMAPS)
 assert "S_ORIGINAL_POKEMON_FIRST=17,S_ORIGINAL_ITEM_FIRST=43" in main_source
 assert main_source.count("draw_original_encounter_art();")==2
+# Optional DRM1 models must be the first attempt in both encounter views;
+# absent or invalid models continue to show the extracted original sprites.
+assert '#include "dr_mesh.h"' in main_source
+assert 'nitro:/pokemon_%02d.drm' in main_source
+assert 'dr_mesh_decode(data,(size_t)length,&encounter_mesh)' in main_source
+assert 'dr_mesh_wireframe(&encounter_mesh,top,SW,SH,x,y,24,CYAN)' in main_source
+assert 'if(game.session_type==0 && draw_encounter_mesh(game.session_species,px,py))' in main_source
+assert 'else draw_sprite(top,S_ORB,px-29,py-29);' in main_source
 assert "else draw_sprite(top,S_ORB,px-29,py-29);" in main_source
 # Runtime sprite loading must reject truncated or appended NitroFS data.
 assert "ftell(f)!=(long)(4u+payload)" in main_source
