@@ -826,12 +826,18 @@ static void album_select(int direction) {
     int slot=-1;
     /* Direction 0 means rescan from the start; otherwise wrap from current. */
     int from=direction==0?-1:album_slot;
-    if(photo_storage_ready &&
-       dr_photo_find(photo_dir,from,direction<0?-1:1,&slot)) {
-        char path[128];
-        snprintf(path,sizeof path,"%s/photo_%03d.bmp",photo_dir,slot);
-        if(dr_photo_read(path,camera_last_frame,PIXELS)) {
-            album_slot=slot;album_loaded=1;return;
+    /* A corrupt BMP should not prevent browsing later valid photographs.
+       Search each numbered slot at most once, preserving the current image
+       if no readable replacement exists. */
+    if(photo_storage_ready) {
+        for(int attempt=0;attempt<DR_PHOTO_MAX;attempt++) {
+            if(!dr_photo_find(photo_dir,from,direction<0?-1:1,&slot))break;
+            char path[128];
+            snprintf(path,sizeof path,"%s/photo_%03d.bmp",photo_dir,slot);
+            if(dr_photo_read(path,camera_last_frame,PIXELS)) {
+                album_slot=slot;album_loaded=1;return;
+            }
+            from=slot;
         }
     }
     if(direction==0) {album_slot=-1;album_loaded=0;}
