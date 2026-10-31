@@ -24,6 +24,7 @@
 #include "cloud_animation.h"
 #include "burnet_tips_generated.h"
 #include "dr_mesh.h"
+#include "dr_texture.h"
 
 #define SW 256
 #define SH 192
@@ -231,11 +232,13 @@ static void draw_sprite(u16 *v,int id,int x,int y) {
 /* Optional converted geometry: no models are packaged by default.
    Cache one species per encounter and preserve authentic 2D art fallback. */
 static DrMesh encounter_mesh;
+static DrTexture encounter_texture;
 static int encounter_mesh_species=-1;
 static int encounter_mesh_attempted;
 static int draw_encounter_mesh(int species,int x,int y) {
     if(species<0 || species>=26 || (!have_storage && !have_romfs))return 0;
     if(species!=encounter_mesh_species) {
+        dr_texture_free(&encounter_texture);
         dr_mesh_free(&encounter_mesh);
         encounter_mesh_species=species;
         encounter_mesh_attempted=0;
@@ -249,16 +252,26 @@ static int draw_encounter_mesh(int species,int x,int y) {
             int n=snprintf(path,sizeof path,
                            "%sDreamRadarDSi/Models/pokemon_%02d.drm",
                            storage_root,species);
-            if(n>0 && n<(int)sizeof path)
-                dr_mesh_load_file(path,&encounter_mesh);
+            if(n>0 && n<(int)sizeof path &&
+               dr_mesh_load_file(path,&encounter_mesh)) {
+                n=snprintf(path,sizeof path,
+                           "%sDreamRadarDSi/Models/pokemon_%02d.drt",
+                           storage_root,species);
+                if(n>0 && n<(int)sizeof path)
+                    dr_texture_load_file(path,&encounter_mesh,&encounter_texture);
+            }
         }
         /* A missing or invalid storage mesh may fall back to a model explicitly
            bundled in NitroFS. Neither path is shipped with actual 3DS models. */
         if(!encounter_mesh.vertex && have_romfs) {
             char path[64];
             int n=snprintf(path,sizeof path,"nitro:/pokemon_%02d.drm",species);
-            if(n>0 && n<(int)sizeof path)
-                dr_mesh_load_file(path,&encounter_mesh);
+            if(n>0 && n<(int)sizeof path &&
+               dr_mesh_load_file(path,&encounter_mesh)) {
+                n=snprintf(path,sizeof path,"nitro:/pokemon_%02d.drt",species);
+                if(n>0 && n<(int)sizeof path)
+                    dr_texture_load_file(path,&encounter_mesh,&encounter_texture);
+            }
         }
     }
     if(!encounter_mesh.vertex)return 0;
@@ -268,6 +281,9 @@ static int draw_encounter_mesh(int species,int x,int y) {
     unsigned yaw_step=(unsigned)((game.save.frames_played/12u)&15u);
     /* Filled preview is intentionally flat-colored until original materials
        can be converted; item encounters continue to use their 2D sprites. */
+    if(encounter_texture.texels &&
+       dr_texture_render_yaw(&encounter_mesh,&encounter_texture,top,
+                             SW,SH,x,y,24,yaw_step))return 1;
     return dr_mesh_solid_yaw(&encounter_mesh,top,SW,SH,x,y,24,CYAN,yaw_step);
 }
 /* Source-authentic 3DS thumbnail fallback until real geometry has been
