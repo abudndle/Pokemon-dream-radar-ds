@@ -37,6 +37,11 @@ def verify(root=ROOT):
         assert all(p == 0 or p & 0x8000 for p in pixels), (
             f'Invalid RGB555 opacity bit: {name}'
         )
+    # Detect accidental omissions from the asset packaging manifest.
+    expected = set(BITMAPS) | set(SPRITES)
+    actual = {p.name for p in root.iterdir() if p.is_file() and p.suffix in ('.raw', '.spr')}
+    missing = expected - actual
+    assert not missing, f'Missing NitroFS assets: {sorted(missing)}'
     return len(BITMAPS), len(SPRITES)
 
 
