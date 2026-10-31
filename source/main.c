@@ -387,7 +387,12 @@ static void render(void) {
         const char *opts[]={"Start","Send Research Data","Credits","Records"};
         for(int i=0;i<4;i++) {
             const DrPaneRect *r=&dr_title_panes[i];
-            if(game.selection==i)border(bottom,r->x,r->y,r->w,r->h,GOLD);
+            /* Original blue title panels use a bright white/cyan focus edge,
+               not the gold selection outline from the development UI. */
+            if(game.selection==i) {
+                border(bottom,r->x,r->y,r->w,r->h,WHITE);
+                border(bottom,r->x+2,r->y+2,r->w-4,r->h-4,CYAN);
+            }
             /* Center each label within its actual extracted menu pane, not
                the full screen; preserve the original pane positions. */
             int label_width=(int)strlen(opts[i])*6;
