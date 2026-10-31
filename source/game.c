@@ -394,6 +394,10 @@ void game_fire(Game *g) {
     } else if (g->screen==STATE_SPHERE) {
         /* An expired encounter must not be captured between timer ticks. */
         if(g->capture_timeout<=0)return;
+        /* Sphere coordinates must be on the DS viewport. Squaring two
+           arbitrary signed 32-bit coordinates could overflow int64_t. */
+        if(g->sphere_x<0 || g->sphere_x>255 ||
+           g->sphere_y<0 || g->sphere_y>191)return;
         int64_t dx=(int64_t)g->sphere_x-g->aim_x, dy=(int64_t)g->sphere_y-g->aim_y;
         if (dx*dx+dy*dy<22*22) {
             /* Clamp damaged runtime state and never overflow capture HP. */
