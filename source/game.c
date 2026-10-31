@@ -354,6 +354,19 @@ static int choose_item_encounter(Game *g) {
         default: return 0;
     }
 }
+/* Original Simulator extensions fight the Therian species but award an item
+ * instead of sending that legendary Pokemon. The six item IDs per Simulator
+ * match the original English Item.msbt catalog and documented reward pools. */
+static int simulator_reward_item(Game *g) {
+    static const uint8_t pools[3][6] = {
+        {4,17,15,16,7,20},   /* Alpha: PP Up, Heart Scale, Rare Candy, Star Piece, Max Revive, Life Orb */
+        {18,17,15,16,19,21}, /* Beta: Dawn Stone, Heart Scale, Rare Candy, Star Piece, King's Rock, Focus Sash */
+        {22,17,15,16,20,21}  /* Gamma: Eviolite, Heart Scale, Rare Candy, Star Piece, Life Orb, Focus Sash */
+    };
+    int index=g->ext_selection-EXT_SIM_TORNADUS;
+    if(index<0 || index>=3)return -1;
+    return pools[index][rnd(g)%6u];
+}
 static void start_sphere(Game *g) {
     g->screen=STATE_SPHERE;
     g->capture_timeout= (g->ext_selection==EXT_BASIC && g->save.story_phase==0 && g->save.searches==0) ? 9999 * 60 : (90+g->save.upgrades[1]*30)*60;
@@ -378,8 +391,15 @@ static void start_sphere(Game *g) {
        from the original encounter/item tables. */
     static const int item_pool_sizes[4]={6,11,17,23};
     int phase=g->save.story_phase>3?3:g->save.story_phase;
-    /* Pokemon-only encounters must not roll or expose an unrelated item. */
-    g->session_item=g->session_type ? (int)(rnd(g)%(uint32_t)item_pool_sizes[phase]) : -1;
+    /* Simulator fights still display the Therian Pokemon, but their reward
+       is an item from the matching six-item pool, not a duplicate legendary.
+       Ordinary Pokemon-only encounters never have an unrelated item. */
+    if(g->ext_selection>=EXT_SIM_TORNADUS &&
+       g->ext_selection<=EXT_SIM_LANDORUS)
+        g->session_item=simulator_reward_item(g);
+    else
+        g->session_item=g->session_type ?
+            (int)(rnd(g)%(uint32_t)item_pool_sizes[phase]) : -1;
 }
 /* Support effects belong to gameplay state, never the renderer. A failed
    activation must not consume inventory or trigger a save. */
@@ -508,14 +528,15 @@ void game_capture(Game *g) {
     if(!g || g->screen!=STATE_SPHERE || g->capture_timeout<=0)return;
     /* Only defined Pokemon (0) and item (1) encounter types award rewards. */
     if(g->session_type!=0 && g->session_type!=1)return;
-    /* Simulator results never take a research slot, even if an unexpected
-       encounter type arrives from a damaged or out-of-sync runtime state. */
-    if(g->ext_selection>=EXT_SIM_TORNADUS && g->ext_selection<=EXT_SIM_LANDORUS) {
-        g->session_caught=-3;
-        conclude_capture(g);
+    /* A simulator challenge cannot award another transferable legendary:
+       it awards its own item pool while still rendering the Therian fight.
+       Reuse the normal six-stack storage/replacement path. */
+    int is_simulator=g->ext_selection>=EXT_SIM_TORNADUS &&
+                     g->ext_selection<=EXT_SIM_LANDORUS;
+    if(is_simulator && (g->session_type!=0 ||
+       g->session_species!=15+g->ext_selection-EXT_SIM_TORNADUS))
         return;
-    }
-    if(g->session_type==1) {
+    if(g->session_type==1 || is_simulator) {
         int item=g->session_item;
         if(item<0 || item>=RESEARCH_ITEM_TYPES) {
             g->session_caught=-4;
