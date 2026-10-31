@@ -71,6 +71,8 @@ uint32_t game_checksum(const SaveData *p) {
     return h;
 }
 void game_new(Game *g, uint32_t seed) {
+    /* Public game initialization must safely reject an absent destination. */
+    if (!g) return;
     memset(g, 0, sizeof *g);
     g->save.magic = SAVE_MAGIC; g->save.version = SAVE_VERSION;
     g->save.random_seed = seed ? seed : 0x12345678u;
