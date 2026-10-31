@@ -95,6 +95,7 @@ test-host:
 	./build/test_reference_layout
 	python3 tests/test_title_asset_geometry.py
 	python3 tests/test_original_ui_audit.py
+	python3 tests/test_original_model_inventory.py
 	python3 tests/test_original_pane_geometry.py
 	python3 tests/test_pane_retarget.py
 	python3 tests/test_pane_hit_test.py
