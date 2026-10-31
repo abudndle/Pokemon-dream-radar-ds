@@ -98,6 +98,34 @@ int main(void) {
         assert(!game_extension_unlocked(&g,extension));
     }
     assert(game_extension_unlocked(&g,EXT_SIM_TORNADUS));
+    /* Cartridge-specific legendary research is single-use after capture. */
+    game_set_cart(&g,GAME_DIAMOND);
+    assert(game_extension_unlocked(&g,EXT_DIALGA));
+    game_begin_search(&g,EXT_DIALGA);
+    assert(g.screen==STATE_RADAR);
+    g.aim_x=g.clouds[0].x;g.aim_y=g.clouds[0].y;
+    game_fire(&g);
+    assert(g.screen==STATE_SPHERE && g.session_species==18);
+    game_capture(&g);
+    assert(g.screen==STATE_RESULTS && g.session_caught==18);
+    assert((g.save.legends_caught & 1u)!=0);
+    assert(g.save.pending_count==4 && g.save.pending[3]==18);
+    assert(!game_extension_unlocked(&g,EXT_DIALGA));
+    /* A simulator still awards no capture inventory or story progression. */
+    g.save.orbs=1000;
+    game_begin_search(&g,EXT_SIM_TORNADUS);
+    assert(g.screen==STATE_RADAR);
+    g.aim_x=g.clouds[0].x;g.aim_y=g.clouds[0].y;
+    game_fire(&g);
+    assert(g.screen==STATE_SPHERE && g.session_species==15);
+    unsigned before_count=g.save.caught_count;
+    unsigned before_pending=g.save.pending_count;
+    unsigned before_phase=g.save.story_phase;
+    game_capture(&g);
+    assert(g.screen==STATE_RESULTS && g.session_caught==-3);
+    assert(g.save.caught_count==before_count);
+    assert(g.save.pending_count==before_pending);
+    assert(g.save.story_phase==before_phase);
     puts("PASS: legendary escape, captures, replacement and 3-stage story progression");
     return 0;
 }
