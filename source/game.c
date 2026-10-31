@@ -395,7 +395,13 @@ void game_fire(Game *g) {
         if(g->capture_timeout<=0)return;
         int64_t dx=(int64_t)g->sphere_x-g->aim_x, dy=(int64_t)g->sphere_y-g->aim_y;
         if (dx*dx+dy*dy<22*22) {
-            g->capture_hp += g->save.upgrades[0]*(g->freeze_frames ? 5 : 3);
+            /* Clamp damaged runtime state and never overflow capture HP. */
+            int level=g->save.upgrades[0];
+            if(level<1 || level>5)return;
+            int damage=level*(g->freeze_frames>0 ? 5 : 3);
+            if(g->capture_hp<0)g->capture_hp=0;
+            if(g->capture_hp>=240-damage)g->capture_hp=240;
+            else g->capture_hp+=damage;
             if (g->capture_hp>=240) game_capture(g);
         }
     }
