@@ -143,6 +143,20 @@ static void load_sprite(int id) {
     s->pixels=malloc(payload);
     if(!s->pixels || fread(s->pixels,1,payload,f)!=payload) {
         free(s->pixels);s->pixels=NULL;s->w=0;s->h=0;
+    } else {
+        /* The original sprite converter uses zero for transparency and
+           bit 15 for visible RGB555 pixels. Reject other values and
+           entirely invisible files rather than silently showing garbage. */
+        int visible=0,valid=1;
+        size_t pixels=payload/2u;
+        for(size_t i=0;i<pixels;i++) {
+            u16 pixel=s->pixels[i];
+            if(pixel & 0x8000u)visible=1;
+            else if(pixel!=0){valid=0;break;}
+        }
+        if(!visible || !valid) {
+            free(s->pixels);s->pixels=NULL;s->w=0;s->h=0;
+        }
     }
     fclose(f);
 }
