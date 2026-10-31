@@ -67,21 +67,23 @@
       "id": "orb_colors",
       "feature": "Pink/green/orange/blue Dream Orb cycle",
       "status": "partial",
-      "gap": "Four hues unlock after Therian captures, cycle during radar scans, and previous-search majority persists in v3 saves. The DS currently collects a same-color batch on each cloud hit, not individually moving colored Dream Orbs or chains.",
+      "gap": "Separate on-screen Dream Orbs now spawn from clouds, drift, cycle color individually, and must be shot before expiring; four colors unlock with Therian progression. Exact 3DS movement/physics, per-cloud sizing and timing remain provisional.",
       "evidence": [
         "source/game.c",
         "source/main.c",
-        "tests/test_orb_colors.c"
+        "tests/test_orb_colors.c",
+        "tests/test_dream_orb_entities.c"
       ]
     },
     {
       "id": "color_encounter_bias",
       "feature": "Color-influenced next-search Pokémon encounter selection",
       "status": "partial",
-      "gap": "The prior search's saved dominant color filters the 15 ordinary species by original documented color preferences and stage unlock. Encounter weighting/rarity is still provisional; full original selection table and live per-orb collection are missing.",
+      "gap": "Colors are counted only when an individual orb is shot; dominant color is saved for next search and filters ordinary species. Exact weighted encounter rates are still provisional.",
       "evidence": [
         "source/game.c",
-        "tests/test_orb_colors.c"
+        "tests/test_orb_colors.c",
+        "tests/test_dream_orb_entities.c"
       ]
     },
     {
