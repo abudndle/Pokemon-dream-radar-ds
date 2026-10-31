@@ -56,4 +56,6 @@ assert "if(!visible || !valid)" in main_source
 # readable prefix followed by arbitrary appended data.
 assert "ftell(f)==(long)(PIXELS*2u)" in main_source
 assert "if(fclose(f)!=0)bg_valid[i]=0;" in main_source
+assert "if(!(bg_cache[i][pixel]&0x8000u))" in main_source
+assert "bg_valid[i]=0;" in main_source
 print("PASS: original UI source inventory distinguishes 22 snapshots from bundled sources")
