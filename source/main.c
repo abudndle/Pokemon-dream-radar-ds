@@ -268,15 +268,19 @@ static int draw_encounter_mesh(int species,int x,int y) {
                 if(n>0 && n<(int)sizeof path)
                     dr_texture_load_file(path,&encounter_mesh,&encounter_texture);
                 n=snprintf(path,sizeof path,
-                           "%sDreamRadarDSi/Models/pokemon_%02d.dra",
-                           storage_root,species);
-                if(n>0 && n<(int)sizeof path)
-                    dr_animation_load_file(path,&encounter_mesh,&encounter_animation);
-                n=snprintf(path,sizeof path,
                            "%sDreamRadarDSi/Models/pokemon_%02d.drb",
                            storage_root,species);
                 if(n>0 && n<(int)sizeof path)
                     dr_parts_load_file(path,&encounter_mesh,&encounter_parts);
+                /* Do not allocate redundant DRA1 keys when a DRB1
+                   animation already controls this encounter's model. */
+                if(!encounter_parts.owner) {
+                    n=snprintf(path,sizeof path,
+                               "%sDreamRadarDSi/Models/pokemon_%02d.dra",
+                               storage_root,species);
+                    if(n>0 && n<(int)sizeof path)
+                        dr_animation_load_file(path,&encounter_mesh,&encounter_animation);
+                }
             }
         }
         /* A missing or invalid storage mesh may fall back to a model explicitly
@@ -289,12 +293,14 @@ static int draw_encounter_mesh(int species,int x,int y) {
                 n=snprintf(path,sizeof path,"nitro:/pokemon_%02d.drt",species);
                 if(n>0 && n<(int)sizeof path)
                     dr_texture_load_file(path,&encounter_mesh,&encounter_texture);
-                n=snprintf(path,sizeof path,"nitro:/pokemon_%02d.dra",species);
-                if(n>0 && n<(int)sizeof path)
-                    dr_animation_load_file(path,&encounter_mesh,&encounter_animation);
                 n=snprintf(path,sizeof path,"nitro:/pokemon_%02d.drb",species);
                 if(n>0 && n<(int)sizeof path)
                     dr_parts_load_file(path,&encounter_mesh,&encounter_parts);
+                if(!encounter_parts.owner) {
+                    n=snprintf(path,sizeof path,"nitro:/pokemon_%02d.dra",species);
+                    if(n>0 && n<(int)sizeof path)
+                        dr_animation_load_file(path,&encounter_mesh,&encounter_animation);
+                }
             }
         }
     }
