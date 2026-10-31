@@ -45,16 +45,17 @@ int main(void) {
     game_capture(&g);
     assert(g.screen==STATE_SPHERE);
     assert(g.save.pending_count==0 && g.save.caught_count==0);
-    /* Simulator gameplay must never award research items either, including
-       if a malformed session unexpectedly presents an item encounter. */
+    /* Simulator gameplay must reject a malformed encounter. Valid Simulator
+       fights award their documented research item via the shared storage flow. */
     game_new(&g,31);
     g.screen=STATE_SPHERE;
     g.capture_timeout=100;
     g.ext_selection=EXT_SIM_TORNADUS;
-    g.session_type=1;
+    g.session_type=1; /* Invalid: simulator battle must depict a Therian. */
+    g.session_species=15;
     g.session_item=2;
     game_capture(&g);
-    assert(g.screen==STATE_RESULTS && g.session_caught==-3);
+    assert(g.screen==STATE_SPHERE && g.session_caught==-1);
     assert(g.save.pending_count==0 && g.save.pending_items[0]==0);
     assert(g.save.caught_count==0);
     /* Corrupt negative timeouts must also resolve, not trap a capture. */
