@@ -50,6 +50,23 @@ int main(void) {
             for(int xx=rx;xx<rx+rw;xx++)
                 assert(dr_transfer_slot_at(xx,yy)==i);
     }
+    /* Exhaustively preserve both shop and lab row selection, including gaps. */
+    for(int y=0;y<192;y++)for(int x=0;x<256;x++) {
+        int expected_shop=-1;
+        if(x>=10 && x<246 && y>=26 && y<170) {
+            int row=(y-26)/24;
+            if(row<6 && y<26+24*row+22)expected_shop=row;
+        }
+        assert(dr_shop_hit(x,y)==expected_shop);
+        for(int count=6;count<=7;count++) {
+            int expected_lab=-1;
+            if(x>=10 && x<246 && y>=3) {
+                int row=(y-3)/23;
+                if(row<count && y<3+23*row+22)expected_lab=row;
+            }
+            assert(dr_lab_hit(x,y,count)==expected_lab);
+        }
+    }
     /* Original title layout: visual rectangles and touch targets must agree. */
     for(int i=0;i<4;i++) {
         const DrPaneRect *r=&dr_title_panes[i];
