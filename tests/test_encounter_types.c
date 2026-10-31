@@ -12,7 +12,9 @@ static void trigger(Game *g,int ext) {
 }
 int main(void) {
     Game g;
-    for(unsigned seed=1;seed<=128;seed++) {
+    int retrieval_items=0, retrieval_pokemon=0;
+    int dowsing_items=0, dowsing_pokemon=0;
+    for(unsigned seed=1;seed<=256;seed++) {
         game_new(&g,seed);
         g.save.total_orbs=4000;
         g.save.orbs=4000;
@@ -21,26 +23,46 @@ int main(void) {
         trigger(&g,EXT_DIALGA);
         assert(g.session_type==0 && g.session_species==18 && g.session_item==-1);
         assert(g.capture_timeout>0);
-        /* A new sphere encounter starts with no active support effects. */
         assert(g.freeze_frames==0 && g.slow_frames==0);
         game_new(&g,seed);
         g.save.story_phase=3;
         g.save.orbs=4000;
         trigger(&g,EXT_SIM_TORNADUS);
         assert(g.session_type==0 && g.session_species==15 && g.session_item==-1);
+
         game_new(&g,seed);
         g.save.total_orbs=4000;
         g.save.orbs=4000;
         g.save.story_phase=1;
         trigger(&g,EXT_RETRIEVAL);
-        assert(g.session_type==1 && g.session_species==-1 && g.session_item>=0);
+        if(g.session_type==1) {
+            retrieval_items++;
+            assert(g.session_species==-1 && g.session_item>=0);
+        } else {
+            retrieval_pokemon++;
+            assert(g.session_species>=0 && g.session_item==-1);
+        }
+
         game_new(&g,seed);
         g.save.total_orbs=4000;
         g.save.orbs=4000;
-        g.save.story_phase=1; /* Dowsing unlocks after the first Eureka stage. */
+        g.save.story_phase=1;
         trigger(&g,EXT_DOWSING);
-        assert(g.session_type==1 && g.session_species==-1);
+        if(g.session_type==1) {
+            dowsing_items++;
+            assert(g.session_species==-1 && g.session_item>=0);
+        } else {
+            dowsing_pokemon++;
+            assert(g.session_species>=0 && g.session_item==-1);
+        }
     }
+    /* The two Extensions must not collapse to identical reward modes.
+       Original rates remain to be recovered; verify only the documented bias. */
+    assert(retrieval_items>0 && retrieval_pokemon>0);
+    assert(dowsing_items>0 && dowsing_pokemon>0);
+    assert(retrieval_pokemon>retrieval_items);
+    assert(dowsing_items>dowsing_pokemon);
+    assert(dowsing_items>retrieval_items);
     /* Ordinary cloud searches must support both reward kinds, with exactly
        one payload populated for each result. */
     int pokemon_results=0,item_results=0;
@@ -66,6 +88,6 @@ int main(void) {
         }
     }
     assert(pokemon_results>0 && item_results>0);
-    puts("PASS: legendary, simulation, and dowsing encounter type policy");
+    puts("PASS: legendary, simulator, and contrasting Retrieval/Dowsing reward bias");
     return 0;
 }
