@@ -25,6 +25,14 @@ def verify(root=ROOT):
         w, h = struct.unpack_from('<HH', data)
         assert 0 < w <= 256 and 0 < h <= 192, f'Bad sprite dimensions: {name}'
         assert len(data) == 4 + w * h * 2, f'Bad pixel data length: {name}'
+        # Sprite converter reserves zero for transparent texels and sets
+        # RGB555 bit 15 on all visible pixels. Reject malformed opacity
+        # values that would disappear or render incorrectly on DS hardware.
+        pixels = struct.unpack_from(f'<{w * h}H', data, 4)
+        assert any(p & 0x8000 for p in pixels), f'Fully invisible sprite: {name}'
+        assert all(p == 0 or p & 0x8000 for p in pixels), (
+            f'Invalid RGB555 opacity bit: {name}'
+        )
     return len(BITMAPS), len(SPRITES)
 
 
