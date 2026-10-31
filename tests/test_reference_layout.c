@@ -4,6 +4,41 @@
 #include <stdio.h>
 #include <string.h>
 int main(void) {
+    /* Labels follow the same policy as activation, even with no stock left
+       during a running effect; querying the HUD cannot mutate game state. */
+    {
+        Game g;game_new(&g,42);
+        char label[8];
+        dr_support_label(&g,0,label,sizeof label);assert(!strcmp(label,"WAIT"));
+        g.screen=STATE_SPHERE;g.capture_timeout=1000;
+        g.save.goods[0]=1;
+        dr_support_label(&g,0,label,sizeof label);assert(!strcmp(label,"READY"));
+        assert(game_use_support(&g,0));
+        dr_support_label(&g,0,label,sizeof label);assert(!strcmp(label,"ON 5s"));
+        const int frames[]={299,241,240,61,60,1};
+        const char *labels[]={"ON 5s","ON 5s","ON 4s","ON 2s","ON 1s","ON 1s"};
+        for(int i=0;i<6;i++) {
+            g.freeze_frames=frames[i];
+            Game before=g;
+            dr_support_label(&g,0,label,sizeof label);
+            assert(!strcmp(label,labels[i]));
+            assert(!memcmp(&before,&g,sizeof g));
+        }
+        g.freeze_frames=0;
+        dr_support_label(&g,0,label,sizeof label);assert(!strcmp(label,"EMPTY"));
+        g.slow_frames=120;
+        dr_support_label(&g,1,label,sizeof label);assert(!strcmp(label,"ON 2s"));
+        g.save.goods[2]=1;
+        dr_support_label(&g,2,label,sizeof label);assert(!strcmp(label,"READY"));
+        g.capture_timeout=2147483647;
+        dr_support_label(&g,2,label,sizeof label);assert(!strcmp(label,"WAIT"));
+        g.capture_timeout=0;
+        dr_support_label(&g,1,label,sizeof label);assert(!strcmp(label,"WAIT"));
+        dr_support_label(NULL,-1,label,sizeof label);assert(!strcmp(label,"WAIT"));
+        char tiny[2]={'x','x'};
+        dr_support_label(NULL,0,tiny,sizeof tiny);assert(tiny[1]=='\0');
+        dr_support_label(NULL,0,NULL,0);
+    }
     const int quad[8]={100,70,130,100,100,130,70,100};
     assert(dr_quad_hit(quad,100,100));
     assert(!dr_quad_hit(quad,71,71));

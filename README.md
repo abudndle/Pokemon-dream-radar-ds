@@ -1,3 +1,11 @@
+## Support effect feedback milestone
+
+The original support-item controls now show inventory, availability, and a live
+freeze/slow countdown. Active effects cannot consume another charge until they
+expire; tapping an unavailable control explains why. See
+`SUPPORT_GAMEPLAY_MILESTONE.md` for behavior and validation. The unified ROM
+build and container checks pass; emulator/hardware behavior remains unverified.
+
 ## Gameplay integration: Pokémon capture and full storage
 
 ## Optional Pokémon models on SD / flashcart (development milestone)
