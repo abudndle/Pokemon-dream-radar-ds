@@ -467,6 +467,7 @@ void game_begin_search(Game *g, int ext) {
     g->capture_hp=0;g->capture_timeout=0;g->cloud_hit=0;
     g->projectile_active=0;g->projectile_enabled=0;
     g->projectile_hits=0;g->projectile_cooldown=0;
+    g->projectile_queued=0;g->capture_motion_ticks=0;
     memset(g->session_color_counts,0,sizeof g->session_color_counts);
     memset(g->dream_orbs,0,sizeof g->dream_orbs);
     g->orb_chain_stage=0;g->orb_chain_valid=0;
@@ -563,6 +564,39 @@ static int simulator_reward_item(Game *g) {
 /* DS-compatible approximation of the original Sphere's energy-ball attack.
  * Attack cadence and damage are provisional: originals depend on species.
  * A moving beam aim can dodge an incoming ball or shoot it directly. */
+/* Distinct encounter profiles provide DS-friendly variation in sphere
+ * geometry, movement and attack cadence. All values are intentionally
+ * provisional: the original 3DS per-species parameter tables remain unknown.
+ * Dedicated legendary extensions and Therian simulators share the toughest
+ * category; ordinary species differ deterministically, without rerolling a
+ * difficulty after a failed or retried capture. */
+CaptureProfile game_capture_profile(const Game *g) {
+    static const CaptureProfile profiles[] = {
+        {CAPTURE_DRIFT,     22,1,90,160,120,1},
+        {CAPTURE_SWIFT,     19,2,55,110,180,2},
+        {CAPTURE_ERRATIC,   16,3,32, 95,210,2},
+        {CAPTURE_LEGENDARY, 16,3,24, 70,300,3},
+        {CAPTURE_ITEM,      20,2,65,125,150,1}
+    };
+    if(!g)return profiles[CAPTURE_DRIFT];
+    if((g->ext_selection>=EXT_TORNADUS &&
+        g->ext_selection<=EXT_LUGIA) ||
+       (g->ext_selection>=EXT_SIM_TORNADUS &&
+        g->ext_selection<=EXT_SIM_LANDORUS) ||
+       (g->session_species>=15 && g->session_species<=22))
+        return profiles[CAPTURE_LEGENDARY];
+    if(g->session_type==1)return profiles[CAPTURE_ITEM];
+    if(g->session_species<0 || g->session_species>25)
+        return profiles[CAPTURE_DRIFT];
+    return profiles[g->session_species%3];
+}
+static void finish_projectile(Game *g) {
+    g->projectile_active=0;
+    /* Within a burst, launch the next ball after a short staggered pause.
+     * This DS approximation launches at most one ball at a time. */
+    g->projectile_cooldown=g->projectile_queued>0 ? 12 :
+        game_capture_profile(g).attack_interval;
+}
 static int projectile_speed(int delta) {
     if(delta>0)return delta>60?3:delta>24?2:1;
     if(delta<0)return delta< -60?-3:delta< -24?-2:-1;
@@ -574,7 +608,7 @@ static void tick_projectile(Game *g) {
         if(g->projectile_x<0 || g->projectile_x>255 ||
            g->projectile_y<0 || g->projectile_y>191 ||
            g->projectile_lifetime<=0) {
-            g->projectile_active=0;return;
+            finish_projectile(g);return;
         }
         g->projectile_x+=g->projectile_vx;
         g->projectile_y+=g->projectile_vy;
@@ -582,19 +616,18 @@ static void tick_projectile(Game *g) {
         if(g->projectile_x<0 || g->projectile_x>255 ||
            g->projectile_y<0 || g->projectile_y>191 ||
            g->projectile_lifetime<=0) {
-            g->projectile_active=0;return;
+            finish_projectile(g);return;
         }
         int64_t dx=(int64_t)g->projectile_x-g->aim_x;
         int64_t dy=(int64_t)g->projectile_y-g->aim_y;
         if(g->aim_x>=0 && g->aim_x<=255 &&
            g->aim_y>=0 && g->aim_y<=191 &&
            dx*dx+dy*dy<=9*9) {
-            g->projectile_active=0;
+            finish_projectile(g);
             if(g->projectile_hits<INT_MAX)g->projectile_hits++;
-            /* A hit costs 3 seconds in this adaptation; exact 3DS penalties
-               are species-specific and have not been verified. */
-            if(g->capture_timeout<=180)g->capture_timeout=0;
-            else g->capture_timeout-=180;
+            int penalty=game_capture_profile(g).attack_penalty;
+            if(g->capture_timeout<=penalty)g->capture_timeout=0;
+            else g->capture_timeout-=penalty;
         }
         return;
     }
@@ -609,18 +642,21 @@ static void tick_projectile(Game *g) {
     if(!g->projectile_vx && !g->projectile_vy)g->projectile_vy=2;
     g->projectile_lifetime=90;
     g->projectile_active=1;
-    g->projectile_cooldown=120;
+    if(g->projectile_queued>0)g->projectile_queued--;
+    else g->projectile_queued=game_capture_profile(g).attack_burst-1;
+    g->projectile_cooldown=game_capture_profile(g).attack_interval;
 }
 static void start_sphere(Game *g) {
     g->screen=STATE_SPHERE;
     g->projectile_enabled=1;
     g->projectile_active=0;
-    g->projectile_cooldown=90;
+    g->projectile_queued=0;
+    g->capture_motion_ticks=0;
     g->projectile_lifetime=0;
     g->projectile_hits=0;
     g->capture_timeout= (g->ext_selection==EXT_BASIC && g->save.story_phase==0 && g->save.searches==0) ? 9999 * 60 : (90+g->save.upgrades[1]*30)*60;
     g->sphere_x=105;g->sphere_y=90;
-    g->sphere_vx=1+(rnd(g)%3);g->sphere_vy=1+(rnd(g)%2);
+    g->sphere_vx=0;g->sphere_vy=0;
     g->capture_hp=0;
     /* Start every capture with a fresh movement and support state. */
     g->capture_timeout=g->capture_timeout<1?1:g->capture_timeout;
@@ -649,6 +685,10 @@ static void start_sphere(Game *g) {
     else
         g->session_item=g->session_type ?
             (int)(rnd(g)%(uint32_t)item_pool_sizes[phase]) : -1;
+    CaptureProfile profile=game_capture_profile(g);
+    g->sphere_vx=profile.speed;
+    g->sphere_vy=profile.speed>1?profile.speed-1:1;
+    g->projectile_cooldown=profile.attack_interval;
 }
 /* Support effects belong to gameplay state, never the renderer. A failed
    activation must not consume inventory or trigger a save. */
@@ -735,7 +775,7 @@ void game_fire(Game *g) {
             int64_t px=(int64_t)g->projectile_x-g->aim_x;
             int64_t py=(int64_t)g->projectile_y-g->aim_y;
             if(px*px+py*py<=12*12) {
-                g->projectile_active=0;
+                finish_projectile(g);
                 return;
             }
         }
@@ -746,7 +786,8 @@ void game_fire(Game *g) {
         if(g->sphere_x<0 || g->sphere_x>255 ||
            g->sphere_y<0 || g->sphere_y>191)return;
         int64_t dx=(int64_t)g->sphere_x-g->aim_x, dy=(int64_t)g->sphere_y-g->aim_y;
-        if (dx*dx+dy*dy<22*22) {
+        int radius=game_capture_profile(g).hit_radius;
+        if (dx*dx+dy*dy<(int64_t)radius*radius) {
             /* Clamp damaged runtime state and never overflow capture HP. */
             int level=g->save.upgrades[0];
             if(level<1 || level>5)return;
@@ -990,6 +1031,17 @@ void game_tick(Game *g) {
             if (ny<30 && g->sphere_vy<0)
                 g->sphere_vy=g->sphere_vy==INT32_MIN?INT32_MAX:-g->sphere_vy;
             if (ny>164 && g->sphere_vy>0)g->sphere_vy=-g->sphere_vy;
+            /* Swift/erratic/legendary spheres periodically break their
+               trajectory. Timing is measured only on actual movement
+               frames, so Freeze and Dragnet remain predictable. */
+            CaptureProfile profile=game_capture_profile(g);
+            if(g->capture_motion_ticks<INT_MAX)g->capture_motion_ticks++;
+            if(profile.turn_frames>0 &&
+               g->capture_motion_ticks%profile.turn_frames==0) {
+                int turn=g->capture_motion_ticks/profile.turn_frames;
+                g->sphere_vx=(turn&1)?-profile.speed:profile.speed;
+                g->sphere_vy=(turn&2)?-profile.speed:profile.speed;
+            }
         }
         if (!frozen_this_frame && (!slowed_this_frame || g->save.frames_played%3u==0u))
             tick_projectile(g);
