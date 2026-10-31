@@ -264,7 +264,8 @@ void game_begin_search(Game *g, int ext) {
     g->requested_save=1;
     g->ext_selection=ext;
     g->screen=STATE_RADAR;
-    g->capture_hp=0;g->cloud_hit=0;
+    /* A new radar session must not retain the previous sphere timer. */
+    g->capture_hp=0;g->capture_timeout=0;g->cloud_hit=0;
     g->session_orbs=0; g->session_caught=-1;g->session_item=-1;
     /* Starting a new radar scan must not expose the previous species. */
     g->session_species=-1;
