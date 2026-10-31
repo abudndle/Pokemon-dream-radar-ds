@@ -33,4 +33,17 @@ with tempfile.TemporaryDirectory() as d:
     fake.write_bytes(b"CLYT\xff\xfe\x14\x00")
     valid=audit(snapshot,empty)
     assert valid["invalid_layout_sources"]==[]
+# The capture renderer must index the original extracted images by the
+# shipped NitroFS manifest, not invent missing models or reorder species.
+import re
+main_source=(root/"source/main.c").read_text()
+manifest=main_source.split("static const char *sprite_files[]={",1)[1].split("};",1)[0]
+sprites=re.findall(r'"([^"]+\\.spr)"',manifest)
+assert len(sprites)==68
+assert sprites[17:43]==[f"pokemon_{i:02d}.spr" for i in range(26)]
+assert sprites[43:66]==[f"item_{i:02d}.spr" for i in range(23)]
+assert sprites[66:]==["radar_cloud_white.spr","radar_cloud_pink.spr"]
+assert "S_ORIGINAL_POKEMON_FIRST=17,S_ORIGINAL_ITEM_FIRST=43" in main_source
+assert main_source.count("draw_original_encounter_art();")==2
+assert "else draw_sprite(top,S_ORB,px-29,py-29);" in main_source
 print("PASS: original UI source inventory distinguishes 22 snapshots from bundled sources")
