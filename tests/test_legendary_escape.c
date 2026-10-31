@@ -16,8 +16,11 @@ int main(void) {
     unsigned phase=g.save.story_phase;
     unsigned count=g.save.caught_count;
     g.capture_timeout=1;
+    g.freeze_frames=10;
+    g.slow_frames=10;
     game_tick(&g);
     assert(g.screen==STATE_RESULTS);
+    assert(g.freeze_frames==0 && g.slow_frames==0);
     assert(g.session_caught==-1);
     assert(g.save.story_phase==phase);
     assert(g.save.caught_count==count);
@@ -34,8 +37,11 @@ int main(void) {
     game_fire(&g);
     assert(g.screen==STATE_SPHERE);
     g.capture_timeout=1;
+    g.freeze_frames=10;
+    g.slow_frames=10;
     game_tick(&g);
     assert(g.screen==STATE_RESULTS);
+    assert(g.freeze_frames==0 && g.slow_frames==0);
     assert(!(g.save.legends_caught&1));
     assert(game_extension_unlocked(&g,EXT_DIALGA));
     puts("PASS: escaped legendaries preserve one-time unlock and progression");
