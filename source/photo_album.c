@@ -55,10 +55,13 @@ int dr_photo_find(const char *folder,int from,int direction,int *slot_out) {
     if(!folder || !*folder || !slot_out || (direction!=1 && direction!=-1))return 0;
     /* from is the current slot, -1 starts a new forward search. */
     if(from<-1 || from>=DR_PHOTO_MAX)return 0;
+    /* -1 denotes no current photo: begin at slot zero when advancing,
+       or at the final slot when navigating backwards. */
+    int base=(from==-1 && direction==-1)?0:from;
     for(int n=0;n<DR_PHOTO_MAX;n++) {
         /* Compute the cyclic offset without overflowing signed int if
            a future album raises the maximum slot count. */
-        int slot=(int)(((int64_t)from+(int64_t)direction*(n+1))%DR_PHOTO_MAX);
+        int slot=(int)(((int64_t)base+(int64_t)direction*(n+1))%DR_PHOTO_MAX);
         if(slot<0)slot+=DR_PHOTO_MAX;
         if(existing_photo(folder,slot)) {*slot_out=slot;return 1;}
     }
