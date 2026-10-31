@@ -35,6 +35,16 @@ int dr_transfer_slot_at(int x,int y) {
     }
     return -1;
 }
+int dr_lab_row_top(int index) {
+    return index>=0 && index<7 ? 3+23*index : -1;
+}
+int dr_lab_hit(int x,int y,int count) {
+    if(count<1 || count>7 || x<10 || x>=246 || y<3)return -1;
+    int index=(y-3)/23;
+    /* The 22-pixel-high active area leaves a genuine 1px row gap. */
+    if(index>=count || y>=dr_lab_row_top(index)+22)return -1;
+    return index;
+}
 int dr_shop_row_top(int index) {
     if(index<0 || index>=6)return -1;
     return 26 + 24*index;
