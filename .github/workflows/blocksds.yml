@@ -1,4 +1,4 @@
-name: BlocksDS dual-target build
+name: BlocksDS unified DS/DSi build
 on:
   workflow_dispatch:
   push:
@@ -17,20 +17,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Compile both targets in BlocksDS image
+      - name: Compile enhanced ROM with DS fallback
         run: |
           docker run --rm -v "$PWD:/workspace" -w /workspace \
             -e SKIP_HOST_TESTS=1 -e SKIP_ROM_CHECK=1 \
             skylyrac/blocksds:slim-latest sh scripts/build_both.sh
-      - name: Validate DS and DSi ROMs on Ubuntu
+      - name: Validate unified ROM on Ubuntu
         run: |
-          python3 scripts/check_nds.py dream_radar_ds.nds
-          python3 scripts/check_nds.py dream_radar_dsi.nds
+          python3 scripts/check_nds.py dream_radar.nds
       - name: Upload untested ROMs
         uses: actions/upload-artifact@v4
         with:
-          name: untested-blocksds-roms
+          name: untested-dream-radar-ds-dsi
           path: |
-            dream_radar_ds.nds
-            dream_radar_dsi.nds
+            dream_radar.nds
           if-no-files-found: error
