@@ -24,7 +24,8 @@ The DS port now tracks four original Dream Orb colors: **pink**, **green**,
 Thundurus, and blue after Landorus. While scanning, the color changes every
 45 frames; waiting before shooting a non-Pokémon cloud lets you collect
 a different color. The search HUD shows `LAST` (the saved color driving
-the current scan) and `LIVE` (the color awarded by the next cloud hit).
+the current scan) and `LIVE` (the base color cycle). Each floating orb
+has its own phase offset; its displayed color is what is collected.
 
 At the end of a search, the dominant collected color is saved to unused
 bytes 12 and 13 of the existing v3 homebrew save, without changing its size.
@@ -34,14 +35,21 @@ ordinary Pokémon from the original color-affinity groups. Examples:
 Smoochum requires blue, Togepi requires green, Ralts prefers green or
 orange, and Spiritomb prefers pink or blue.
 
-**Not full original behavior:** The DS adaptation currently grants
-3–7 orbs at once when a cloud is hit and assigns that batch the live
-color. The original game generates moving individual orbs that change
-color independently, can split into timed chains, and use exact
-unrecovered encounter weights. Therefore color probability and chaining
-are not yet 1:1 despite test coverage. The orb preview advances on
-45-frame intervals as a practical D-pad/stylus alternative; it is not
-a reproduction of the original motion-controlled AR shooting.
+**Current DS gameplay:** Shooting a pink cloud releases three to five
+moving Dream Orbs depending on the cloud's animation phase; a storm cloud
+without a Pokémon encounter releases four. These orbs **must each be shot**
+to earn one Dream Orb. Uncollected orbs drift, change color individually,
+and expire. Collecting all four or five of a large cluster begins a chain
+of shorter-lived three-orb groups. The chain is capped at 20 orbs per
+cloud; missing an orb ends the chain. A search ends when all clouds have
+been shot and all remaining orbs have been collected or expired.
+
+**Remaining original differences:** Movement and chain timing are bounded
+DS approximations, not a decoded reproduction of original 3DS physics.
+A single orb group can chain at a time; hitting additional clouds while
+orbs are active cancels the earlier chain but preserves every orb as a
+collectible. The original 3DS's motion-controlled aiming and exact
+encounter weights have not been reconstructed.
 
 Original gameplay references:
 - https://bulbapedia.bulbagarden.net/wiki/Dream_Radar
