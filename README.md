@@ -1,3 +1,11 @@
+## DSi custom camera-free background (source milestone)
+
+On a DSi running the enhanced build, open **Options → Camera: OFF** to disable the live camera, then choose **Custom Camera-Free Image**. Copy a **256 × 192, uncompressed 24-bit BMP** file to the SD card at `sd:/DreamRadarDSi/Photos/photo_000.bmp` (or use numbered files `photo_001.bmp` through `photo_999.bmp`). The port reuses the existing photo album's strict BMP decoder; arbitrary JPG, PNG, dimensions, and filenames are not supported.
+
+In the image picker, **Left/Right** previews available numbered photos, **A** activates the displayed photo, **Select** resets to the included background, and **B** returns to settings without applying a new preview. The selected numbered slot is stored in the homebrew save and reloaded on restart when the file is still present. The image is only used for the top-screen background when the live DSi camera feed isn't being used; capture overlays and controls remain in-game. Photos don't modify retail saves.
+
+**Status:** This is a source-level feature committed to GitHub, awaiting full BlocksDS build and real-DSi testing.
+
 this is ai project dont look into this page please i was originally trying to keep it private but i cant do that 
 anynore so dont mind the notes and messages you read in the code
 im just playing with ai for fun
