@@ -866,6 +866,7 @@ static void render(void) {
         print(bottom,9,181,GRAY,"B: BACK");
         break; }
     case STATE_PLACEHOLDER: {
+        char line[70]; /* Photo preview label is local to this screen. */
         load_bg("menu_top.raw",top,0x8824);
         if(placeholder_preview_loaded)memcpy(top,placeholder_preview,sizeof top);
         else top_title("CAMERA-FREE BACKGROUND");
