@@ -22,6 +22,17 @@ int main(void) {
     g.save.goods[2]=1; g.requested_save=0;
     assert(!game_use_support(&g,2));
     assert(g.save.goods[2]==1 && g.capture_timeout==INT_MAX && !g.requested_save);
+    /* A completed capture clears encounter-local effects. */
+    game_new(&g,71);
+    g.screen=STATE_SPHERE;
+    g.ext_selection=EXT_BASIC;
+    g.session_type=0;
+    g.session_species=0;
+    g.freeze_frames=240;
+    g.slow_frames=120;
+    game_capture(&g);
+    assert(g.screen==STATE_RESULTS);
+    assert(g.freeze_frames==0 && g.slow_frames==0);
     puts("PASS: support activation, item consumption, timer extension, saturation, and no-op behavior");
     return 0;
 }
