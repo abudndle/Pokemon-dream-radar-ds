@@ -1,6 +1,7 @@
 name: BlocksDS unified DS/DSi build
 on:
   workflow_dispatch:
+  pull_request:
   push:
     branches: [main]
 jobs:

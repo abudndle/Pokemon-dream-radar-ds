@@ -628,7 +628,17 @@ static void spawn_legendary_balls(Game *g) {
         p->ttl=90;p->active=1;
     }
 }
-static void tick_extra_balls(Game *g) {
+/* Overlapping Legendary energy balls apply at most one hit per tick.
+ * Other balls continue to travel and remain individually shootable. */
+static void apply_projectile_penalty(Game *g) {
+    if(g->projectile_hits<INT_MAX)g->projectile_hits++;
+    int penalty=game_capture_profile(g).attack_penalty;
+    g->capture_timeout=g->capture_timeout<=penalty?0:
+                       g->capture_timeout-penalty;
+}
+static int tick_extra_balls(Game *g) {
+    int closest=-1;
+    int64_t nearest=9*9+1;
     for(int i=0;i<MAX_EXTRA_PROJECTILES;i++) {
         ExtraProjectile *p=&g->projectile_extra[i];
         if(!p->active)continue;
@@ -638,19 +648,19 @@ static void tick_extra_balls(Game *g) {
         if(p->x<0 || p->x>255 || p->y<0 || p->y>191) {
             p->active=0;continue;
         }
+        if(g->aim_x<0 || g->aim_x>255 ||
+           g->aim_y<0 || g->aim_y>191)continue;
         int64_t dx=(int64_t)p->x-g->aim_x;
         int64_t dy=(int64_t)p->y-g->aim_y;
-        if(g->aim_x>=0 && g->aim_x<=255 &&
-           g->aim_y>=0 && g->aim_y<=191 && dx*dx+dy*dy<=9*9) {
-            p->active=0;
-            if(g->projectile_hits<INT_MAX)g->projectile_hits++;
-            int penalty=game_capture_profile(g).attack_penalty;
-            g->capture_timeout=g->capture_timeout<=penalty?0:
-                               g->capture_timeout-penalty;
-        }
+        int64_t distance=dx*dx+dy*dy;
+        if(distance<nearest){nearest=distance;closest=i;}
     }
+    if(closest<0)return 0;
+    g->projectile_extra[closest].active=0;
+    apply_projectile_penalty(g);
+    return 1;
 }
-static void tick_primary_ball(Game *g) {
+static void tick_primary_ball(Game *g, int impact_registered) {
     if(!g->projectile_enabled || g->screen!=STATE_SPHERE)return;
     if(g->projectile_active) {
         if(g->projectile_x<0 || g->projectile_x>255 ||
@@ -668,18 +678,15 @@ static void tick_primary_ball(Game *g) {
         }
         int64_t dx=(int64_t)g->projectile_x-g->aim_x;
         int64_t dy=(int64_t)g->projectile_y-g->aim_y;
-        if(g->aim_x>=0 && g->aim_x<=255 &&
+        if(!impact_registered && g->aim_x>=0 && g->aim_x<=255 &&
            g->aim_y>=0 && g->aim_y<=191 &&
            dx*dx+dy*dy<=9*9) {
             finish_projectile(g);
-            if(g->projectile_hits<INT_MAX)g->projectile_hits++;
-            int penalty=game_capture_profile(g).attack_penalty;
-            if(g->capture_timeout<=penalty)g->capture_timeout=0;
-            else g->capture_timeout-=penalty;
+            apply_projectile_penalty(g);
         }
         return;
     }
-    if(extra_balls_live(g))return;
+    if(impact_registered || extra_balls_live(g))return;
     if(g->projectile_cooldown>0){g->projectile_cooldown--;return;}
     if(g->sphere_x<0 || g->sphere_x>255 ||
        g->sphere_y<0 || g->sphere_y>191 ||
@@ -700,8 +707,8 @@ static void tick_primary_ball(Game *g) {
 }
 static void tick_projectile(Game *g) {
     if(!g->projectile_enabled || g->screen!=STATE_SPHERE)return;
-    tick_extra_balls(g);
-    tick_primary_ball(g);
+    int impact_registered=tick_extra_balls(g);
+    tick_primary_ball(g,impact_registered);
 }
 static void start_sphere(Game *g) {
     g->screen=STATE_SPHERE;
@@ -826,25 +833,29 @@ void game_fire(Game *g) {
             complete_radar_if_empty(g);
         }
     } else if (g->screen==STATE_SPHERE) {
+        /* One shot defends the nearest ball in the reticle, regardless of slot.
+         * Ties prioritize the primary energy ball. */
+        int defended=-2; /* -2 none, -1 primary, 0.. side projectile */
+        int64_t nearest=12*12+1;
+        if(g->projectile_active &&
+           g->projectile_x>=0 && g->projectile_x<=255 &&
+           g->projectile_y>=0 && g->projectile_y<=191) {
+            int64_t dx=(int64_t)g->projectile_x-g->aim_x;
+            int64_t dy=(int64_t)g->projectile_y-g->aim_y;
+            int64_t distance=dx*dx+dy*dy;
+            if(distance<nearest){nearest=distance;defended=-1;}
+        }
         for(int i=0;i<MAX_EXTRA_PROJECTILES;i++) {
             ExtraProjectile *p=&g->projectile_extra[i];
             if(!p->active || p->x<0 || p->x>255 ||
                p->y<0 || p->y>191)continue;
             int64_t dx=(int64_t)p->x-g->aim_x;
             int64_t dy=(int64_t)p->y-g->aim_y;
-            if(dx*dx+dy*dy<=12*12){p->active=0;return;}
+            int64_t distance=dx*dx+dy*dy;
+            if(distance<nearest){nearest=distance;defended=i;}
         }
-        /* Shoot an incoming energy ball before it reaches the aim point. */
-        if(g->projectile_active &&
-           g->projectile_x>=0 && g->projectile_x<=255 &&
-           g->projectile_y>=0 && g->projectile_y<=191) {
-            int64_t px=(int64_t)g->projectile_x-g->aim_x;
-            int64_t py=(int64_t)g->projectile_y-g->aim_y;
-            if(px*px+py*py<=12*12) {
-                finish_projectile(g);
-                return;
-            }
-        }
+        if(defended>=0){g->projectile_extra[defended].active=0;return;}
+        if(defended==-1){finish_projectile(g);return;}
         /* An expired encounter must not be captured between timer ticks. */
         if(g->capture_timeout<=0)return;
         /* Sphere coordinates must be on the DS viewport. Squaring two
