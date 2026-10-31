@@ -330,7 +330,7 @@ static void start_sphere(Game *g) {
    activation must not consume inventory or trigger a save. */
 int game_use_support(Game *g, int slot) {
     if (!g || g->screen != STATE_SPHERE || slot < 0 || slot >= 3 ||
-        g->save.goods[slot] == 0) return 0;
+        g->save.goods[slot] == 0 || g->save.goods[slot] > 9) return 0;
     if (slot == 0) g->freeze_frames = 300;
     else if (slot == 1) g->slow_frames = 300;
     else {
