@@ -855,7 +855,8 @@ static void camera_off(void) {
         if(camera_busy){while(ndmaBusy(CAM_DMA)||cameraTransferActive())swiWaitForVBlank();cameraStopTransfer();}
         cameraDeinit();
     }
-    game.camera_ok=0;game.camera_active=0;camera_busy=0;old_sample_valid=0;
+    game.camera_ok=0;game.camera_active=0;camera_busy=0;camera_frames=0;
+    old_sample_valid=0;
 }
 static void camera_on(void) {
     if(!dr_camera_allowed(running_dsi,game.save.camera_enabled) ||
@@ -866,6 +867,7 @@ static void camera_on(void) {
     camera_busy=cameraStartTransfer(camera_frame,MCUREG_APT_SEQ_CMD_PREVIEW,CAM_DMA);
     if(!camera_busy){cameraDeinit();goto failed;}
     game.camera_ok=1;game.camera_active=1;
+    game.camera_error=0; /* Successful retry clears the previous failure. */
     return;
 failed:
     camera_failed_this_run=1;
