@@ -20,6 +20,7 @@ int main(void) {
         game_set_cart(&g,GAME_DIAMOND);
         trigger(&g,EXT_DIALGA);
         assert(g.session_type==0 && g.session_species==18 && g.session_item==-1);
+        assert(g.capture_timeout>0);
         /* A new sphere encounter starts with no active support effects. */
         assert(g.freeze_frames==0 && g.slow_frames==0);
         game_new(&g,seed);
