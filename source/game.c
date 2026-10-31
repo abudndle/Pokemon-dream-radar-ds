@@ -466,6 +466,7 @@ void game_tick(Game *g) {
         if (g->capture_timeout>0) g->capture_timeout--;
         if (!g->capture_timeout) {
             g->screen=STATE_RESULTS;g->session_caught=-1;
+            g->freeze_frames=0;g->slow_frames=0;
             g->save.searches++;g->requested_save=1;
             msg(g,"The Pokemon escaped!");
         }
