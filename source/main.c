@@ -284,16 +284,21 @@ static void draw_original_encounter_art(void) {
         draw_sprite(top,art,px-(int)sprites[art].w/2,py-(int)sprites[art].h/2);
     else draw_sprite(top,S_ORB,px-29,py-29);
 }
-static void draw_hostile_projectile(void) {
-    if(!game.projectile_active)return;
-    int x=game.projectile_x-game.aim_x+128;
-    int y=game.projectile_y-game.aim_y+96;
-    /* A small ring distinguishes incoming energy from the Pokémon sphere.
-       Actual 3DS attack effects/particles still need asset-backed animation. */
+static void draw_energy_ball(int world_x,int world_y,u16 tint) {
+    int x=world_x-game.aim_x+128;
+    int y=world_y-game.aim_y+96;
     if(x<7 || x>248 || y<7 || y>184)return;
-    rect(top,x-5,y-5,11,11,0x801F);
+    rect(top,x-5,y-5,11,11,tint);
     border(top,x-6,y-6,13,13,WHITE);
     rect(top,x-2,y-2,5,5,0xFC1F);
+}
+static void draw_hostile_projectile(void) {
+    if(game.projectile_active)
+        draw_energy_ball(game.projectile_x,game.projectile_y,0x801F);
+    for(int i=0;i<MAX_EXTRA_PROJECTILES;i++) {
+        const ExtraProjectile *p=&game.projectile_extra[i];
+        if(p->active)draw_energy_ball(p->x,p->y,0x83FF);
+    }
 }
 static void glyph(u16 *v, int x,int y,char c,u16 color) {
     int ch=(unsigned char)c;if(ch<32 || ch>=128)ch='?';
