@@ -26,7 +26,7 @@ int main(void) {
     for(int type=0;type<3;type++) {
         Game g=base(type,EXT_BASIC,0);
         CaptureProfile p=game_capture_profile(&g);
-        assert(p.type==type);
+        assert(p.type==(CaptureClass)type);
         assert(p.hit_radius>=12 && p.hit_radius<=24);
         assert(p.attack_interval>0 && p.attack_penalty>0);
         assert(p.attack_burst>=1 && p.attack_burst<=3);
