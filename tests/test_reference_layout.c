@@ -104,6 +104,16 @@ int main(void) {
         assert(dr_remaining_clouds(&g)==g.active_clouds-i-1);
     }
     dr_radar_counts(&g,&w,&p);assert(!w&&!p);
+    /* Malformed state or absent game must not read past cloud storage. */
+    dr_radar_counts(NULL,&w,&p);
+    assert(w==0 && p==0 && dr_remaining_clouds(NULL)==0);
+    g.active_clouds=MAX_CLOUDS+500;
+    for(int i=0;i<MAX_CLOUDS;i++){g.clouds[i].alive=1;g.clouds[i].kind=i%2;}
+    dr_radar_counts(&g,&w,&p);
+    assert(w+p==MAX_CLOUDS && dr_remaining_clouds(&g)==MAX_CLOUDS);
+    g.active_clouds=-10;
+    dr_radar_counts(&g,&w,&p);
+    assert(!w && !p && !dr_remaining_clouds(&g));
     puts("PASS: screenshot-aligned support hitboxes, six-by-two archive tray and live radar counts");
     return 0;
 }
