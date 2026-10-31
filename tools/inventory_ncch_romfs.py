@@ -45,7 +45,7 @@ def audit(path):
             parent,sibling,child,first_file,hash_next,nlen=struct.unpack_from("<6I",buf,offset)
         if nlen%2 or offset+header+nlen>len(buf):raise ValueError("Bad RomFS filename")
         name=buf[offset+header:offset+header+nlen].decode("utf-16le")
-        if "/" in name or "\\\\" in name:raise ValueError("Invalid file name")
+        if "/" in name or "\\" in name:raise ValueError("Invalid file name")
         if is_file:return sibling,position,length,name
         return sibling,child,first_file,name
     results=[]; seen_dirs=set();seen_files=set()
@@ -78,7 +78,7 @@ def main():
     args=p.parse_args()
     report=audit(args.ncch)
     args.output.parent.mkdir(parents=True,exist_ok=True)
-    args.output.write_text(json.dumps(report,indent=2)+"\\n",encoding="utf-8")
+    args.output.write_text(json.dumps(report,indent=2)+"\n",encoding="utf-8")
     print(f"Inventoried {report['file_count']} RomFS files (metadata only)")
 
 if __name__=="__main__":main()
