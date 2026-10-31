@@ -37,7 +37,8 @@ int dr_transfer_slot_at(int x,int y) {
     for(int i=0;i<12;i++) {
         int sx,sy,sw,sh;
         dr_transfer_slot_rect(i,&sx,&sy,&sw,&sh);
-        if(x>=sx && x<sx+sw && y>=sy && y<sy+sh)return i;
+        const int quad[8]={sx,sy,sx+sw-1,sy,sx+sw-1,sy+sh-1,sx,sy+sh-1};
+        if(dr_quad_hit(quad,x,y))return i;
     }
     return -1;
 }
