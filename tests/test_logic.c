@@ -60,6 +60,9 @@ int main(void) {
     assert(!game_extension_unlocked(NULL,EXT_BASIC));
     assert(!game_extension_unlocked(&g,-1));
     assert(!game_extension_unlocked(&g,EXT_COUNT));
+    assert(game_extension_price(-1)==-1);
+    assert(game_extension_price(EXT_COUNT)==-1);
+    assert(game_extension_price(EXT_RETRIEVAL)==100);
 
     assert(!game_extension_unlocked(&g,EXT_TORNADUS));
     assert(!game_extension_unlocked(&g,EXT_DIALGA));
