@@ -1,7 +1,20 @@
 #include "reference_layout.h"
+#include "title_panes_generated.h"
 #include <assert.h>
 #include <stdio.h>
 int main(void) {
+    /* Original title layout: visual rectangles and touch targets must agree. */
+    for(int i=0;i<4;i++) {
+        const DrPaneRect *r=&dr_title_panes[i];
+        assert(r->x>=0 && r->y>=0 && r->w>0 && r->h>0);
+        assert(r->x+r->w<=256 && r->y+r->h<=192);
+        assert(dr_title_hit(r->x+r->w/2,r->y+r->h/2)==i);
+        assert(dr_title_hit(r->x,r->y)==i);
+        assert(dr_title_hit(r->x+r->w-1,r->y+r->h-1)==i);
+        if(i>0)assert(dr_title_panes[i-1].y+dr_title_panes[i-1].h<=r->y);
+    }
+    assert(dr_title_hit(128,10)==-1);
+    assert(dr_title_hit(128,185)==-1);
     for(int i=0;i<3;i++) {
         int x,y;dr_support_center(i,&x,&y);
         assert(x>=0 && y>=0);
