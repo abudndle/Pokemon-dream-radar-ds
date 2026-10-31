@@ -17,6 +17,52 @@ static int minimum(int a, int b) { return a < b ? a : b; }
 static uint32_t add_orbs_saturating(uint32_t value, uint32_t amount) {
     return value > UINT32_MAX - amount ? UINT32_MAX : value + amount;
 }
+/* Dream Orbs start pink, then unlock green/orange/blue after each
+ * Therian capture. Dominant color belongs to the most recently completed
+ * search and is stored in previously unused v3 save bytes 12 and 13. */
+OrbColor game_orb_color(const Game *g) {
+    if(!g || g->save.reserved[13]!=ORB_COLOR_LAYOUT_MARKER)
+        return ORB_PINK;
+    unsigned color=g->save.reserved[12];
+    unsigned unlocked=g->save.story_phase>3u?3u:g->save.story_phase;
+    return color<=unlocked ? (OrbColor)color : ORB_PINK;
+}
+OrbColor game_orb_live_color(const Game *g) {
+    if(!g)return ORB_PINK;
+    unsigned unlocked=g->save.story_phase>3u?3u:g->save.story_phase;
+    /* DS adaptation: one color per cloud reward, advanced by waiting
+       45 frames. Real 3DS gameplay has moving, individually hittable Orbs. */
+    return (OrbColor)((g->save.frames_played/45u)%(unlocked+1u));
+}
+const char *game_orb_color_name(OrbColor color) {
+    static const char *const names[]={"PINK","GREEN","ORANGE","BLUE"};
+    return color>=ORB_PINK && color<ORB_COLOR_COUNT?names[color]:"UNKNOWN";
+}
+static void record_orb_reward(Game *g,int reward) {
+    if(reward<=0)return;
+    OrbColor color=game_orb_live_color(g);
+    unsigned current=g->session_color_counts[color];
+    unsigned next=current+(unsigned)reward;
+    g->session_color_counts[color]=(uint16_t)(next>UINT16_MAX?UINT16_MAX:next);
+}
+static void finish_orb_search(Game *g) {
+    OrbColor winner=game_orb_color(g);
+    unsigned highest=0;
+    for(int i=0;i<ORB_COLOR_COUNT;i++) {
+        unsigned count=g->session_color_counts[i];
+        /* On ties, retain the previous predominant color where possible. */
+        if(count>highest || (count==highest && count>0 && i==(int)winner)) {
+            highest=count;
+            winner=(OrbColor)i;
+        }
+    }
+    if(highest && (g->save.reserved[12]!=(uint8_t)winner ||
+                   g->save.reserved[13]!=ORB_COLOR_LAYOUT_MARKER)) {
+        g->save.reserved[12]=(uint8_t)winner;
+        g->save.reserved[13]=ORB_COLOR_LAYOUT_MARKER;
+        g->requested_save=1;
+    }
+}
 static void invalidate_archive(Game *g) {
     g->pending_export_signature=0;
     g->archive_confirm=0;
@@ -77,6 +123,8 @@ void game_new(Game *g, uint32_t seed) {
     g->save.magic = SAVE_MAGIC; g->save.version = SAVE_VERSION;
     g->save.random_seed = seed ? seed : 0x12345678u;
     g->save.reserved[8]=ITEM_LAYOUT_MARKER;
+    g->save.reserved[12]=ORB_PINK;
+    g->save.reserved[13]=ORB_COLOR_LAYOUT_MARKER;
     for(int i=0;i<MAX_ITEMS;i++)g->save.reserved[2+i]=(uint8_t)(i+1);
     g->replaced_slot=-1;
     /* No reward or encounter exists at startup. A valid ID of zero is
@@ -121,6 +169,13 @@ int game_load(Game *g, const char *file) {
     for (int i=0;i<MAX_CAUGHT;i++) if (i<s.pending_count && s.pending[i]>25) return 0;
     /* Older v3 homebrew saves indexed item stacks by item ID. Reconstruct
        type metadata in unused bytes without changing save size/version. */
+    int migrated_orb_color=0;
+    if(s.reserved[13]!=ORB_COLOR_LAYOUT_MARKER ||
+       s.reserved[12]>s.story_phase) {
+        s.reserved[12]=ORB_PINK;
+        s.reserved[13]=ORB_COLOR_LAYOUT_MARKER;
+        migrated_orb_color=1;
+    }
     int migrated_item_layout=0;
     if(s.reserved[8]!=ITEM_LAYOUT_MARKER) {
         migrated_item_layout=1;
@@ -133,10 +188,11 @@ int game_load(Game *g, const char *file) {
     }
     /* Any in-memory migration changes checksummed fields. Keep the live
        record internally consistent before the repaired snapshot is written. */
-    if(migrated_item_layout || repaired_background)
+    if(migrated_item_layout || repaired_background || migrated_orb_color)
         s.checksum=game_checksum(&s);
     g->save = s;
-    if(migrated_item_layout || repaired_background)g->requested_save=1;
+    if(migrated_item_layout || repaired_background || migrated_orb_color)
+        g->requested_save=1;
     /* The three secret research extensions persist in unused reserved bytes,
        preserving version 3 save compatibility with previous milestone builds. */
     g->special_unlocked = s.reserved[1];
@@ -300,6 +356,8 @@ void game_begin_search(Game *g, int ext) {
     g->screen=STATE_RADAR;
     /* A new radar session must not retain the previous sphere timer. */
     g->capture_hp=0;g->capture_timeout=0;g->cloud_hit=0;
+    memset(g->session_color_counts,0,sizeof g->session_color_counts);
+    g->search_orb_color=(uint8_t)game_orb_color(g);
     g->session_orbs=0; g->session_caught=-1;g->session_item=-1;
     /* Starting a new radar scan must not expose the previous species. */
     g->session_species=-1;
@@ -339,8 +397,28 @@ static int choice_species(Game *g) {
     if (ext >= EXT_SIM_TORNADUS && ext <= EXT_SIM_LANDORUS) return 15+(ext-EXT_SIM_TORNADUS);
     if (ext >= EXT_DIALGA && ext <= EXT_LUGIA) return 18+(ext-EXT_DIALGA);
     if (ext >= EXT_BELDUM && ext <= EXT_HOOTHOOT) return 23+(ext-EXT_BELDUM);
-    static const int pools[4][6] = {{0,1,2,3,4,0}, {5,6,1,2,4,3}, {7,8,9,10,3,4}, {11,12,13,14,4,8}};
-    return pools[minimum(3,g->save.story_phase)][rnd(g)%6];
+    /* Retail color preference data: each basic species only appears after
+       its story unlock and favors one or more of the previous search's colors.
+       Equal weights within an eligible group remain provisional until the
+       original selection table is recovered. */
+    static const uint8_t preferred_color_mask[15]={
+        1,3,3,3,3, /* Munna, Swablu, Drifloon, Riolu, Sigilyph */
+        3,3,       /* Igglybuff, Shuckle */
+        5,5,6,3,   /* Staryu, Porygon, Ralts, Bronzor */
+        2,8,9,5    /* Togepi, Smoochum, Spiritomb, Rotom */
+    };
+    static const uint8_t unlocked_at_phase[15]={
+        0,0,0,0,0,1,1,2,2,2,2,3,3,3,3
+    };
+    int possibilities[15],count=0;
+    int phase=g->save.story_phase>3?3:g->save.story_phase;
+    unsigned wanted=1u<<(unsigned)g->search_orb_color;
+    for(int i=0;i<15;i++) {
+        if(unlocked_at_phase[i]<=phase && (preferred_color_mask[i]&wanted))
+            possibilities[count++]=i;
+    }
+    if(count==0)return 0; /* Malformed color state: known safe Munna. */
+    return possibilities[rnd(g)%(unsigned)count];
 }
 /* Approximate original Research Extension encounter bias while waiting for
  * exact 3DS tables. Retrieval favors Pokemon and Dowsing favors items; they
@@ -458,11 +536,13 @@ void game_fire(Game *g) {
                 start_sphere(g);return;
             }
             int reward = 3+(rnd(g)%5);
+            record_orb_reward(g,reward);
             g->session_orbs=g->session_orbs>INT_MAX-reward ? INT_MAX : g->session_orbs+reward;
             g->save.orbs=add_orbs_saturating(g->save.orbs,(uint32_t)reward);
             g->save.total_orbs=add_orbs_saturating(g->save.total_orbs,(uint32_t)reward);
             g->requested_save=1;
             if (g->cloud_hit >= g->active_clouds) {
+                finish_orb_search(g);
                 if(g->save.searches<UINT32_MAX)g->save.searches++;
                 g->screen=STATE_RESULTS;
                 g->requested_save=1;
@@ -505,6 +585,7 @@ static void accept_pokemon(Game *g, int species) {
     g->session_caught=species;
 }
 static void conclude_capture(Game *g) {
+    finish_orb_search(g);
     /* Support effects are encounter-local, including on successful captures
        and when full storage opens a replacement decision. */
     g->freeze_frames=0;
@@ -620,6 +701,7 @@ int game_cancel_pending_replace(Game *g) {
 }
 int game_leave_search(Game *g) {
     if(!g || (g->screen!=STATE_RADAR && g->screen!=STATE_SPHERE))return 0;
+    finish_orb_search(g);
     if(g->save.searches<UINT32_MAX)g->save.searches++;
     g->screen=STATE_RESULTS;
     g->freeze_frames=0;
@@ -664,6 +746,7 @@ void game_tick(Game *g) {
         }
         if (g->capture_timeout>0) g->capture_timeout--;
         if (g->capture_timeout<=0) {
+            finish_orb_search(g);
             g->capture_timeout=0;
             g->screen=STATE_RESULTS;g->session_caught=-1;
             g->session_item=-1;g->session_species=-1;g->session_type=0;
