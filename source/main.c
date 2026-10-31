@@ -874,10 +874,14 @@ static int validate_active_source(void) {
     return 0;
 }
 static void switch_screen(GameScreen next) {
-    if(game.screen==STATE_RADAR || game.screen==STATE_SPHERE)camera_off();
+    const int was_search=game.screen==STATE_RADAR || game.screen==STATE_SPHERE;
+    const int is_search=next==STATE_RADAR || next==STATE_SPHERE;
+    /* Keep the camera stream alive across cloud-to-encounter transitions.
+       Restarting it here discards the live preview and can briefly blank it. */
+    if(was_search && !is_search)camera_off();
     game.screen=next;game.selection=0;
     if(next!=STATE_TRANSFER)game.archive_confirm=0;
-    if(next==STATE_RADAR || next==STATE_SPHERE)camera_on();
+    if(!was_search && is_search)camera_on();
 }
 static void finish_story_dialogue(void) {
     if(game.story_event>0 && game.story_event<=3 &&
