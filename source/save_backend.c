@@ -26,10 +26,14 @@ static int create_parent(const char *path) {
     return mkdir_if_needed(folder);
 }
 int save_backend_init(SaveBackend *backend,const char *root,const char *rom_path) {
+    if(!backend || !root || !*root)return 0;
     memset(backend,0,sizeof *backend);
-    if(!root || !*root || !path_append(backend->legacy,sizeof backend->legacy,root,"DreamRadarDSi/save.dat"))return 0;
+    if(!path_append(backend->legacy,sizeof backend->legacy,root,"DreamRadarDSi/save.dat"))return 0;
     /* Reject paths on other drives. No writes to NAND. */
-    if(rom_path && strncmp(rom_path,root,strlen(root))==0 &&
+    size_t root_len=strlen(root);
+    /* A matching prefix is not enough: /sd/games2 is not within /sd/games. */
+    if(rom_path && strncmp(rom_path,root,root_len)==0 &&
+       (root[root_len-1]=='/' || rom_path[root_len]=='/') &&
        twilight_homebrew_save_path(rom_path,backend->active,sizeof backend->active) &&
        create_parent(backend->active)) {
         backend->using_twilight_path=1;
