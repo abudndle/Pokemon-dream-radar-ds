@@ -2,6 +2,7 @@
 #include <assert.h>
 #include <stdio.h>
 int main(void) {
+    game_fire(NULL); /* Invalid caller must not crash. */
     Game g;
     game_new(&g,29);
     g.screen=STATE_SPHERE;
