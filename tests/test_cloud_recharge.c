@@ -4,6 +4,7 @@
 #include <stdio.h>
 
 int main(void) {
+    game_regen_clouds(NULL,1000); /* Invalid caller must not crash. */
     Game g;
     game_new(&g,7);
     g.save.last_cloud_time=0;
