@@ -127,13 +127,20 @@ int dr_mesh_project_vertex_yaw(const DrMeshVertex *v,int cx,int cy,int scale,
 
 /* Bounded integer Bresenham rasterizer; clipped through guarded writes. */
 static void mesh_line(uint16_t *pixels,int w,int h,int x0,int y0,int x1,int y1,uint16_t color) {
-    int dx=abs(x1-x0),dy=abs(y1-y0);
+    /* A corrupt-but-structurally-valid DRM1 mesh can project far outside the
+     * viewport at scale 256. Clip first so Bresenham never iterates millions
+     * of offscreen pixels or overflows its signed error accumulator. */
+    if((x0<0 && x1<0) || (x0>=w && x1>=w) ||
+       (y0<0 && y1<0) || (y0>=h && y1>=h))return;
+    /* Coordinates can exceed 16-bit but stay below 2 million pixels.
+     * Use 64-bit arithmetic for the line error and step deltas. */
+    int64_t dx=llabs((int64_t)x1-x0),dy=llabs((int64_t)y1-y0);
     int sx=x0<x1?1:-1,sy=y0<y1?1:-1;
-    int err=dx-dy;
+    int64_t err=dx-dy;
     for(;;) {
         if(x0>=0 && x0<w && y0>=0 && y0<h)pixels[(size_t)y0*w+x0]=color;
         if(x0==x1 && y0==y1)break;
-        int twice=2*err;
+        int64_t twice=2*err;
         if(twice>-dy){err-=dy;x0+=sx;}
         if(twice<dx){err+=dx;y0+=sy;}
     }

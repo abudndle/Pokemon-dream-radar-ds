@@ -108,6 +108,8 @@ test-host:
 	./build/test_platform_compat
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/dr_mesh.c tests/test_dr_mesh.c -o build/test_dr_mesh
 	./build/test_dr_mesh
+	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/dr_mesh.c tests/test_mesh_extremes.c -o build/test_mesh_extremes
+	./build/test_mesh_extremes
 
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c tests/test_original_limits.c -o build/test_original_limits
 	./build/test_original_limits
