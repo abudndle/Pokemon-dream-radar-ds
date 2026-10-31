@@ -70,6 +70,9 @@ int main(void) {
     for(size_t i=0;i<DR_PHOTO_W*DR_PHOTO_H;i++)dst[i]=0x1357;
     assert(!dr_photo_read(other,dst,DR_PHOTO_W*DR_PHOTO_H));
     for(size_t i=0;i<DR_PHOTO_W*DR_PHOTO_H;i++)assert(dst[i]==0x1357);
+    /* Neither a corrupted header nor a truncated image should appear in
+       the photo browser, even if the file occupies a numbered slot. */
+    assert(!dr_photo_find(dir,-1,1,&found));
     unlink(path);unlink(other);rmdir(dir);
     puts("PASS: indexed SD photo album, no overwrites, BMP pixel roundtrip, corrupt/truncated rejects");
     return 0;
