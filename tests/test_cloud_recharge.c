@@ -89,6 +89,16 @@ int main(void) {
     assert(g.save.cloud_count==1 && g.save.last_cloud_time==1300);
     game_regen_clouds(&g,1600);
     assert(g.save.cloud_count==2 && g.save.last_cloud_time==1600);
+    /* A zero RTC reading cannot establish a timer anchor or award clouds. */
+    game_new(&g,23);
+    g.save.cloud_count=0;g.save.last_cloud_time=0;g.requested_save=0;
+    game_regen_clouds(&g,0);
+    assert(g.save.cloud_count==0 && g.save.last_cloud_time==0);
+    assert(!g.requested_save);
+    game_regen_clouds(&g,10);
+    assert(g.save.cloud_count==0 && g.save.last_cloud_time==10);
+    game_regen_clouds(&g,310);
+    assert(g.save.cloud_count==1 && g.save.last_cloud_time==310);
     puts("PASS: recharge intervals, huge clock jumps, caps, clock rollback");
     return 0;
 }
