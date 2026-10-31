@@ -35,10 +35,12 @@ int main(void) {
     assert(!game_leave_search(&g)); /* Repeated Back must not double-count. */
     g.screen=STATE_SPHERE;
     g.capture_timeout=20;g.freeze_frames=4;g.slow_frames=6;
+    g.session_caught=5;g.session_item=9;g.session_type=1;
     g.save.searches=12;
     assert(game_leave_search(&g));
     assert(g.save.searches==13 && g.capture_timeout==0);
     assert(g.freeze_frames==0 && g.slow_frames==0);
+    assert(g.session_caught==-1 && g.session_item==-1 && g.session_type==0);
     puts("PASS: searches cannot overwrite active gameplay or pending storage choices");
     return 0;
 }
