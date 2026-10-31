@@ -76,6 +76,28 @@ int main(void) {
     assert(game_replace_pending(&g,3));
     assert(g.screen==STATE_RESULTS && g.save.story_phase==1);
     assert(g.save.pending[3]==15 && g.save.caught_count==1);
-    puts("PASS: legendary escape, capture, and full-storage progression");
+    /* Finish the three-story legendary chain through the real radar and
+       capture state transitions, verifying each next unlock threshold. */
+    game_new(&g,791);
+    for(int phase=0;phase<3;phase++) {
+        int extension=EXT_TORNADUS+phase;
+        g.save.total_orbs=(phase==0)?400u:(phase==1)?1500u:3000u;
+        assert(game_extension_unlocked(&g,extension));
+        game_begin_search(&g,extension);
+        assert(g.screen==STATE_RADAR);
+        g.aim_x=g.clouds[0].x;g.aim_y=g.clouds[0].y;
+        game_fire(&g);
+        assert(g.screen==STATE_SPHERE);
+        assert(g.session_type==0 && g.session_species==15+phase);
+        game_capture(&g);
+        assert(g.screen==STATE_RESULTS);
+        assert(g.save.story_phase==(unsigned)(phase+1));
+        assert(g.save.pending_count==(unsigned)(phase+1));
+        assert(g.save.pending[phase]==15+phase);
+        assert(g.save.caught_count==(unsigned)(phase+1));
+        assert(!game_extension_unlocked(&g,extension));
+    }
+    assert(game_extension_unlocked(&g,EXT_SIM_TORNADUS));
+    puts("PASS: legendary escape, captures, replacement and 3-stage story progression");
     return 0;
 }
