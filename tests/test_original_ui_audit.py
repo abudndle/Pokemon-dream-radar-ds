@@ -49,4 +49,7 @@ assert "else draw_sprite(top,S_ORB,px-29,py-29);" in main_source
 # Runtime sprite loading must reject truncated or appended NitroFS data.
 assert "ftell(f)!=(long)(4u+payload)" in main_source
 assert "fread(s->pixels,1,payload,f)!=payload" in main_source
+assert "if(pixel & 0x8000u)visible=1;" in main_source
+assert "else if(pixel!=0){valid=0;break;}" in main_source
+assert "if(!visible || !valid)" in main_source
 print("PASS: original UI source inventory distinguishes 22 snapshots from bundled sources")
