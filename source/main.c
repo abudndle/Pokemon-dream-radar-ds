@@ -23,6 +23,7 @@
 #include "reference_layout.h"
 #include "cloud_animation.h"
 #include "burnet_tips_generated.h"
+#include "dr_mesh.h"
 
 #define SW 256
 #define SH 192
@@ -215,6 +216,43 @@ static void draw_sprite(u16 *v,int id,int x,int y) {
         }
     }
 }
+/* Optional converted geometry: no models are packaged by default.
+   Cache one species per encounter and preserve authentic 2D art fallback. */
+static DrMesh encounter_mesh;
+static int encounter_mesh_species=-1;
+static int encounter_mesh_attempted;
+static int draw_encounter_mesh(int species,int x,int y) {
+    if(species<0 || species>=26 || !have_romfs)return 0;
+    if(species!=encounter_mesh_species) {
+        dr_mesh_free(&encounter_mesh);
+        encounter_mesh_species=species;
+        encounter_mesh_attempted=0;
+    }
+    if(!encounter_mesh_attempted) {
+        encounter_mesh_attempted=1;
+        char name[64];
+        snprintf(name,sizeof name,"nitro:/pokemon_%02d.drm",species);
+        FILE *f=fopen(name,"rb");
+        if(f) {
+            if(fseek(f,0,SEEK_END)==0) {
+                long length=ftell(f);
+                /* Same 2048-triangle limit as the portable DRM1 decoder. */
+                if(length>=20 && length<=8+6*65535+6*2048 &&
+                   fseek(f,0,SEEK_SET)==0) {
+                    unsigned char *data=malloc((size_t)length);
+                    if(data) {
+                        if(fread(data,1,(size_t)length,f)==(size_t)length)
+                            dr_mesh_decode(data,(size_t)length,&encounter_mesh);
+                        free(data);
+                    }
+                }
+            }
+            fclose(f);
+        }
+    }
+    if(!encounter_mesh.vertex)return 0;
+    return dr_mesh_wireframe(&encounter_mesh,top,SW,SH,x,y,24,CYAN);
+}
 /* Source-authentic 3DS thumbnail fallback until real geometry has been
    imported and optimized for the DS GPU. Keep both camera paths identical. */
 static void draw_original_encounter_art(void) {
@@ -225,6 +263,8 @@ static void draw_original_encounter_art(void) {
         art=S_ORIGINAL_ITEM_FIRST+game.session_item;
     int px=game.sphere_x-game.aim_x+128;
     int py=game.sphere_y-game.aim_y+96;
+    if(game.session_type==0 && draw_encounter_mesh(game.session_species,px,py))
+        return;
     if(art>=0 && art<(int)(sizeof sprites/sizeof sprites[0]) && sprites[art].pixels)
         draw_sprite(top,art,px-(int)sprites[art].w/2,py-(int)sprites[art].h/2);
     else draw_sprite(top,S_ORB,px-29,py-29);
