@@ -69,12 +69,18 @@ assert 'unsigned yaw_step=(unsigned)((game.save.frames_played/12u)&15u);' in mai
 assert 'if(game.session_type==0 && draw_encounter_mesh(game.session_species,px,py))' in main_source
 assert 'else draw_sprite(top,S_ORB,px-29,py-29);' in main_source
 assert "else draw_sprite(top,S_ORB,px-29,py-29);" in main_source
-# Runtime sprite loading must reject truncated or appended NitroFS data.
-assert "ftell(f)!=(long)(4u+payload)" in main_source
-assert "fread(s->pixels,1,payload,f)!=payload" in main_source
-assert "if(pixel & 0x8000u)visible=1;" in main_source
-assert "else if(pixel!=0){valid=0;break;}" in main_source
-assert "if(!visible || !valid)" in main_source
+# Private, user-converted graphics are supported without bundling Nintendo
+# originals in the public ROM. Invalid overrides fall back to NitroFS.
+assert '"%sDreamRadarDSi/Sprites/%s"' in main_source
+assert '"nitro:/%s"' in main_source
+assert 'load_sprite_from_path(id,path))return;' in main_source
+assert 'if(!valid){free(pixels);return 0;}' in main_source
+# Both storage and NitroFS sprites require exact complete RGB555 data.
+assert 'ftell(f)!=(long)(4u+payload)' in main_source
+assert 'fread(pixels,1,payload,f)!=payload' in main_source
+assert 'if(pixel & 0x8000u)visible=1;' in main_source
+assert 'else if(pixel!=0){valid=0;break;}' in main_source
+assert 'if(!visible)valid=0;' in main_source
 # NitroFS fullscreen backgrounds must have an exact byte count, not just a
 # readable prefix followed by arbitrary appended data.
 assert "ftell(f)==(long)(PIXELS*2u)" in main_source
