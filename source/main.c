@@ -636,12 +636,17 @@ static void render(void) {
         break;
     }
     case STATE_ALBUM: {
-        if(album_loaded) memcpy(top,camera_last_frame,sizeof top);
-        else load_bg("menu_top.raw",top,0x8824);
-        /* The image stays read-only; album navigation never rewrites it. */
-        top_title("DSi CAMERA PHOTO ALBUM");
-        if(!album_loaded)
-            print_wrapped(top,16,72,35,WHITE,"No valid Dream Radar photos found on this SD card.",5);
+        if(album_loaded) {
+            /* Display every pixel of the original captured frame; navigation
+               and metadata belong on the lower screen, not over the photo. */
+            memcpy(top,camera_last_frame,sizeof top);
+        } else {
+            load_bg("menu_top.raw",top,0x8824);
+            top_title("DSi CAMERA PHOTO ALBUM");
+            print_wrapped(top,16,72,35,WHITE,
+                "No valid Dream Radar photos found on this SD card.",5);
+        }
+        /* Album navigation is read-only and never modifies saved pictures. */
         load_bg("menu_bottom.raw",bottom,0x8824);
         char line[80];
         if(album_loaded) snprintf(line,sizeof line,"PHOTO %03d  -  256 x 192",album_slot);
