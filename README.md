@@ -1,3 +1,9 @@
+## Original asset encounter renderer — current milestone
+
+The in-game capture encounter now selects the **bundled original 3DS-extracted Pokémon thumbnails (26 species)** or **research-item artwork (23 items)** instead of always drawing the generic orb. Its target remains aligned with the game's sphere coordinates in both DSi camera and camera-free rendering. If an image cannot load, the orb remains a fallback. Asset order is taken from the packaged `nitrofs/pokemon_00.spr` … `pokemon_25.spr` and `item_00.spr` … `item_22.spr` names.
+
+**These are original extracted 2D assets, not original 3D model geometry.** The repository does not yet contain a verified converted BCMDL/model and animation pipeline. Original 3D models, their skeletal animations and DS-friendly rendering are still pending. The source change also awaits a successful BlocksDS compile and emulator/hardware verification.
+
 ## DSi custom camera-free background (source milestone)
 
 On a DSi running the enhanced build, open **Options → Camera: OFF** to disable the live camera, then choose **Custom Camera-Free Image**. Copy a **256 × 192, uncompressed 24-bit BMP** file to the SD card at `sd:/DreamRadarDSi/Photos/photo_000.bmp` (or use numbered files `photo_001.bmp` through `photo_999.bmp`). The port reuses the existing photo album's strict BMP decoder; arbitrary JPG, PNG, dimensions, and filenames are not supported.
