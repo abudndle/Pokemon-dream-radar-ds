@@ -43,6 +43,8 @@ build-all:
 
 test-host:
 	@mkdir -p build
+	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c tests/test_cloud_targeting.c -o build/test_cloud_targeting
+	./build/test_cloud_targeting
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c tests/test_effect_frame_timing.c -o build/test_effect_frame_timing
 	./build/test_effect_frame_timing
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c tests/test_orb_overflow.c -o build/test_orb_overflow
