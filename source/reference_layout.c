@@ -47,9 +47,11 @@ int dr_lab_row_top(int index) {
 int dr_lab_hit(int x,int y,int count) {
     if(count<1 || count>7 || x<10 || x>=246 || y<3)return -1;
     int index=(y-3)/23;
-    /* The 22-pixel-high active area leaves a genuine 1px row gap. */
-    if(index>=count || y>=dr_lab_row_top(index)+22)return -1;
-    return index;
+    if(index>=count)return -1;
+    /* Shared runtime quad geometry preserves the 1px row separation. */
+    int top=dr_lab_row_top(index);
+    const int quad[8]={10,top,245,top,245,top+21,10,top+21};
+    return dr_quad_hit(quad,x,y)?index:-1;
 }
 int dr_shop_row_top(int index) {
     if(index<0 || index>=6)return -1;
