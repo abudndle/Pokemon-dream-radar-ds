@@ -1,3 +1,31 @@
+## Encounter-specific Sphere movement and attack profiles
+
+The DS/DSi capture implementation now has five bounded runtime difficulty
+profiles: **Drifting**, **Swift**, **Erratic**, **Legendary**, and **Item**.
+Ordinary species are assigned an initial profile from their species index;
+dedicated legendary Extensions and Therian simulators use the Legendary
+profile. These profiles vary capture hitbox radius, movement speed, timed
+direction changes, and attack frequency and penalties. The upper screen
+displays the selected profile during the encounter.
+
+Sphere attacks can now fire short **staggered one-to-three-ball volleys**.
+Aiming away or intercepting an approaching ball works with the existing
+DS beam mechanic. Vortex freeze and Dragnet slow suspend/reduce both
+movement and attack updates; timer penalties are bounded. This uses only
+runtime fields and does not alter the version-3 private save structure.
+
+**Fidelity limitation:** Published guides document real variation in sphere
+size, evasion, attack rates and time loss, but we have **not** extracted
+the 3DS game's per-species numerical tables or individual animation
+sequences. These five DS profiles and sequential burst attacks are
+provisional approximations; the original can launch simultaneous volleys.
+Do not describe this milestone as frame-perfect original Pokémon behavior.
+Host tests validate capture geometry, deterministic turns, rate differences,
+time penalties, Vortex/Dragnet and staggered attacks.
+
+See [the 36-feature gap checklist](docs/FEATURE_PARITY.md) for remaining
+original-game functions and validation requirements.
+
 ## Resume unfinished radar searches after a Pokémon encounter
 
 A Dowsing, Retrieval or basic radar search can contain multiple clouds and
