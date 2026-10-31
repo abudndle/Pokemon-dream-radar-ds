@@ -886,7 +886,7 @@ static void update_camera(void) {
         /* Leave the frame-ready counter positive without signed overflow
            after very long DSi sessions. Only readiness, not total frames,
            is needed by the photo saver. */
-        if(camera_frames<2147483647)camera_frames++;
+        camera_frames=dr_camera_next_frame_count(camera_frames);
         if(game.save.optical_aim)update_optical_motion();
     }
     if(!camera_busy && (game.save.frames_played%3==0)) {
