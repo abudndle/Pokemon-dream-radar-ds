@@ -93,4 +93,10 @@ hidden["panes"][0]["children"][0]["flags"]=1
 nested=convert(hidden)["panes"][0]["children"][0]
 assert nested["effective_alpha"]==0
 assert nested["effective_visible"] is False
+# Alpha inheritance uses integer half-up rounding, never floating ties.
+transparent=copy.deepcopy(synthetic)
+transparent["panes"][0]["flags"]=1
+transparent["panes"][0]["alpha"]=128
+transparent["panes"][0]["children"][0]["alpha"]=128
+assert convert(transparent)["panes"][0]["children"][0]["effective_alpha"]==64
 print("PASS: 22 original UI pane hierarchies retargeted to DS viewport")
