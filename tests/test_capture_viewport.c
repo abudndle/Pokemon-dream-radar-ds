@@ -27,6 +27,12 @@ int main(void) {
     game_tick(&g);
     assert(g.sphere_x==20 && g.sphere_y==30);
     assert(g.sphere_vx>0 && g.sphere_vy>0);
+    /* Exact minimum signed velocity must reverse without undefined negation. */
+    g.sphere_x=21;g.sphere_y=31;
+    g.sphere_vx=(-2147483647-1);g.sphere_vy=(-2147483647-1);
+    game_tick(&g);
+    assert(g.sphere_x==20 && g.sphere_y==30);
+    assert(g.sphere_vx==2147483647 && g.sphere_vy==2147483647);
     g.freeze_frames = 4;
     int x=g.sphere_x, y=g.sphere_y;
     for (int i=0;i<3;i++) { game_tick(&g); assert(g.sphere_x==x && g.sphere_y==y); }
