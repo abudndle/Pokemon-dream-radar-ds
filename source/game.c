@@ -125,7 +125,11 @@ int game_save(Game *g, const char *file) {
     return okay;
 }
 void game_regen_clouds(Game *g, uint32_t now) {
-    if (!g->save.last_cloud_time) { g->save.last_cloud_time=now;return; }
+    if (!g->save.last_cloud_time) {
+        /* Persist the initial anchor so a restart does not reset recharge. */
+        if (now) { g->save.last_cloud_time=now; g->requested_save=1; }
+        return;
+    }
     if (now < g->save.last_cloud_time) { // reset after clock adjustment; do not award clouds
         g->save.last_cloud_time=now;g->requested_save=1;return;
     }
