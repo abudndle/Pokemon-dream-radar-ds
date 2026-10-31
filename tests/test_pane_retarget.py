@@ -15,6 +15,10 @@ with tempfile.TemporaryDirectory() as d:
         w,h=layout["source_size"]
         assert layout["scale"]==[256/w,192/h]
         def verify(p):
+            assert isinstance(p["flags"],int) and 0<=p["flags"]<=255
+            assert isinstance(p["origin"],int) and 0<=p["origin"]<=255
+            assert isinstance(p["alpha"],int) and 0<=p["alpha"]<=255
+            assert len(p["rotation"])==3 and len(p["scale"])==2
             assert len(p["translation_ds"])==2
             assert len(p["size_ds"])==2
             for c in p["children"]:verify(c)
