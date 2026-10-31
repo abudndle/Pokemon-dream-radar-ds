@@ -883,7 +883,10 @@ static void update_camera(void) {
         camera_busy=0;
         DC_InvalidateRange(camera_frame,sizeof camera_frame);
         memcpy(camera_last_frame,camera_frame,sizeof camera_last_frame);
-        camera_frames++;
+        /* Leave the frame-ready counter positive without signed overflow
+           after very long DSi sessions. Only readiness, not total frames,
+           is needed by the photo saver. */
+        if(camera_frames<2147483647)camera_frames++;
         if(game.save.optical_aim)update_optical_motion();
     }
     if(!camera_busy && (game.save.frames_played%3==0)) {
