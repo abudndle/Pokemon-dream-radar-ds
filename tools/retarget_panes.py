@@ -55,7 +55,13 @@ def convert(layout):
         right=min(float(DS_WIDTH),bounds[2]);bottom=min(float(DS_HEIGHT),bounds[3])
         visible=right>left and bottom>top
         clipped=[left,top,right,bottom] if visible else None
+        # This ratio describes how much of the axis-aligned pane envelope
+        # overlaps the DS viewport; it is not pixel-accurate rotated coverage.
+        area=max(0.0,bounds[2]-bounds[0])*max(0.0,bounds[3]-bounds[1])
+        covered=(right-left)*(bottom-top) if visible else 0.0
+        coverage=round(covered/area,4) if area>0 else 0.0
         return {
+            "viewport_coverage": coverage,
             "visible_in_viewport": visible,
             "clipped_bounds_ds": clipped,
             "world_bounds_ds": bounds,
