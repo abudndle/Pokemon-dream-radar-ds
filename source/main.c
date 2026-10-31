@@ -1211,8 +1211,9 @@ running_dsi=isDSiMode();
             snprintf(export_dir,sizeof export_dir,"%sDreamRadarDSi",storage_root);
             /* Camera photos belong on the actual DSi SD card, in their own
                folder; never save pictures to a retail-game cartridge. */
+            int photo_len=snprintf(photo_dir,sizeof photo_dir,"%s/Photos",export_dir);
             if(running_dsi && strcmp(storage_root,"sd:/")==0 &&
-               snprintf(photo_dir,sizeof photo_dir,"%s/Photos",export_dir)<(int)sizeof photo_dir) {
+               photo_len>=0 && photo_len<(int)sizeof photo_dir) {
                 struct stat st;
                 /* mkdir() cannot create Photos if its parent is absent.
                    Ensure both directories exist on a freshly formatted SD. */
