@@ -541,6 +541,10 @@ int game_leave_search(Game *g) {
     g->freeze_frames=0;
     g->slow_frames=0;
     g->capture_timeout=0;
+    /* Back exits without awarding an unfinished capture or item. */
+    g->session_caught=-1;
+    g->session_item=-1;
+    g->session_type=0;
     g->requested_save=1;
     return 1;
 }
