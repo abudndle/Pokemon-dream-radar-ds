@@ -45,7 +45,9 @@ int save_backend_init(SaveBackend *backend,const char *root,const char *rom_path
     return 1;
 }
 int save_backend_load(SaveBackend *backend,Game *g) {
+    if(!backend || !g)return 0;
     backend->recovered_backup=0;
+    backend->migrated_legacy=0;
     if(game_load(g,backend->active))return 1;
     char bak[TW_MAX_PATH];
     if(snprintf(bak,sizeof bak,"%s.bak",backend->active) < (int)sizeof bak && game_load(g,bak)) {
