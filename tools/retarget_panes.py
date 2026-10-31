@@ -19,11 +19,27 @@ def convert(layout):
     if not all(math.isfinite(v) and v > 0 for v in (source_width, source_height)):
         raise ValueError("invalid root dimensions")
     scale_x, scale_y = DS_WIDTH/source_width, DS_HEIGHT/source_height
-    def walk(pane):
+    def walk(pane, parent_x=0.0, parent_y=0.0, parent_angle=0.0, parent_sx=1.0, parent_sy=1.0):
         values = (pane["translation"] + pane["rotation"] + pane["scale"] + pane["size"])
         if not all(math.isfinite(v) for v in values):
             raise ValueError(f'non-finite geometry in pane {pane["name"]}')
+        # Compose parent translation, scale and Z rotation for approximate
+        # screen-space positions. Other 3D transforms, origins and anchors
+        # still require a full BCLYT renderer.
+        local_x=pane["translation"][0]*parent_sx
+        local_y=pane["translation"][1]*parent_sy
+        angle=math.radians(parent_angle)
+        x=parent_x+local_x*math.cos(angle)-local_y*math.sin(angle)
+        y=parent_y+local_x*math.sin(angle)+local_y*math.cos(angle)
+        z_angle=parent_angle+pane["rotation"][2]
+        sx=parent_sx*pane["scale"][0]
+        sy=parent_sy*pane["scale"][1]
+        if not all(math.isfinite(v) for v in (x,y,z_angle,sx,sy)):
+            raise ValueError(f'non-finite composed geometry in pane {pane["name"]}')
         return {
+            "world_translation_ds": [round(x*scale_x,4),round(y*scale_y,4)],
+            "world_rotation_z": round(z_angle,4),
+            "world_scale": [round(sx,4),round(sy,4)],
             "name": pane["name"],
             "type": pane["type"],
             "flags": pane["flags"],
@@ -40,7 +56,7 @@ def convert(layout):
                 round(pane["size"][0]*scale_x, 4),
                 round(pane["size"][1]*scale_y, 4)
             ],
-            "children": [walk(child) for child in pane["children"]]
+            "children": [walk(child,x,y,z_angle,sx,sy) for child in pane["children"]]
         }
     return {
         "source": Path(layout["file"]).name,
@@ -58,7 +74,7 @@ def main():
     args=parser.parse_args()
     source=json.loads(args.input.read_text())
     output={
-        "notice": "Provisional scaled pane metadata; NOT a composed or rendered original UI.",
+        "notice": "Provisional composed X/Y transforms (Z rotation, XY scale) only; NOT a rendered original UI. Origins, anchors, 3D transforms, textures and animations remain unresolved.",
         "layouts": [convert(layout) for layout in source["layouts"]]
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)
