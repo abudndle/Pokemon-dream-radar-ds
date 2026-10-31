@@ -7,7 +7,7 @@ import tempfile
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
-from inventory_original_models import inventory
+from inventory_original_models import inventory, compare_inventories
 
 with tempfile.TemporaryDirectory() as temp:
     root = pathlib.Path(temp)
@@ -30,6 +30,18 @@ with tempfile.TemporaryDirectory() as temp:
     assert first["status"] == "candidate_only_not_decoded"
     assert report["files"][1]["bytes"] == 0
     assert len(inventory(root)["files"]) == 2
+    assert compare_inventories(report, inventory(root)) == {
+        "added": [], "removed": [], "changed": []
+    }
+    (root / "Pokemon" / "candidate.BCMDL").write_bytes(b"changed source")
+    (root / "new.bch").write_bytes(b"new model candidate")
+    (root / "zero.cmb").unlink()
+    delta = compare_inventories(report, inventory(root))
+    assert delta == {
+        "added": ["new.bch"],
+        "removed": ["zero.cmb"],
+        "changed": ["Pokemon/candidate.BCMDL"]
+    }
     try:
         inventory(root / "missing")
     except ValueError:
