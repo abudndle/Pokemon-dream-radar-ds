@@ -69,10 +69,14 @@ int main(void) {
         int y=dr_shop_row_top(i);
         assert(y==26+24*i);
         assert(dr_shop_hit(128,y+12)==i);
+        assert(dr_shop_hit(10,y)==i);
+        assert(dr_shop_hit(245,y+21)==i);
+        assert(dr_shop_hit(128,y+22)==-1);
     }
     assert(dr_shop_hit(128,25)==-1);
     assert(dr_shop_hit(128,170)==-1);
     assert(dr_shop_hit(1,50)==-1);
+    assert(dr_shop_hit(246,50)==-1);
     Game g;game_new(&g,0x4a51);
     game_begin_search(&g,EXT_BASIC);
     assert(g.screen==STATE_RADAR);
