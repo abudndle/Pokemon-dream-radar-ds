@@ -16,8 +16,12 @@ int dr_support_at(int x,int y) {
 int dr_transfer_button_at(int x,int y) {
     /* Only the two visible footer controls are actionable. */
     if(y<157 || y>=190)return -1;
-    if(x>=10 && x<120)return 0;
-    if(x>=138 && x<246)return 1;
+    /* Match the visible rectangular footer panes using the shared quad
+       primitive. Coordinates use inclusive right/bottom touch edges. */
+    const int archive[8]={10,157,119,157,119,189,10,189};
+    const int back[8]={138,157,245,157,245,189,138,189};
+    if(dr_quad_hit(archive,x,y))return 0;
+    if(dr_quad_hit(back,x,y))return 1;
     return -1;
 }
 /* One transfer geometry source for icons, selection outline and touch input. */
