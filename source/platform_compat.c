@@ -9,6 +9,13 @@ int dr_lab_action(int dsi_mode,int selection){
     return selection;
 }
 int dr_settings_count(int dsi_mode){return dsi_mode?4:2;}
+int dr_settings_hit(int x,int y,int dsi_mode){
+    int count=dr_settings_count(dsi_mode);
+    if(x<10 || x>=246 || y<16)return -1;
+    int row=(y-16)/35;
+    if(row>=count || y>=16+35*row+22)return -1;
+    return row;
+}
 int dr_settings_action(int dsi_mode,int selection){
     if(selection<0 || selection>=dr_settings_count(dsi_mode))return -1;
     return dsi_mode?selection:selection+2;
