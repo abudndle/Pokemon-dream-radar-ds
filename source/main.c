@@ -166,8 +166,13 @@ static void cache_backgrounds(void) {
         char name[80];snprintf(name,sizeof name,"nitro:/%s",bg_files[i]);
         FILE *f=fopen(name,"rb");
         if(!f)continue;
-        bg_valid[i]=(fread(bg_cache[i],2,PIXELS,f)==PIXELS);
-        fclose(f);
+        /* Original fullscreen raw backgrounds are exactly 256x192
+           little-endian RGB555 pixels, without any trailing payload. */
+        bg_valid[i]=0;
+        if(fseek(f,0,SEEK_END)==0 && ftell(f)==(long)(PIXELS*2u) &&
+           fseek(f,0,SEEK_SET)==0)
+            bg_valid[i]=(fread(bg_cache[i],2,PIXELS,f)==PIXELS);
+        if(fclose(f)!=0)bg_valid[i]=0;
     }
 }
 static void load_bg(const char *filename, u16 *dest, u16 fallback) {
