@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Retarget extracted 3DS pane dimensions into DS viewport coordinates.
+"""Retarget extracted 3DS pane dimensions into provisional DS coordinates.
 
-This produces inspection metadata, not a faithful BCLYT renderer: rotations,
-parent transforms, anchors, textures and BCLAN animations require separate work.
+Parent XY transforms and Z rotations are composed for inspection, but origins,
+3D transforms, material binding and BCLAN animation need separate work.
 """
 import argparse
 import json
@@ -40,6 +40,7 @@ def convert(layout):
             "world_translation_ds": [round(x*scale_x,4),round(y*scale_y,4)],
             "world_rotation_z": round(z_angle,4),
             "world_scale": [round(sx,4),round(sy,4)],
+            "world_size_ds": [round(abs(pane["size"][0]*sx*scale_x),4),round(abs(pane["size"][1]*sy*scale_y),4)],
             "name": pane["name"],
             "type": pane["type"],
             "flags": pane["flags"],
