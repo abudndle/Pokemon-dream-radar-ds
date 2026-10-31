@@ -477,7 +477,8 @@ static int item_available_slot(const Game *g, int item) {
     return -1;
 }
 void game_capture(Game *g) {
-    if(!g || g->screen!=STATE_SPHERE)return;
+    /* All capture entry points must enforce the active encounter timer. */
+    if(!g || g->screen!=STATE_SPHERE || g->capture_timeout<=0)return;
     /* Simulator results never take a research slot. */
     if(g->session_type!=1 &&
        g->ext_selection>=EXT_SIM_TORNADUS && g->ext_selection<=EXT_SIM_LANDORUS) {
