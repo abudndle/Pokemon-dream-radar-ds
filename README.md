@@ -1,3 +1,26 @@
+## Resume unfinished radar searches after a Pokémon encounter
+
+A Dowsing, Retrieval or basic radar search can contain multiple clouds and
+Dream Orbs. The DS/DSi port now preserves all unshot clouds, collectible
+Orbs, their remaining timers and colors, and the accumulated currency
+whenever one cloud triggers a Pokémon/item capture sphere.
+
+After that encounter, the results screen offers **A: RESUME RADAR** or
+**B: LAB** while unfinished targets remain. A resumes the **same**
+search, without spending a second extension fee or rerolling targets.
+B abandons only the remaining uncollected objects; earned Orbs and
+captured rewards stay intact. This also works after timeout, storage-full
+replacement acceptance or cancellation. When no targets remain, results
+returns to the lab as before. The search statistic increments at most
+once per outing, including after several captures.
+
+This preserves the existing homebrew save format. A partially completed
+radar outing is **runtime-only**; leaving/rebooting while in an encounter
+does not serialize the exact remaining 3DS cloud or Orb positions.
+Portable tests cover continuation, voluntary exit, frozen Orb lifetimes,
+replacement decisions, and exactly-once search counting. Original
+3DS behavior and hardware testing are still incomplete.
+
 ## Sphere energy-ball attacks and beam defense (DS adaptation)
 
 Capture encounters now include a single moving energy-ball attack. The ball
