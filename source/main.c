@@ -1272,9 +1272,13 @@ static void handle_key(int keys,int down,touchPosition *touch) {
                 if(custom_background_slot>=0)
                     preview_custom_background(custom_background_slot);
                 if(!placeholder_preview_loaded && photo_storage_ready) {
-                    int found=-1;
-                    if(dr_photo_find(photo_dir,-1,1,&found))
-                        preview_custom_background(found);
+                    int found=-1, cursor=-1, first=-1;
+                    while(dr_photo_find(photo_dir,cursor,1,&found)) {
+                        if(found==first)break;
+                        if(first<0)first=found;
+                        if(preview_custom_background(found))break;
+                        cursor=found;
+                    }
                 }
                 switch_screen(STATE_PLACEHOLDER);
             }
