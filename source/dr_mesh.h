@@ -14,4 +14,6 @@ typedef struct {
 } DrMesh;
 int dr_mesh_decode(const unsigned char *bytes,size_t size,DrMesh *out);
 void dr_mesh_free(DrMesh *mesh);
+/* Orthographic Q12-to-screen projection for a future software wireframe path. */
+int dr_mesh_project_vertex(const DrMeshVertex *v,int cx,int cy,int scale,int *x,int *y);
 #endif
