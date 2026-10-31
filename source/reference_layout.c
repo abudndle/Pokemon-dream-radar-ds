@@ -1,5 +1,4 @@
 #include "reference_layout.h"
-static int absval(int v) { return v<0?-v:v; }
 void dr_support_center(int index,int *x,int *y) {
     static const int cx[3]={67,190,128},cy[3]={101,101,151};
     if(x)*x=index>=0 && index<3?cx[index]:-1;
@@ -9,7 +8,7 @@ int dr_support_at(int x,int y) {
     if(x<0||x>255||y<0||y>191)return -1;
     for(int i=0;i<3;i++) {
         int sx,sy;dr_support_center(i,&sx,&sy);
-        int dx=absval(x-sx),dy=absval(y-sy);
+        int dx=x>sx?x-sx:sx-x,dy=y>sy?y-sy:sy-y;
         if(dx<=44 && dy<=39 && 2*dx+dy<=105)return i;
     }
     return -1;
