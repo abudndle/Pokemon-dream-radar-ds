@@ -11,6 +11,14 @@ int main(void) {
         assert(dr_title_hit(r->x+r->w/2,r->y+r->h/2)==i);
         assert(dr_title_hit(r->x,r->y)==i);
         assert(dr_title_hit(r->x+r->w-1,r->y+r->h-1)==i);
+        /* 6px-wide/8px-high built-in glyphs must fit their source panes. */
+        const char *labels[4]={"Start","Send Research Data","Credits","Records"};
+        int glyph_width=0;
+        for(const char *c=labels[i];*c;c++)glyph_width+=6;
+        int label_x=r->x+(r->w-glyph_width)/2;
+        int label_y=r->y+(r->h-8)/2;
+        assert(label_x>=r->x && label_x+glyph_width<=r->x+r->w);
+        assert(label_y>=r->y && label_y+8<=r->y+r->h);
         if(i>0)assert(dr_title_panes[i-1].y+dr_title_panes[i-1].h<=r->y);
     }
     assert(dr_title_hit(128,10)==-1);
