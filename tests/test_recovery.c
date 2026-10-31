@@ -23,6 +23,15 @@ int main(void) {
     assert(snprintf(rom,sizeof rom,"%s/DreamRadarDSi.nds",root) < (int)sizeof rom);
     SaveBackend backend;
     assert(save_backend_init(&backend,root,rom));
+    assert(!save_backend_init(NULL,root,rom));
+    /* A path whose prefix only resembles the storage root must not be
+       treated as a ROM located inside that root. */
+    char sibling_rom[TW_MAX_PATH];
+    assert(snprintf(sibling_rom,sizeof sibling_rom,"%s-other/game.nds",root)<(int)sizeof sibling_rom);
+    SaveBackend outside;
+    assert(save_backend_init(&outside,root,sibling_rom));
+    assert(!outside.using_twilight_path);
+
     /* Invalid persistence arguments must fail without dereferencing pointers. */
     Game invalid;game_new(&invalid,77);
     assert(!game_load(NULL,"/tmp/missing.drs"));
