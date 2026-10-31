@@ -41,7 +41,9 @@ def verify(root=ROOT):
     expected = set(BITMAPS) | set(SPRITES)
     actual = {p.name for p in root.iterdir() if p.is_file() and p.suffix in ('.raw', '.spr')}
     missing = expected - actual
+    unexpected = actual - expected
     assert not missing, f'Missing NitroFS assets: {sorted(missing)}'
+    assert not unexpected, f'Unmanifested NitroFS image assets: {sorted(unexpected)}'
     return len(BITMAPS), len(SPRITES)
 
 
