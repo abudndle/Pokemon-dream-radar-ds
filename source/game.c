@@ -429,7 +429,7 @@ static int item_available_slot(const Game *g, int item) {
     return -1;
 }
 void game_capture(Game *g) {
-    if(g->screen!=STATE_SPHERE)return;
+    if(!g || g->screen!=STATE_SPHERE)return;
     /* Simulator results never take a research slot. */
     if(g->session_type!=1 &&
        g->ext_selection>=EXT_SIM_TORNADUS && g->ext_selection<=EXT_SIM_LANDORUS) {
