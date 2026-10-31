@@ -32,8 +32,11 @@ int main(void) {
     int hits_before=g.projectile_hits;
     for(int i=0;i<100 && !g.projectile_hits;i++)game_tick(&g);
     assert(g.projectile_hits==hits_before+1);
-    assert(!g.projectile_active);
-    assert(g.capture_timeout<820); /* 180 frames lost plus ordinary ticks */
+    /* A side ball may strike first in a simultaneous legendary fan; only
+       the colliding projectile is removed, not the entire volley. */
+    assert(!g.projectile_active ||
+           !g.projectile_extra[0].active || !g.projectile_extra[1].active);
+    assert(g.capture_timeout<820); /* bounded hit penalty plus ticks */
 
     /* Shooting the incoming projectile consumes that shot, not capture HP. */
     begin(&g);
