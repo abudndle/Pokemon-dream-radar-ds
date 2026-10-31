@@ -22,6 +22,16 @@ int main(void) {
         assert(src[i]==dst[i]);
     }
     assert(!dr_photo_write(path,src,DR_PHOTO_W*DR_PHOTO_H));
+    /* An otherwise valid BMP with a forged declared filesize is rejected. */
+    FILE *badsize=fopen(path,"r+b");assert(badsize);
+    assert(fseek(badsize,2,SEEK_SET)==0);
+    unsigned char zero[4]={0,0,0,0};
+    assert(fwrite(zero,1,4,badsize)==4);
+    assert(fclose(badsize)==0);
+    assert(!dr_photo_read(path,dst,DR_PHOTO_W*DR_PHOTO_H));
+    /* A saved image with the correct header remains readable. */
+    assert(unlink(path)==0);
+    assert(dr_photo_write(path,src,DR_PHOTO_W*DR_PHOTO_H));
     assert(dr_photo_save_new(dir,&next,src,DR_PHOTO_W*DR_PHOTO_H) && next==2);
     assert(dr_photo_find(dir,0,1,&found) && found==1);
     assert(dr_photo_find(dir,0,-1,&found) && found==1);
