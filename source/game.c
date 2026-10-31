@@ -152,6 +152,8 @@ void game_regen_clouds(Game *g, uint32_t now) {
         if (steps >= capacity-count) count = capacity;
         else count += steps;
         g->save.cloud_count=(uint8_t)count;
+        /* Even when already full, advance the recharge anchor to avoid
+           a stockpile of elapsed time instantly refilling spent clouds. */
         g->save.last_cloud_time+=steps*300u;
         g->requested_save=1;
     }
