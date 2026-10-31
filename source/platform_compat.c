@@ -24,6 +24,9 @@ int dr_settings_action(int dsi_mode,int selection){
     return dsi_mode?(selection==4?DR_SETTING_PLACEHOLDER:selection):selection+2;
 }
 int dr_camera_allowed(int dsi_mode,int camera_enabled){return dsi_mode && camera_enabled;}
+int dr_camera_retry_latch(int camera_enabled,int previous_failure){
+    return camera_enabled?0:previous_failure;
+}
 int dr_photo_shortcut(int dsi_mode,int held,int down,int l_mask,int r_mask){
     return dsi_mode && (held & (l_mask|r_mask))==(l_mask|r_mask) &&
            (down & (l_mask|r_mask))!=0;
