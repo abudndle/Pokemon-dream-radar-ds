@@ -505,14 +505,17 @@ static void render(void) {
                 draw_sprite(top,S_RETICLE,112,80);
             } else {
                 render_camera_background();
-                draw_sprite(top,S_ORB,game.sphere_x-29,game.sphere_y-29);
+                /* Use the same world-to-view transform as cloud hunting.
+                 * A centered shot now matches game_fire() in both modes. */
+                draw_sprite(top,S_ORB,game.sphere_x-game.aim_x+128-29,
+                            game.sphere_y-game.aim_y+96-29);
             }
             progress_bar(9,4,181,game.capture_hp,240,GOLD);
             char tx[32];snprintf(tx,sizeof tx,"%d",game.capture_timeout/60);
             rect(top,199,2,55,18,0x8421);
             print(top,213,7,WHITE,tx);
             if(running_dsi && game.camera_active && game.camera_ok)
-                draw_sprite(top,S_RETICLE,game.aim_x-16,game.aim_y-16);
+                draw_sprite(top,S_RETICLE,112,80);
         }
         render_search_bottom();
         break;}
