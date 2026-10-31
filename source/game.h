@@ -32,6 +32,14 @@ typedef enum { STATE_TITLE, STATE_INTRO, STATE_LAB, STATE_SHOP, STATE_EXTENSIONS
                STATE_REPLACE, STATE_STORAGE, STATE_TIPS, STATE_ALBUM, STATE_CREDITS, STATE_PLACEHOLDER } GameScreen;
 typedef enum { REPLACE_NONE, REPLACE_POKEMON, REPLACE_ITEM } ReplaceKind;
 typedef enum { ORB_PINK, ORB_GREEN, ORB_ORANGE, ORB_BLUE, ORB_COLOR_COUNT } OrbColor;
+/* Provisional DS difficulty categories, not extracted 3DS battle parameters. */
+typedef enum { CAPTURE_DRIFT, CAPTURE_SWIFT, CAPTURE_ERRATIC,
+               CAPTURE_LEGENDARY, CAPTURE_ITEM } CaptureClass;
+typedef struct {
+    CaptureClass type;
+    int hit_radius, speed, turn_frames;
+    int attack_interval, attack_penalty, attack_burst;
+} CaptureProfile;
 
 typedef struct {
     uint32_t magic, version;
@@ -66,6 +74,7 @@ typedef struct {
     int projectile_enabled, projectile_active;
     int projectile_x, projectile_y, projectile_vx, projectile_vy;
     int projectile_cooldown, projectile_lifetime, projectile_hits;
+    int projectile_queued, capture_motion_ticks; /* Runtime-only per-encounter state. */
     int aim_x, aim_y, freeze_frames, slow_frames, active_clouds, cloud_hit;
     int session_orbs, session_caught, session_type, session_species, session_item;
     /* Runtime-only: preserve unfinished radar entities across sphere results. */
@@ -96,6 +105,7 @@ void game_begin_search(Game *g, int extension);
 void game_fire(Game *g);
 int game_use_support(Game *g, int slot);
 void game_tick(Game *g);
+CaptureProfile game_capture_profile(const Game *g);
 OrbColor game_orb_color(const Game *g);
 OrbColor game_orb_live_color(const Game *g);
 OrbColor game_dream_orb_color(const Game *g,int slot);
