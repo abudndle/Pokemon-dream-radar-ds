@@ -71,6 +71,13 @@ assert 'nitro:/pokemon_%02d.dra' in main_source
 assert 'dr_animation_load_file(path,&encounter_mesh,&encounter_animation)' in main_source
 assert 'dr_animation_frame(' in main_source
 assert 'dr_animation_free(&encounter_animation)' in main_source
+assert '#include "dr_parts.h"' in main_source
+assert 'DreamRadarDSi/Models/pokemon_%02d.drb' in main_source
+assert 'nitro:/pokemon_%02d.drb' in main_source
+assert 'dr_parts_load_file(path,&encounter_mesh,&encounter_parts)' in main_source
+assert 'dr_parts_free(&encounter_parts)' in main_source
+assert 'dr_parts_frame(&encounter_parts,&encounter_mesh,' in main_source
+assert 'else if(encounter_animation.delta)' in main_source
 assert 'unsigned yaw_step=(unsigned)((game.save.frames_played/12u)&15u);' in main_source
 assert 'if(game.session_type==0 && draw_encounter_mesh(game.session_species,px,py))' in main_source
 assert 'else draw_sprite(top,S_ORB,px-29,py-29);' in main_source
