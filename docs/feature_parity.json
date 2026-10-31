@@ -300,7 +300,7 @@
       "id": "original_3d_models",
       "feature": "Original Pokémon 3D geometry and animations",
       "status": "partial",
-      "gap": "Optional DRM1 geometry supports depth-tested flat/DRT1 textured rendering and user-converted DRA1 additive vertex-keyframe motion; original 3DS skeletal rigs, materials, and animation data remain absent.",
+      "gap": "Optional DRM1 geometry supports depth-tested flat/DRT1 textured rendering, DRA1 vertex keys and DRB1 rigid body-part pivot/translation/yaw tracks; genuine 3DS skeletal rigs, bone weights, materials and original animation are absent.",
       "evidence": [
         "source/dr_mesh.c",
         "source/dr_texture.c",
@@ -313,6 +313,11 @@
         "tests/test_dr_animation.c",
         "tests/test_pack_dra1.py",
         "docs/DRA1_ANIMATIONS.md",
+        "source/dr_parts.c",
+        "tools/pack_drb1.py",
+        "tests/test_dr_parts.c",
+        "tests/test_pack_drb1.py",
+        "docs/DRB1_BODY_PARTS.md",
         "source/main.c"
       ]
     },
