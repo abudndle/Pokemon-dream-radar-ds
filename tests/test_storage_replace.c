@@ -38,6 +38,7 @@ int main(void) {
     assert(game_cancel_pending_replace(&g));
     assert(!game_cancel_pending_replace(&g));
     assert(g.screen==STATE_RESULTS && g.session_caught==-4);
+    assert(g.session_species==-1 && g.session_item==-1 && g.session_type==0);
     assert(!memcmp(g.save.pending,old_pokemon,sizeof old_pokemon));
     assert(g.save.legends_caught==old_legends);
     assert(game_extension_unlocked(&g,EXT_HOOH)); /* still available */
@@ -72,6 +73,8 @@ int main(void) {
     assert(!game_replace_pending(&items,MAX_ITEMS));
     assert(!memcmp(snapshot,items.save.pending_items,sizeof snapshot));
     assert(game_cancel_pending_replace(&items));
+    assert(items.session_caught==-4 && items.session_item==-1);
+    assert(items.session_species==-1 && items.session_type==0);
     assert(!memcmp(snapshot,items.save.pending_items,sizeof snapshot));
     fake_capture(&items,1,4);
     assert(game_replace_pending(&items,1));
