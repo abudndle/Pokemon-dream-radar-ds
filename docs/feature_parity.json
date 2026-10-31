@@ -105,9 +105,10 @@
       "id": "sphere_projectiles",
       "feature": "Original sphere projectile/penalty attacks",
       "status": "partial",
-      "gap": "Staggered one-to-three-shot volleys and bounded, class-specific time penalties now distinguish ordinary, item and legendary encounters. Original 3DS patterns can fire several shots simultaneously; this DS adaptation remains provisional.",
+      "gap": "DS/DSi Legendary captures now launch three simultaneous, separately shootable energy balls; ordinary profiles retain staggered attacks. Independent collision, dodge/beam defense, class-specific penalties and cleanup are implemented; exact retail per-species patterns remain unverified.",
       "evidence": [
         "source/game.c",
+        "source/main.c",
         "tests/test_capture_profiles.c",
         "tests/test_sphere_projectiles.c"
       ]
