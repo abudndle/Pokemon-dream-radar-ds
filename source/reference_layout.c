@@ -1,5 +1,16 @@
 #include "reference_layout.h"
 #include <stdio.h>
+void dr_shop_purchase_label(const Game *g,int row,char *text,size_t size) {
+    if(!text || !size)return;
+    int cost=0;
+    PurchaseStatus status=row>=0 && row<6?
+        game_purchase_status(g,row/3,row%3,&cost):PURCHASE_INVALID;
+    if(status==PURCHASE_READY)snprintf(text,size,"BUY %d",cost);
+    else if(status==PURCHASE_POOR)
+        snprintf(text,size,"NEED %lu",(unsigned long)((uint32_t)cost-g->save.orbs));
+    else snprintf(text,size,"%s",status==PURCHASE_MAX?"MAX":
+                  status==PURCHASE_FULL?"FULL":"INVALID");
+}
 void dr_support_label(const Game *g,int slot,char *text,size_t size) {
     if(!text || !size)return;
     SupportStatus status=game_support_status(g,slot);

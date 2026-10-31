@@ -663,31 +663,42 @@ void game_tick(Game *g) {
         }
     }
 }
-int game_buy(Game *g, int kind, int idx) {
-    if (!g) return 0;
+PurchaseStatus game_purchase_status(const Game *g,int kind,int idx,int *cost) {
     static const int costs[]={0,100,500,1000,1500};
+    if(cost)*cost=0;
+    if(!g || idx<0 || idx>=3)return PURCHASE_INVALID;
+    int price;
     if (kind==0) {
-        if (idx<0 || idx>=3) return 0;
         int level=g->save.upgrades[idx];
-        if (level<1 || level>5) {msg(g,"Invalid equipment level.");return 0;}
-        if (level==5) {msg(g,"Already at maximum level.");return 0;}
-        int cost=costs[level];
-        if (g->save.orbs<(uint32_t)cost) {msg(g,"Not enough Dream Orbs.");return 0;}
-        g->save.orbs-=cost;g->save.upgrades[idx]++;g->requested_save=1;
-        msg(g,"Equipment upgraded!");return 1;
+        if(level<1 || level>5)return PURCHASE_INVALID;
+        if(level==5)return PURCHASE_MAX;
+        price=costs[level];
+    } else if(kind==1) {
+        if(g->save.goods[idx]>9)return PURCHASE_INVALID;
+        if(g->save.goods[idx]==9)return PURCHASE_FULL;
+        price=idx==0?100:50;
+    } else return PURCHASE_INVALID;
+    if(cost)*cost=price;
+    return g->save.orbs<(uint32_t)price?PURCHASE_POOR:PURCHASE_READY;
+}
+int game_buy(Game *g, int kind, int idx) {
+    if(!g)return 0;
+    int cost=0;
+    PurchaseStatus status=game_purchase_status(g,kind,idx,&cost);
+    if(status!=PURCHASE_READY) {
+        if(status==PURCHASE_MAX)msg(g,"Already at maximum level.");
+        else if(status==PURCHASE_FULL)msg(g,"Cannot carry more.");
+        else if(status==PURCHASE_POOR)msg(g,"Not enough Dream Orbs.");
+        else if(idx>=0 && idx<3 && kind==0)msg(g,"Invalid equipment level.");
+        else if(idx>=0 && idx<3 && kind==1)msg(g,"Invalid support inventory.");
+        return 0;
     }
-    if (kind==1) {
-        if (idx<0 || idx>=3)return 0;
-        int cost=(idx==0) ? 100 : 50;
-        /* Capacity is checked first so a full inventory reports the
-           actionable reason even when the player also lacks Dream Orbs. */
-        if (g->save.goods[idx]>9) {msg(g,"Invalid support inventory.");return 0;}
-        if (g->save.goods[idx]==9) {msg(g,"Cannot carry more.");return 0;}
-        if (g->save.orbs<(uint32_t)cost) {msg(g,"Not enough Dream Orbs.");return 0;}
-        g->save.orbs-=cost;g->save.goods[idx]++;g->requested_save=1;
-        msg(g,"Support item purchased!");return 1;
-    }
-    return 0;
+    g->save.orbs-=(uint32_t)cost;
+    if(kind==0)g->save.upgrades[idx]++;
+    else g->save.goods[idx]++;
+    g->requested_save=1;
+    msg(g,kind==0?"Equipment upgraded!":"Support item purchased!");
+    return 1;
 }
 static uint32_t pending_signature(const Game *g) {
     uint32_t h=2166136261u;

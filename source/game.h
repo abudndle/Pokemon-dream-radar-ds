@@ -78,6 +78,10 @@ SupportStatus game_support_status(const Game *g, int slot);
 void game_tick(Game *g);
 /* End active radar/capture session safely when Back is pressed. */
 int game_leave_search(Game *g);
+typedef enum { PURCHASE_INVALID, PURCHASE_READY, PURCHASE_MAX,
+               PURCHASE_FULL, PURCHASE_POOR } PurchaseStatus;
+/* Read-only quote; cost is zero for invalid or already-full purchases. */
+PurchaseStatus game_purchase_status(const Game *g,int kind,int idx,int *cost);
 int game_buy(Game *g, int kind, int idx);
 void game_capture(Game *g);
 /* Full queue: choose one occupied slot, or decline; never auto-overwrite. */

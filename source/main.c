@@ -333,7 +333,6 @@ static void progress_bar(int x,int y,int w,int numerator,int denominator,u16 col
 }
 /* Reference screenshots: original English main menu and search touch-screen.
    Gameplay counters, selections, costs, and quantities are drawn live. */
-static const int upgrade_prices[5]={0,100,500,1000,1500};
 static const char *shop_names[6]={"Beam","Energy Pack","Visoscope",
                                   "Vortex Charge","Dragnet Charge","Energy Recharge"};
 static const char *shop_descriptions[6]={
@@ -344,7 +343,6 @@ static const char *shop_descriptions[6]={
 static void render_shop_top(void) {
     load_bg("development_top.raw",top,0x8844);
     const int rows_y[3]={2,65,128};
-    const int costs[3]={100,50,50};
     char text[70];
     for(int i=0;i<3;i++) {
         int y=rows_y[i],lev=game.save.upgrades[i];
@@ -372,10 +370,7 @@ static void render_shop_top(void) {
     if(chosen<0||chosen>=6)chosen=0;
     rect(top,7,27,242,30,0x8421);border(top,7,27,242,30,CYAN);
     print_wrapped(top,13,33,38,WHITE,shop_descriptions[chosen],2);
-    if(chosen<3) {
-        int lev=game.save.upgrades[chosen];
-        snprintf(text,sizeof text,lev>=5?"MAX":"NEXT %d",upgrade_prices[lev<5?lev:4]);
-    } else snprintf(text,sizeof text,"COST %d",costs[chosen-3]);
+    dr_shop_purchase_label(&game,chosen,text,sizeof text);
     rect(top,180,0,75,10,0x8000);
     print(top,186,1,GOLD,text);
 }
@@ -635,15 +630,24 @@ static void render(void) {
         print(bottom,8,8,GOLD,tx);
         for(int i=0;i<6;i++) {
             char lbl[64];
+            int cost=0;
+            PurchaseStatus status=game_purchase_status(&game,i/3,i%3,&cost);
             if(i<3) {
                 int lev=game.save.upgrades[i];
-                snprintf(lbl,sizeof lbl,lev>=5?"%s - MAX":"%s Lv.%d -> %d",shop_names[i],lev,
-                         upgrade_prices[lev<5?lev:4]);
-            } else snprintf(lbl,sizeof lbl,"%s x%d  %d",shop_names[i],
-                            game.save.goods[i-3],i==3?100:50);
+                if(status==PURCHASE_MAX)snprintf(lbl,sizeof lbl,"%s - MAX",shop_names[i]);
+                else snprintf(lbl,sizeof lbl,"%s Lv.%d -> %d",shop_names[i],lev,cost);
+            } else if(status==PURCHASE_FULL)
+                snprintf(lbl,sizeof lbl,"%s x9 FULL",shop_names[i]);
+            else snprintf(lbl,sizeof lbl,"%s x%d  %d",shop_names[i],
+                          game.save.goods[i-3],cost);
             button(bottom,dr_shop_row_top(i),lbl,game.selection==i);
         }
-        print(bottom,12,177,CYAN,"A: PURCHASE    B: RETURN");
+        char quote[20];dr_shop_purchase_label(&game,game.selection,quote,sizeof quote);
+        snprintf(tx,sizeof tx,"%s ORBS   B: RETURN",quote);
+        if(!strncmp(quote,"BUY ",4))snprintf(tx,sizeof tx,"A: %s ORBS  B: RETURN",quote);
+        else if(!strcmp(quote,"MAX") || !strcmp(quote,"FULL") || !strcmp(quote,"INVALID"))
+            snprintf(tx,sizeof tx,"%s   B: RETURN",quote);
+        print(bottom,12,177,CYAN,tx);
         break; }
     case STATE_EXTENSIONS: {
         extension_ensure_selected();
