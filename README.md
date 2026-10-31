@@ -8,7 +8,7 @@ profile. These profiles vary capture hitbox radius, movement speed, timed
 direction changes, and attack frequency and penalties. The upper screen
 displays the selected profile during the encounter.
 
-Sphere attacks can now fire short **staggered one-to-three-ball volleys**.
+Sphere attacks now vary between **staggered one- or two-ball volleys** for ordinary encounters and a **three-ball simultaneous fan** for legendary and Therian Simulator encounters. Each simultaneous ball can be targeted and intercepted separately; the DS upper screen renders all of them.
 Aiming away or intercepting an approaching ball works with the existing
 DS beam mechanic. Vortex freeze and Dragnet slow suspend/reduce both
 movement and attack updates; timer penalties are bounded. This uses only
@@ -17,8 +17,8 @@ runtime fields and does not alter the version-3 private save structure.
 **Fidelity limitation:** Published guides document real variation in sphere
 size, evasion, attack rates and time loss, but we have **not** extracted
 the 3DS game's per-species numerical tables or individual animation
-sequences. These five DS profiles and sequential burst attacks are
-provisional approximations; the original can launch simultaneous volleys.
+sequences. These five DS profiles and bounded burst attacks are
+provisional approximations; simultaneous volley geometry and damage do not reproduce the retail per-species tables.
 Do not describe this milestone as frame-perfect original Pokémon behavior.
 Host tests validate capture geometry, deterministic turns, rate differences,
 time penalties, Vortex/Dragnet and staggered attacks.
