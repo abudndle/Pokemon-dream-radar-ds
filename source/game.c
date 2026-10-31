@@ -77,6 +77,11 @@ void game_new(Game *g, uint32_t seed) {
     g->save.reserved[8]=ITEM_LAYOUT_MARKER;
     for(int i=0;i<MAX_ITEMS;i++)g->save.reserved[2+i]=(uint8_t)(i+1);
     g->replaced_slot=-1;
+    /* No reward or encounter exists at startup. A valid ID of zero is
+       Munna/item 0, not an appropriate unset sentinel. */
+    g->session_caught=-1;
+    g->session_item=-1;
+    g->session_species=-1;
     for (int i = 0; i < 3; i++) g->save.upgrades[i] = 1;
     g->save.cloud_count = 5;
     g->save.camera_enabled = 1;
