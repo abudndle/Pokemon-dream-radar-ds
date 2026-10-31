@@ -18,7 +18,11 @@ SPRITES = ('logo.spr', 'cloud.spr', 'cloud_yellow.spr', 'reticle.spr',
 def verify(root=ROOT):
     for name in BITMAPS:
         path = root / name
-        assert path.stat().st_size == 256 * 192 * 2, f'Bad bitmap: {name}'
+        data = path.read_bytes()
+        assert len(data) == 256 * 192 * 2, f'Bad bitmap: {name}'
+        # Full-screen backgrounds are opaque BGR555 framebuffers.
+        pixels = struct.unpack(f'<{256 * 192}H', data)
+        assert all(p & 0x8000 for p in pixels), f'Non-opaque background: {name}'
     for name in SPRITES:
         data = (root / name).read_bytes()
         assert len(data) >= 4, f'Missing sprite header: {name}'
