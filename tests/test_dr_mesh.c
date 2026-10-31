@@ -30,6 +30,25 @@ int main(void){
     assert(!dr_mesh_wireframe(&m,framebuffer,0,64,16,48,16,0xffff));
     assert(!dr_mesh_wireframe(&m,NULL,64,64,16,48,16,0xffff));
     assert(!dr_mesh_wireframe(NULL,framebuffer,64,64,16,48,16,0xffff));
+    /* Rotation is deterministic, depth-sensitive, and bounded to 16 steps. */
+    DrMeshVertex depth={0,0,4096};
+    assert(dr_mesh_project_vertex_yaw(&depth,128,96,32,0,&x,&y));
+    assert(x==128 && y==96);
+    assert(dr_mesh_project_vertex_yaw(&depth,128,96,32,4,&x,&y));
+    assert(x==160 && y==96);
+    assert(dr_mesh_project_vertex_yaw(&depth,128,96,32,8,&x,&y));
+    assert(x==128 && y==96);
+    assert(dr_mesh_project_vertex_yaw(&depth,128,96,32,12,&x,&y));
+    assert(x==96 && y==96);
+    assert(!dr_mesh_project_vertex_yaw(&depth,128,96,32,16,&x,&y));
+    assert(!dr_mesh_project_vertex_yaw(NULL,128,96,32,0,&x,&y));
+    assert(!dr_mesh_project_vertex_yaw(&depth,128,96,32,0,NULL,&y));
+    uint16_t rotated[64*64]={0};
+    m.vertex[2].z=4096;
+    assert(dr_mesh_wireframe_yaw(&m,rotated,64,64,16,48,16,0xffff,4));
+    assert(rotated[32*64+32]==0xffff);
+    assert(rotated[40*64+24]==0xffff);
+    assert(!dr_mesh_wireframe_yaw(&m,rotated,64,64,16,48,16,0xffff,16));
     dr_mesh_free(&m);
     assert(!m.vertex && !m.triangle);
     unsigned char bad[sizeof triangle];
