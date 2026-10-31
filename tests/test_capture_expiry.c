@@ -32,6 +32,19 @@ int main(void) {
     assert(g.screen==STATE_RESULTS && g.session_caught==-1);
     game_fire(&g);
     assert(g.save.caught_count==count);
+    /* Unknown encounter types must never be treated as a Pokemon reward. */
+    game_new(&g,30);
+    g.screen=STATE_SPHERE;
+    g.capture_timeout=100;
+    g.session_type=2;
+    g.session_species=4;
+    game_capture(&g);
+    assert(g.screen==STATE_SPHERE);
+    assert(g.save.pending_count==0 && g.save.caught_count==0);
+    g.session_type=-1;
+    game_capture(&g);
+    assert(g.screen==STATE_SPHERE);
+    assert(g.save.pending_count==0 && g.save.caught_count==0);
     /* Corrupt negative timeouts must also resolve, not trap a capture. */
     game_new(&g,29);
     g.screen=STATE_SPHERE;
