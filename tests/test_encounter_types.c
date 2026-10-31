@@ -28,6 +28,7 @@ int main(void) {
         game_new(&g,seed);
         g.save.total_orbs=4000;
         g.save.orbs=4000;
+        g.save.story_phase=1; /* Dowsing unlocks after the first Eureka stage. */
         trigger(&g,EXT_DOWSING);
         assert(g.session_type==1);
     }
