@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <errno.h>
 
 int dr_lab_count(int dsi_mode){return dsi_mode?7:6;}
 int dr_lab_action(int dsi_mode,int selection){
@@ -32,6 +33,8 @@ int dr_storage_ready(const char *root){
     if(snprintf(probe,sizeof probe,"%s/.write_test.tmp",dir)>=(int)sizeof probe)return 0;
     /* Never overwrite a pre-existing file, even one with this internal name. */
     if(stat(probe,&st)==0)return 0;
+    /* EACCES and other lookup failures are not proof that the name is free. */
+    if(errno!=ENOENT)return 0;
     /* Exclusive creation prevents replacing a file created after the stat check. */
     int fd=open(probe,O_WRONLY|O_CREAT|O_EXCL,0600);
     if(fd<0)return 0;
