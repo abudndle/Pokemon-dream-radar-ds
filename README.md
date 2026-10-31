@@ -1,3 +1,7 @@
+## Software mesh wireframe milestone
+
+`dr_mesh_wireframe()` draws decoded `DRM1` triangle edges into a caller-owned, 16-bit RGB555 pixel buffer with viewport checks. Its portable Bresenham routine clips out-of-range pixels, and host regression tests exercise a sample triangle. This is a **CPU-side wireframe renderer** only: encounter integration, hidden-surface handling, textured polygons, original animation playback, and a verified DS ROM build remain unfinished. No original model binaries are included.
+
 ## Q12 mesh projection milestone
 
 The portable `dr_mesh_project_vertex()` function now converts decoded signed-Q12 XYZ mesh coordinates into orthographic DS screen coordinates, using caller-supplied screen center and scale. It validates parameters and uses 64-bit multiplication before division. `tests/test_dr_mesh.c` covers known vertex locations and invalid arguments; the existing `make test-host` target includes this suite. This is **CPU-side projection only**: there is not yet a triangle rasterizer or hardware 3D renderer, and no verified original Pokémon model files are currently packaged.
