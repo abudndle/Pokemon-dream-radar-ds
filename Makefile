@@ -121,6 +121,7 @@ test-host:
 	./build/test_reference_layout
 	python3 tests/test_title_asset_geometry.py
 	python3 tests/test_original_ui_audit.py
+	python3 tests/test_pack_drt1.py
 	python3 tests/test_original_model_inventory.py
 	python3 tests/test_extracted_obj_converter.py
 	python3 tests/test_stage_pokemon_models.py
