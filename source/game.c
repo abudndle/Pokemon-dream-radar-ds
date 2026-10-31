@@ -196,6 +196,7 @@ int game_extension_price(int ext) {
     return 0;
 }
 int game_extension_unlocked(Game *g, int ext) {
+    if (!g || ext<0 || ext>=EXT_COUNT) return 0;
     if (ext == EXT_BASIC) return 1;
     if (ext >= EXT_TORNADUS && ext <= EXT_LANDORUS) {
         const uint32_t thresholds[]={400,1500,3000};
