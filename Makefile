@@ -104,6 +104,7 @@ test-host:
 	python3 tests/test_original_model_inventory.py
 	python3 tests/test_extracted_obj_converter.py
 	python3 tests/test_stage_pokemon_models.py
+	python3 tests/test_ncch_carc_headers.py
 	python3 tests/test_original_pane_geometry.py
 	python3 tests/test_pane_retarget.py
 	python3 tests/test_pane_hit_test.py
