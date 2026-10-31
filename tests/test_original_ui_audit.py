@@ -2,6 +2,8 @@ import json
 import pathlib
 import sys
 import tempfile
+import struct
+import subprocess
 
 root=pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(root/"tools"))
@@ -15,6 +17,8 @@ assert report["bundled_layout_sources"]==1
 assert report["missing_layout_sources"]==21
 assert report["bundled_animation_sources"]==0
 assert report["invalid_layout_sources"]==[]
+assert report["snapshot_mismatches"]==[]
+assert report["verified_layout_sources"]==1
 assert report["unmatched_layout_sources"]==[]
 
 assert sum(x["source_bclyt"] for x in report["layouts"])==1
@@ -29,10 +33,53 @@ with tempfile.TemporaryDirectory() as d:
     corrupt=audit(snapshot,empty)
     assert corrupt["invalid_layout_sources"]==["damaged.bclyt"]
     assert corrupt["unmatched_layout_sources"]==["damaged.bclyt"]
-    # A valid CLYT magic + little-endian BOM must not be flagged as corrupt.
+    # Magic and BOM alone do not establish a structurally valid source.
     fake.write_bytes(b"CLYT\xff\xfe\x14\x00")
-    valid=audit(snapshot,empty)
-    assert valid["invalid_layout_sources"]==[]
+    assert audit(snapshot,empty)["invalid_layout_sources"]==["damaged.bclyt"]
+    source=next(sources.rglob("*.bclyt"))
+    data=source.read_bytes()
+    fake.unlink()
+    fixture=empty/source.name
+    fixture.write_bytes(data)
+    assert audit(snapshot,empty)["verified_layout_sources"]==1
+    from parse_original_bclyt import extract
+    pane_offset=extract(source)["panes"][0]["section_offset"]
+    # A structurally valid transform edit must be distinguished from corruption.
+    changed=bytearray(data)
+    struct.pack_into('<f',changed,pane_offset+36,1.0)
+    fixture.write_bytes(changed)
+    mismatch=audit(snapshot,empty)
+    assert mismatch["invalid_layout_sources"]==[]
+    assert mismatch["snapshot_mismatches"]==[source.name]
+    assert mismatch["verified_layout_sources"]==0
+    output=empty/"report.json"
+    result=subprocess.run([sys.executable,str(root/"tools/audit_original_ui.py"),
+                           str(snapshot),str(empty),str(output)],capture_output=True)
+    assert result.returncode!=0
+    assert json.loads(output.read_text())["snapshot_mismatches"]==[source.name]
+    # Reject truncation, appended data, inconsistent counts and invalid panes.
+    bad_cases=[data[:n] for n in (0,6,8,19,len(data)-1)]
+    bad_cases.append(data+b'garbage')
+    for offset,fmt,value in ((6,'H',0),(6,'H',65535),(12,'I',20),
+                             (16,'H',0),(pane_offset+4,'I',72),
+                             (pane_offset+36,'f',float('nan')),
+                             (pane_offset+36,'f',float('inf'))):
+        changed=bytearray(data)
+        struct.pack_into('<'+fmt,changed,offset,value)
+        bad_cases.append(changed)
+    # A trailing partial section cannot hide behind a corrected file size.
+    changed=bytearray(data+b'x')
+    struct.pack_into('<I',changed,12,len(changed))
+    bad_cases.append(changed)
+    for bad in bad_cases:
+        fixture.write_bytes(bad)
+        invalid=audit(snapshot,empty)
+        assert invalid["invalid_layout_sources"]==[source.name]
+        assert invalid["verified_layout_sources"]==0
+    fixture.write_bytes(data)
+    result=subprocess.run([sys.executable,str(root/"tools/audit_original_ui.py"),
+                           str(snapshot),str(empty),str(output)],capture_output=True)
+    assert result.returncode==0, result.stderr
 # The capture renderer must index the original extracted images by the
 # shipped NitroFS manifest, not invent missing models or reorder species.
 import re

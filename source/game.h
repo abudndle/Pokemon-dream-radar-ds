@@ -26,6 +26,7 @@ typedef enum { STATE_TITLE, STATE_INTRO, STATE_LAB, STATE_SHOP, STATE_EXTENSIONS
                STATE_TRANSFER, STATE_SETTINGS, STATE_SD_SAVES, STATE_DIALOGUE,
                STATE_REPLACE, STATE_STORAGE, STATE_TIPS, STATE_ALBUM, STATE_CREDITS, STATE_PLACEHOLDER } GameScreen;
 typedef enum { REPLACE_NONE, REPLACE_POKEMON, REPLACE_ITEM } ReplaceKind;
+typedef enum { SUPPORT_UNAVAILABLE, SUPPORT_EMPTY, SUPPORT_ACTIVE, SUPPORT_READY } SupportStatus;
 
 typedef struct {
     uint32_t magic, version;
@@ -72,13 +73,23 @@ void game_regen_clouds(Game *g, uint32_t now);
 void game_begin_search(Game *g, int extension);
 void game_fire(Game *g);
 int game_use_support(Game *g, int slot);
+/* Shared activation/HUD policy. Querying it never changes gameplay or saves. */
+SupportStatus game_support_status(const Game *g, int slot);
 void game_tick(Game *g);
 /* End active radar/capture session safely when Back is pressed. */
 int game_leave_search(Game *g);
+typedef enum { PURCHASE_INVALID, PURCHASE_READY, PURCHASE_MAX,
+               PURCHASE_FULL, PURCHASE_POOR } PurchaseStatus;
+/* Read-only quote; cost is zero for invalid or already-full purchases. */
+PurchaseStatus game_purchase_status(const Game *g,int kind,int idx,int *cost);
 int game_buy(Game *g, int kind, int idx);
 void game_capture(Game *g);
 /* Full queue: choose one occupied slot, or decline; never auto-overwrite. */
 int game_replace_pending(Game *g, int slot);
+/* UI decisions: selection changes disarm; two confirmations commit once. */
+int game_select_pending_replace(Game *g,int slot);
+typedef enum { REPLACE_REJECTED, REPLACE_ARMED, REPLACE_COMMITTED } ReplaceDecision;
+ReplaceDecision game_confirm_pending_replace(Game *g);
 int game_cancel_pending_replace(Game *g);
 int game_item_slot_kind(const Game *g, int slot);
 const char *game_item_name(int item);

@@ -6,15 +6,24 @@ import argparse, json, math, pathlib, struct
 KINDS={b'pan1',b'pic1',b'txt1',b'bnd1',b'prt1',b'wnd1'}
 def extract(path):
  b=path.read_bytes()
- if b[:4]!=b'CLYT' or b[4:6]!=b'\xff\xfe': raise ValueError(f'{path}: unsupported header/byte order')
- root=[]; stack=[]; last=None; offset=struct.unpack_from('<H',b,6)[0]; count=0
- while offset+8<=len(b):
+ if len(b)<20 or b[:4]!=b'CLYT' or b[4:6]!=b'\xff\xfe': raise ValueError(f'{path}: unsupported or truncated header/byte order')
+ header_size=struct.unpack_from('<H',b,6)[0]
+ file_size=struct.unpack_from('<I',b,12)[0]
+ section_count=struct.unpack_from('<H',b,16)[0]
+ if header_size<20 or header_size>len(b) or file_size!=len(b):
+  raise ValueError(f'{path}: invalid header or file size')
+ root=[]; stack=[]; last=None; offset=header_size; count=0
+ while offset<len(b):
+  if offset+8>len(b): raise ValueError(f'{path}: truncated section header at {offset}')
   tag=b[offset:offset+4]; size=struct.unpack_from('<I',b,offset+4)[0]
   if size<8 or offset+size>len(b): raise ValueError(f'{path}: invalid section at {offset}')
   count+=1
-  if tag in KINDS and size>=76:
+  if tag in KINDS:
+   if size<76: raise ValueError(f'{path}: truncated pane at {offset}')
    name=b[offset+12:offset+36].split(b'\0')[0].decode('utf-8','replace')
    values=struct.unpack_from('<10f',b,offset+36)
+   if not all(math.isfinite(v) for v in values):
+    raise ValueError(f'{path}: non-finite pane transform at {offset}')
    entry={'name':name,'type':tag.decode('ascii'),'section_offset':offset,'flags':b[offset+8], 'origin':b[offset+9], 'alpha':b[offset+10],
           'translation':list(values[0:3]),'rotation':list(values[3:6]),'scale':list(values[6:8]),'size':list(values[8:10]),'children':[]}
    # values has 10 floats in pan1 (36 through 76).
@@ -24,11 +33,14 @@ def extract(path):
   elif tag==b'pas1':
    if last is None:raise ValueError('orphan pas1')
    stack.append(last)
+   last=None
   elif tag==b'pae1':
    if not stack:raise ValueError('orphan pae1')
    stack.pop()
+   last=None
   offset+=size
  if stack:raise ValueError('unclosed pane hierarchy')
+ if count!=section_count:raise ValueError(f'{path}: section count mismatch')
  return {'file':str(path),'sections':count,'panes':root}
 def main():
  parser=argparse.ArgumentParser(); parser.add_argument('source');parser.add_argument('output');args=parser.parse_args()

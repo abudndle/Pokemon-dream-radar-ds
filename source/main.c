@@ -333,7 +333,6 @@ static void progress_bar(int x,int y,int w,int numerator,int denominator,u16 col
 }
 /* Reference screenshots: original English main menu and search touch-screen.
    Gameplay counters, selections, costs, and quantities are drawn live. */
-static const int upgrade_prices[5]={0,100,500,1000,1500};
 static const char *shop_names[6]={"Beam","Energy Pack","Visoscope",
                                   "Vortex Charge","Dragnet Charge","Energy Recharge"};
 static const char *shop_descriptions[6]={
@@ -344,7 +343,6 @@ static const char *shop_descriptions[6]={
 static void render_shop_top(void) {
     load_bg("development_top.raw",top,0x8844);
     const int rows_y[3]={2,65,128};
-    const int costs[3]={100,50,50};
     char text[70];
     for(int i=0;i<3;i++) {
         int y=rows_y[i],lev=game.save.upgrades[i];
@@ -372,10 +370,7 @@ static void render_shop_top(void) {
     if(chosen<0||chosen>=6)chosen=0;
     rect(top,7,27,242,30,0x8421);border(top,7,27,242,30,CYAN);
     print_wrapped(top,13,33,38,WHITE,shop_descriptions[chosen],2);
-    if(chosen<3) {
-        int lev=game.save.upgrades[chosen];
-        snprintf(text,sizeof text,lev>=5?"MAX":"NEXT %d",upgrade_prices[lev<5?lev:4]);
-    } else snprintf(text,sizeof text,"COST %d",costs[chosen-3]);
+    dr_shop_purchase_label(&game,chosen,text,sizeof text);
     rect(top,180,0,75,10,0x8000);
     print(top,186,1,GOLD,text);
 }
@@ -406,6 +401,13 @@ static void render_search_bottom(void) {
         snprintf(text,sizeof text,"%d",game.save.goods[i]);
         rect(bottom,sx-10,sy-7,20,14,0x8842);
         print(bottom,sx-7,sy-5,WHITE,text);
+        SupportStatus status=game_support_status(&game,i);
+        dr_support_label(&game,i,text,sizeof text);
+        /* Keep extracted artwork and touch geometry intact. Only the live
+           label/count overlay changes, including after the final charge. */
+        rect(bottom,sx-21,sy+9,42,10,0x8842);
+        print(bottom,sx-(int)strlen(text)*3,sy+10,
+              status==SUPPORT_ACTIVE?GOLD:status==SUPPORT_READY?WHITE:GRAY,text);
     }
     /* Original bottom-screen art only. D-pad aims and A fires; no new joystick. */
     /* Keep the original Back hotspot at the bottom right. */
@@ -628,15 +630,24 @@ static void render(void) {
         print(bottom,8,8,GOLD,tx);
         for(int i=0;i<6;i++) {
             char lbl[64];
+            int cost=0;
+            PurchaseStatus status=game_purchase_status(&game,i/3,i%3,&cost);
             if(i<3) {
                 int lev=game.save.upgrades[i];
-                snprintf(lbl,sizeof lbl,lev>=5?"%s - MAX":"%s Lv.%d -> %d",shop_names[i],lev,
-                         upgrade_prices[lev<5?lev:4]);
-            } else snprintf(lbl,sizeof lbl,"%s x%d  %d",shop_names[i],
-                            game.save.goods[i-3],i==3?100:50);
+                if(status==PURCHASE_MAX)snprintf(lbl,sizeof lbl,"%s - MAX",shop_names[i]);
+                else snprintf(lbl,sizeof lbl,"%s Lv.%d -> %d",shop_names[i],lev,cost);
+            } else if(status==PURCHASE_FULL)
+                snprintf(lbl,sizeof lbl,"%s x9 FULL",shop_names[i]);
+            else snprintf(lbl,sizeof lbl,"%s x%d  %d",shop_names[i],
+                          game.save.goods[i-3],cost);
             button(bottom,dr_shop_row_top(i),lbl,game.selection==i);
         }
-        print(bottom,12,177,CYAN,"A: PURCHASE    B: RETURN");
+        char quote[20];dr_shop_purchase_label(&game,game.selection,quote,sizeof quote);
+        snprintf(tx,sizeof tx,"%s ORBS   B: RETURN",quote);
+        if(!strncmp(quote,"BUY ",4))snprintf(tx,sizeof tx,"A: %s ORBS  B: RETURN",quote);
+        else if(!strcmp(quote,"MAX") || !strcmp(quote,"FULL") || !strcmp(quote,"INVALID"))
+            snprintf(tx,sizeof tx,"%s   B: RETURN",quote);
+        print(bottom,12,177,CYAN,tx);
         break; }
     case STATE_EXTENSIONS: {
         extension_ensure_selected();
@@ -677,9 +688,10 @@ static void render(void) {
                 draw_original_encounter_art();
             }
             progress_bar(9,4,181,game.capture_hp,240,GOLD);
-            char tx[32];snprintf(tx,sizeof tx,"%d",game.capture_timeout/60);
+            char tx[32];dr_capture_timer_label(&game,tx,sizeof tx);
             rect(top,199,2,55,18,0x8421);
-            print(top,213,7,WHITE,tx);
+            print(top,226-(int)strlen(tx)*3,7,
+                  game.capture_timeout<=10*60?PINK:WHITE,tx);
             if(running_dsi && game.camera_active && game.camera_ok)
                 draw_sprite(top,S_RETICLE,112,80);
         }
@@ -719,9 +731,9 @@ static void render(void) {
             snprintf(line,sizeof line,"NEW: %s",game_species_name(game.replace_value));
         else snprintf(line,sizeof line,"NEW: %s x1",game_item_name(game.replace_value));
         print_wrapped(top,10,43,37,GOLD,line,2);
-        print(top,10,78,WHITE,"Choose an occupied slot.");
-        print(top,10,93,WHITE,"It will be overwritten ONLY");
-        print(top,10,106,WHITE,"after you confirm twice.");
+        dr_replace_old_label(&game,line,sizeof line);
+        print_wrapped(top,10,78,37,CYAN,line,2);
+        print(top,10,106,WHITE,"A twice replaces; B keeps all.");
         if(game.replace_confirm) {
             rect(top,6,124,245,58,0x8844);
             border(top,6,124,245,58,PINK);
@@ -739,7 +751,7 @@ static void render(void) {
                     game_species_name(game.save.pending[i]));
             else snprintf(line,sizeof line,"%d. %s x%d",i+1,
                 game_item_name(game_item_slot_kind(&game,i)),game.save.pending_items[i]);
-            button(bottom,3+i*25,line,game.replace_selected==i);
+            button(bottom,dr_replace_row_top(i),line,game.replace_selected==i);
         }
         print(bottom,6,157,game.replace_confirm?PINK:CYAN,
               game.replace_confirm?"A: CONFIRM REPLACE":"A: CHOOSE SLOT");
@@ -833,7 +845,7 @@ static void render(void) {
                 if(kind>=0)name=game_item_name(kind);
             }
             if(name) {
-                char detail[43];snprintf(detail,sizeof detail,"SLOT %d: %.26s",game.selection+1,name);
+                char detail[48];snprintf(detail,sizeof detail,"SLOT %d: %.26s",game.selection+1,name);
                 print(top,10,164,CYAN,detail);
             }
         }
@@ -1133,7 +1145,8 @@ static void handle_key(int keys,int down,touchPosition *touch) {
         /* A fires at clouds or at revealed encounter targets. Touch is reserved
            for the original support-item and Back controls. */
         if((keys&KEY_A) && (game.save.frames_played%5==0))game_fire(&game);
-        if((down&KEY_TOUCH) && game.screen==STATE_SPHERE && touch->py>=58 && !back_touch) {
+        if((down&KEY_TOUCH) && (game.screen==STATE_RADAR || game.screen==STATE_SPHERE) &&
+           touch->py>=58 && !back_touch) {
             int best=dr_support_at(touch->px,touch->py);
             if(best>=0) game_use_support(&game,best);
         }
@@ -1186,22 +1199,16 @@ static void handle_key(int keys,int down,touchPosition *touch) {
             return;
         }
         if(down&KEY_UP) {
-            game.replace_selected=(game.replace_selected+5)%6;
-            game.replace_confirm=0;
+            game_select_pending_replace(&game,(game.replace_selected+5)%6);
         }
         if(down&KEY_DOWN) {
-            game.replace_selected=(game.replace_selected+1)%6;
-            game.replace_confirm=0;
+            game_select_pending_replace(&game,(game.replace_selected+1)%6);
         }
-        if((down&KEY_TOUCH) && touch->py>=3 && touch->py<153) {
-            int selected=(touch->py-3)/25;
-            if(selected!=game.replace_selected)game.replace_confirm=0;
-            game.replace_selected=selected;
-            if(game.replace_confirm)game_replace_pending(&game,game.replace_selected);
-            else game.replace_confirm=1;
+        int selected=(down&KEY_TOUCH)?dr_replace_hit(touch->px,touch->py):-1;
+        if(selected>=0) {
+            if(game_select_pending_replace(&game,selected))game_confirm_pending_replace(&game);
         } else if(down&KEY_A) {
-            if(game.replace_confirm)game_replace_pending(&game,game.replace_selected);
-            else game.replace_confirm=1;
+            game_confirm_pending_replace(&game);
         }
         return;
     }
