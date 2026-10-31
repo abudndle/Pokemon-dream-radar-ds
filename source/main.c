@@ -733,6 +733,16 @@ static void render(void) {
             }
             draw_hostile_projectile();
             progress_bar(9,4,181,game.capture_hp,240,GOLD);
+            /* One label for the profile now affecting speed, aim radius and
+               attack cadence. Exact 3DS per-species values remain unknown. */
+            static const char *const capture_classes[]={
+                "DRIFTING", "SWIFT", "ERRATIC", "LEGENDARY", "ITEM"
+            };
+            CaptureProfile profile=game_capture_profile(&game);
+            int which=(int)profile.type;
+            if(which<0 || which>=5)which=0;
+            rect(top,5,22,111,15,0x8421);
+            print(top,10,25,GOLD,capture_classes[which]);
             char tx[32];snprintf(tx,sizeof tx,"%d",game.capture_timeout/60);
             rect(top,199,2,55,18,0x8421);
             print(top,213,7,WHITE,tx);
