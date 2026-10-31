@@ -27,6 +27,7 @@ def convert(layout):
             "alpha": pane["alpha"],
             "rotation": pane["rotation"],
             "scale": pane["scale"],
+            "translation_z": pane["translation"][2],
             "translation_ds": [
                 round(pane["translation"][0]*scale_x, 4),
                 round(pane["translation"][1]*scale_y, 4)
@@ -39,6 +40,7 @@ def convert(layout):
         }
     return {
         "source": Path(layout["file"]).name,
+        "source_path": layout["file"],
         "source_size": [source_width, source_height],
         "target_size": [DS_WIDTH, DS_HEIGHT],
         "scale": [scale_x, scale_y],
