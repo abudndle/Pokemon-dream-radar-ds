@@ -48,6 +48,8 @@ test-host:
 	./build/test_cloud_animation
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c tests/test_gameplay_integration.c -o build/test_gameplay_integration
 	./build/test_gameplay_integration
+	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c tests/test_gameplay_save_roundtrip.c -o build/test_gameplay_save_roundtrip
+	./build/test_gameplay_save_roundtrip
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c tests/test_capture_expiry.c -o build/test_capture_expiry
 	./build/test_capture_expiry
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c tests/test_legendary_escape.c -o build/test_legendary_escape
