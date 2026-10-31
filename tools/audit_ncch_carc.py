@@ -28,6 +28,20 @@ def inspect_size_header(header, compressed_size, limit=64*1024*1024):
         return None
     return size
 
+def inspect_possible_table_header(header, archive_size):
+    """Candidate byte-4 tree/table size; this is NOT a verified codec."""
+    if len(header)<8 or header[0]!=0x40 or archive_size<8:
+        return None
+    count=header[4]
+    # Nintendo Huffman-style tables often use two bytes per entry. Record a
+    # bounded hypothesis only; archive payload format remains unidentified.
+    table_bytes=2*(count+1)
+    if 8+table_bytes>archive_size:
+        return None
+    return {"table_size_byte":count, "candidate_table_bytes":table_bytes,
+            "reserved_bytes_hex":header[5:8].hex(),
+            "payload_after_candidate_table":archive_size-8-table_bytes}
+
 def inspect(path):
     image=Path(path).read_bytes()
     romfs_start=struct.unpack_from("<I",image,0x1b0)[0]*512
@@ -45,7 +59,8 @@ def inspect(path):
                         "header16_hex":header.hex(),
                         "header_byte":header[0],
                         "compression":classify_header(header[0]),
-                        "lz40_candidate_unpacked_size":inspect_size_header(header,length)})
+                        "lz40_candidate_unpacked_size":inspect_size_header(header,length),
+                        "possible_table_header":inspect_possible_table_header(header,length)})
     return {"archive_count":len(results),
             "first_byte_counts":dict(sorted(Counter(f"0x{r['header_byte']:02x}" for r in results).items())),
             "archives":results}
