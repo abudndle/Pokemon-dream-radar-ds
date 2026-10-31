@@ -45,8 +45,8 @@ int main(void) {
     direct.save.checksum=0xBEEFu;
     assert(game_save(&direct,standalone));
     assert(direct.save.checksum==0xBEEFu);
-    Game loaded;game_new(&loaded,1);
-    assert(game_load(&loaded,standalone) && loaded.save.orbs==77);
+    Game direct_loaded;game_new(&direct_loaded,1);
+    assert(game_load(&direct_loaded,standalone) && direct_loaded.save.orbs==77);
     Game g;game_new(&g,1);
     g.save.orbs=123;
     assert(save_backend_write(&backend,&g));
