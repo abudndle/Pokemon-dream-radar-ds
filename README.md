@@ -1,3 +1,7 @@
+## Original 3D model source inventory (pre-conversion milestone)
+
+Run `python3 tools/inventory_original_models.py /path/to/your/private/extracted/models build/original_model_inventory.json` to inventory locally owned/extracted model candidates. The command records relative filenames, file sizes, SHA-256 hashes, and extensions without copying any original model bytes into the repository. It distinguishes **candidate files** from **converted or DS-verified models** (both remain zero until an actual conversion/rendering pipeline is implemented). The script accepts candidate extensions `.bcmdl`, `.bcres`, `.bch`, `.cmb`, and `.cgfx` but extension alone is not evidence of a valid model. The original models are not currently bundled in this repository. Run `python3 tests/test_original_model_inventory.py` or `make test-host` to check the inventory logic.
+
 ## Original asset encounter renderer — current milestone
 
 The in-game capture encounter now selects the **bundled original 3DS-extracted Pokémon thumbnails (26 species)** or **research-item artwork (23 items)** instead of always drawing the generic orb. Its target remains aligned with the game's sphere coordinates in both DSi camera and camera-free rendering. If an image cannot load, the orb remains a fallback. Asset order is taken from the packaged `nitrofs/pokemon_00.spr` … `pokemon_25.spr` and `item_00.spr` … `item_22.spr` names.
