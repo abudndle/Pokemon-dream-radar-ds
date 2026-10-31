@@ -491,6 +491,7 @@ int game_cancel_pending_replace(Game *g) {
     return 1;
 }
 void game_tick(Game *g) {
+    if (!g) return;
     /* The play-time counter is persisted as uint32_t; never wrap to zero. */
     if (g->save.frames_played<UINT32_MAX)g->save.frames_played++;
     if (g->messages>0)g->messages--;
