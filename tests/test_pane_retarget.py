@@ -28,6 +28,7 @@ with tempfile.TemporaryDirectory() as d:
             assert len(p["world_scale"])==2
             assert len(p["world_size_ds"])==2
             assert 0<=p["effective_alpha"]<=255
+            assert isinstance(p["hierarchy_visible"],bool)
             assert isinstance(p["flag_visible"],bool)
             assert not p["effective_visible"] or (p["flag_visible"] and p["visible_in_viewport"] and p["effective_alpha"]>0)
             assert 0<=p["viewport_coverage"]<=1
@@ -99,4 +100,16 @@ transparent["panes"][0]["flags"]=1
 transparent["panes"][0]["alpha"]=128
 transparent["panes"][0]["children"][0]["alpha"]=128
 assert convert(transparent)["panes"][0]["children"][0]["effective_alpha"]==64
+# An offscreen parent may contain a child placed back inside the viewport.
+offscreen=copy.deepcopy(synthetic)
+offscreen["panes"][0]["flags"]=1
+offscreen["panes"][0]["translation"]=[-500,0,0]
+offscreen["panes"][0]["rotation"]=[0,0,0]
+offscreen["panes"][0]["scale"]=[1,1]
+offscreen["panes"][0]["children"][0]["flags"]=1
+offscreen["panes"][0]["children"][0]["translation"]=[550,30,0]
+out=convert(offscreen)["panes"][0]
+assert not out["visible_in_viewport"]
+assert out["children"][0]["visible_in_viewport"]
+assert out["children"][0]["effective_visible"]
 print("PASS: 22 original UI pane hierarchies retargeted to DS viewport")
