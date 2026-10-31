@@ -1,3 +1,19 @@
+## Read-only decrypted NCCH / CARC archive audit
+
+For your **privately held decrypted** Dream Radar NCCH, inventory RomFS paths
+and archive headers without copying or publishing proprietary archive payloads:
+
+```sh
+python3 tools/inventory_ncch_romfs.py /private/game.ncch build/private_romfs_inventory.json
+python3 tools/audit_ncch_carc.py /private/game.ncch build/private_carc_headers.json
+```
+
+A real decrypted Dream Radar image showed **177 `.carc` files**, each with an
+initial byte `0x40`. This is a signature observation, **not** a verified
+decompression algorithm or proof of original 3D model/texture extraction.
+The second report labels these headers `unverified`. Do not commit game
+images, archive contents, or private reports to a public repository.
+
 ## Gameplay integration: Pokémon capture and full storage
 
 ## Batch conversion for user-provided Pokémon models
