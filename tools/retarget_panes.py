@@ -6,6 +6,7 @@ parent transforms, anchors, textures and BCLAN animations require separate work.
 """
 import argparse
 import json
+import math
 from pathlib import Path
 
 DS_WIDTH, DS_HEIGHT = 256, 192
@@ -15,10 +16,13 @@ def convert(layout):
     if not roots:
         raise ValueError("layout has no root panes")
     source_width, source_height = roots[0]["size"]
-    if source_width <= 0 or source_height <= 0:
+    if not all(math.isfinite(v) and v > 0 for v in (source_width, source_height)):
         raise ValueError("invalid root dimensions")
     scale_x, scale_y = DS_WIDTH/source_width, DS_HEIGHT/source_height
     def walk(pane):
+        values = (pane["translation"] + pane["rotation"] + pane["scale"] + pane["size"])
+        if not all(math.isfinite(v) for v in values):
+            raise ValueError(f'non-finite geometry in pane {pane["name"]}')
         return {
             "name": pane["name"],
             "type": pane["type"],
