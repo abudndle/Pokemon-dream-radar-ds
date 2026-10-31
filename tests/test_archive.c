@@ -47,6 +47,17 @@ int main(void) {
     char leftover[512];snprintf(leftover,sizeof leftover,"%s.tmp",badpath);
     assert(access(leftover,F_OK)!=0);
     assert(rmdir(badpath)==0);
+    /* Existing staging files belong to their creator and must not be
+       truncated or removed by our export routine. */
+    char existing[512];snprintf(existing,sizeof existing,"%s.tmp",filename);
+    FILE *guard=fopen(existing,"wb");assert(guard);
+    assert(fputs("KEEP-ME",guard)>=0);assert(fclose(guard)==0);
+    assert(!game_export(&blocked,filename));
+    guard=fopen(existing,"rb");assert(guard);
+    char preserved[16]={0};
+    assert(fread(preserved,1,7,guard)==7);fclose(guard);
+    assert(strcmp(preserved,"KEEP-ME")==0);
+    assert(unlink(existing)==0);
     /* Rejected paths also never authorize releasing the queue. */
     assert(!game_export(&blocked,"/not-real-parent/dr_export.txt"));
     assert(!game_release_archived_pending(&blocked));
