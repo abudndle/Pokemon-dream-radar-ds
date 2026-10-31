@@ -1,0 +1,36 @@
+#include "game.h"
+#include <assert.h>
+#include <stdio.h>
+
+static void trigger(Game *g,int ext) {
+    game_begin_search(g,ext);
+    assert(g->screen==STATE_RADAR);
+    g->aim_x=g->clouds[0].x;
+    g->aim_y=g->clouds[0].y;
+    game_fire(g);
+    assert(g->screen==STATE_SPHERE);
+}
+int main(void) {
+    Game g;
+    for(unsigned seed=1;seed<=128;seed++) {
+        game_new(&g,seed);
+        g.save.total_orbs=4000;
+        g.save.orbs=4000;
+        g.save.story_phase=3;
+        game_set_cart(&g,GAME_DIAMOND);
+        trigger(&g,EXT_DIALGA);
+        assert(g.session_type==0 && g.session_species==18);
+        game_new(&g,seed);
+        g.save.story_phase=3;
+        g.save.orbs=4000;
+        trigger(&g,EXT_SIM_TORNADUS);
+        assert(g.session_type==0 && g.session_species==15);
+        game_new(&g,seed);
+        g.save.total_orbs=4000;
+        g.save.orbs=4000;
+        trigger(&g,EXT_DOWSING);
+        assert(g.session_type==1);
+    }
+    puts("PASS: legendary, simulation, and dowsing encounter type policy");
+    return 0;
+}
