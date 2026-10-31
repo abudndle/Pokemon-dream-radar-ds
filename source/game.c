@@ -351,6 +351,10 @@ static void accept_pokemon(Game *g, int species) {
     g->session_caught=species;
 }
 static void conclude_capture(Game *g) {
+    /* Support effects are encounter-local, including on successful captures
+       and when full storage opens a replacement decision. */
+    g->freeze_frames=0;
+    g->slow_frames=0;
     g->save.searches++;
     g->requested_save=1;
     g->screen=STATE_RESULTS;
