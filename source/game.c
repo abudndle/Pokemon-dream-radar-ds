@@ -215,11 +215,14 @@ int game_extension_unlocked(Game *g, int ext) {
     return 0;
 }
 void game_secret_key(Game *g, int key) {
+    if (!g) return;
     // International secret codes; key values are DS KEY_* bitmasks supplied by caller.
     const int codes[3][8]={{6,5,7,4,3,9,8,0}, {6,7,5,4,2,9,8,0}, {9,8,2,3,4,5,2,3}};
     const int sizes[3]={7,7,8};
     for (int i=0;i<3;i++) {
         int j=g->cheat_progress[i];
+        /* Runtime progress is not saved; sanitize it before indexing a code. */
+        if (j<0 || j>=sizes[i]) j=0;
         if (key==codes[i][j]) j++;
         else j=(key==codes[i][0])?1:0;
         if (j==sizes[i]) {
