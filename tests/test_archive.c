@@ -14,6 +14,10 @@ int main(void) {
     g.save.pending[1]=22;  /* Lugia */
     g.save.legends_caught=(1<<0)|(1<<4);
     g.save.pending_items[2]=3;
+    g.save.pending_count=MAX_CAUGHT+1;
+    assert(!game_export(&g,"/tmp/dr-invalid-pending-count-archive.txt"));
+    assert(g.pending_export_signature==0);
+    g.save.pending_count=2;
     assert(!game_release_archived_pending(&g));
     assert(!game_export(&g,"/path-that-does-not-exist/export.txt"));
     assert(g.save.pending_count==2);
