@@ -376,7 +376,10 @@ void game_fire(Game *g) {
         }
         if(selected>=0) {
             Cloud *c=&g->clouds[selected];
-            c->alive=0;g->cloud_hit++;
+            c->alive=0;
+            /* Damaged runtime counters must not overflow on a successful hit. */
+            if(g->cloud_hit<0)g->cloud_hit=0;
+            if(g->cloud_hit<INT_MAX)g->cloud_hit++;
             if (c->kind && (g->ext_selection!=EXT_BASIC || (rnd(g)%3)==0)) {
                 start_sphere(g);return;
             }
