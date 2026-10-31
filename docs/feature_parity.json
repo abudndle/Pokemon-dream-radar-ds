@@ -96,9 +96,13 @@
     {
       "id": "sphere_projectiles",
       "feature": "Original sphere projectile/penalty attacks",
-      "status": "unimplemented",
-      "gap": "The original sphere's projectiles and hit-time penalties are not replicated.",
-      "evidence": []
+      "status": "partial",
+      "gap": "DS/DSi capture spheres now launch shootable/dodgeable energy balls that subtract a bounded 3-second penalty; attack patterns, per-species penalties and visuals are provisional and not retail-accurate.",
+      "evidence": [
+        "source/game.c",
+        "source/main.c",
+        "tests/test_sphere_projectiles.c"
+      ]
     },
     {
       "id": "three_equipment_upgrades",
