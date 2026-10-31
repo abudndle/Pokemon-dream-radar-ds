@@ -4,6 +4,8 @@
 #include <string.h>
 #include <stdio.h>
 #include <limits.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 static uint32_t rnd(Game *g) {
     uint32_t x = g->save.random_seed;
@@ -499,11 +501,12 @@ int game_export(Game *g, const char *path) {
     if (n > 480) return 0;
     char temporary[512];
     snprintf(temporary,sizeof temporary,"%s.tmp",path);
-    /* Never truncate an existing temporary file (possibly left by another
-       application or an interrupted export). */
-    FILE *f=fopen(temporary,"rb");
-    if(f) { fclose(f); return 0; }
-    f=fopen(temporary,"wb"); if (!f) return 0;
+    /* Create the staging file atomically: never overwrite an existing file,
+       including if one appears between checking and opening the path. */
+    int fd=open(temporary,O_WRONLY|O_CREAT|O_EXCL,0600);
+    if(fd<0)return 0;
+    FILE *f=fdopen(fd,"wb");
+    if(!f) { close(fd); remove(temporary); return 0; }
     int ok=1;
     if (fprintf(f,"DREAM_RADAR_DSI_PENDING_V1\nSource: unofficial demake\nTarget: Black 2 / White 2\n")<0) ok=0;
     if (fprintf(f,"WARNING: not compatible with Unova Link; do not inject into a cartridge save.\n")<0) ok=0;
