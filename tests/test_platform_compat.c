@@ -38,6 +38,11 @@ int main(void) {
     char root[256];snprintf(root,sizeof root,"%s/",dir);
     assert(dr_storage_ready(root));
     assert(dr_storage_ready(root));
+    /* Callers may pass an ordinary path without its trailing slash. */
+    assert(dr_storage_ready(dir));
+    char wrong_sibling[300];
+    snprintf(wrong_sibling,sizeof wrong_sibling,"%sDreamRadarDSi",dir);
+    assert(access(wrong_sibling,F_OK)!=0);
     char probe[300];snprintf(probe,sizeof probe,"%sDreamRadarDSi/.write_test.tmp",root);
     assert(access(probe,F_OK)!=0);
     assert(mkdir(probe,0700)==0);
