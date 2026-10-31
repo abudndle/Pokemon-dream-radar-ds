@@ -7,6 +7,7 @@
 
 static void item_capture(Game *g,int item) {
     g->screen=STATE_SPHERE;
+    g->capture_timeout=100; /* A captured item requires an active encounter. */
     g->session_type=1;
     g->session_item=item;
     g->session_caught=-1;
@@ -51,7 +52,13 @@ int main(void) {
     assert(game_item_slot_kind(&loaded,2)==7);
     /* A matching checksum is insufficient if item metadata isn't valid. */
     loaded.save.reserved[2+5]=RESEARCH_ITEM_TYPES+1;
-    assert(game_save(&loaded,path));
+    assert(!game_save(&loaded,path)); /* Invalid metadata cannot overwrite progress. */
+    /* Simulate externally corrupted but checksummed item metadata to check
+       that the loader independently rejects it. */
+    loaded.save.checksum=game_checksum(&loaded.save);
+    FILE *corrupt=fopen(path,"wb");assert(corrupt);
+    assert(fwrite(&loaded.save,1,sizeof loaded.save,corrupt)==sizeof loaded.save);
+    assert(fclose(corrupt)==0);
     assert(!game_load(&g,path));
     unlink(path);
 
