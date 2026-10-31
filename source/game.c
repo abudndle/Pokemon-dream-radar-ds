@@ -297,6 +297,7 @@ int game_use_support(Game *g, int slot) {
     return 1;
 }
 void game_fire(Game *g) {
+    if (!g) return;
     if (g->screen==STATE_RADAR) {
         /* When hit circles overlap, choose the closest cloud, not the
            lowest array index. This keeps stylus aiming deterministic. */
