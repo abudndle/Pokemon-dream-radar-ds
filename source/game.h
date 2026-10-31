@@ -26,6 +26,7 @@ typedef enum { STATE_TITLE, STATE_INTRO, STATE_LAB, STATE_SHOP, STATE_EXTENSIONS
                STATE_TRANSFER, STATE_SETTINGS, STATE_SD_SAVES, STATE_DIALOGUE,
                STATE_REPLACE, STATE_STORAGE, STATE_TIPS, STATE_ALBUM, STATE_CREDITS, STATE_PLACEHOLDER } GameScreen;
 typedef enum { REPLACE_NONE, REPLACE_POKEMON, REPLACE_ITEM } ReplaceKind;
+typedef enum { SUPPORT_UNAVAILABLE, SUPPORT_EMPTY, SUPPORT_ACTIVE, SUPPORT_READY } SupportStatus;
 
 typedef struct {
     uint32_t magic, version;
@@ -72,6 +73,8 @@ void game_regen_clouds(Game *g, uint32_t now);
 void game_begin_search(Game *g, int extension);
 void game_fire(Game *g);
 int game_use_support(Game *g, int slot);
+/* Shared activation/HUD policy. Querying it never changes gameplay or saves. */
+SupportStatus game_support_status(const Game *g, int slot);
 void game_tick(Game *g);
 /* End active radar/capture session safely when Back is pressed. */
 int game_leave_search(Game *g);
