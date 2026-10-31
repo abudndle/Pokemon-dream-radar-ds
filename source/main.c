@@ -259,7 +259,42 @@ static void render_search_bottom(void) {
     /* Original bottom-screen art only. D-pad aims and A fires; no new joystick. */
     /* Keep the original Back hotspot at the bottom right. */
 }
+/* DS-only camera-free virtual view using the existing fallback artwork. */
+#ifdef DR_DS_ONLY
+static void render_ds_search_sandbox(void) {
+    load_bg("game_top.raw",top,0x8844);
+    const int pan_x=(game.aim_x-128)/5;
+    const int pan_y=(game.aim_y-96)/5;
+    static u16 scene[PIXELS];
+    memcpy(scene,top,sizeof scene);
+    for(int y=0;y<SH;y++)for(int x=0;x<SW;x++) {
+        int sx=x+pan_x,sy=y+pan_y;
+        if(sx<0)sx=0;
+        if(sx>=SW)sx=SW-1;
+        if(sy<0)sy=0;
+        if(sy>=SH)sy=SH-1;
+        top[y*SW+x]=scene[sy*SW+sx];
+    }
+    for(int i=0;i<game.active_clouds;i++) {
+        const Cloud *c=&game.clouds[i];
+        if(!c->alive)continue;
+        const int sx=c->x-game.aim_x+128;
+        const int sy=c->y-game.aim_y+96;
+        if(sx>=-32 && sx<SW && sy>=-32 && sy<SH)
+            draw_sprite(top,S_CLOUD_WHITE,sx-16,sy-16);
+    }
+    draw_sprite(top,S_RETICLE,112,80);
+    char line[32];
+    snprintf(line,sizeof line,"CLOUDS %d/%d",dr_remaining_clouds(&game),game.active_clouds);
+    rect(top,2,2,121,17,0x8421);
+    print(top,6,6,WHITE,line);
+}
+#endif
 static void render_radar_top(void) {
+#ifdef DR_DS_ONLY
+    render_ds_search_sandbox();
+    return;
+#endif
     load_bg("radar_overview.raw",top,0x8844);
     char line[40];int white=0,pink=0;
     dr_radar_counts(&game,&white,&pink);
