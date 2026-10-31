@@ -45,7 +45,7 @@ int dr_photo_find(const char *folder,int from,int direction,int *slot_out) {
     return 0;
 }
 int dr_photo_read(const char *filename,uint16_t *dst,size_t count) {
-    if(!filename || !dst || count<DR_PHOTO_W*DR_PHOTO_H)return 0;
+    if(!filename || !*filename || !dst || count<DR_PHOTO_W*DR_PHOTO_H)return 0;
     FILE *f=fopen(filename,"rb");if(!f)return 0;
     unsigned char head[54];int ok=0;
     if(fread(head,1,sizeof head,f)!=sizeof head)goto done;
@@ -84,7 +84,7 @@ done:
     return ok;
 }
 int dr_photo_write(const char *filename,const uint16_t *src,size_t count) {
-    if(!filename || !src || count<DR_PHOTO_W*DR_PHOTO_H)return 0;
+    if(!filename || !*filename || !src || count<DR_PHOTO_W*DR_PHOTO_H)return 0;
     /* Exclusive creation avoids overwriting a photo if another writer
        creates the filename after the album slot scan. */
     int fd=open(filename,O_WRONLY|O_CREAT|O_EXCL,0600);
