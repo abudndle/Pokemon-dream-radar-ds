@@ -36,6 +36,16 @@ int main(void) {
     g.freeze_frames = 4;
     int x=g.sphere_x, y=g.sphere_y;
     for (int i=0;i<3;i++) { game_tick(&g); assert(g.sphere_x==x && g.sphere_y==y); }
+    /* Malformed sphere coordinates must never overflow the distance
+       calculation or award an accidental capture. */
+    game_new(&g,123);
+    g.screen=STATE_SPHERE;
+    g.capture_timeout=60;
+    g.sphere_x=2147483647;
+    g.sphere_y=(-2147483647-1);
+    g.capture_hp=0;
+    game_fire(&g);
+    assert(g.screen==STATE_SPHERE && g.capture_hp==0);
     puts("PASS: capture target remains within DS viewport; freeze suspends movement");
     return 0;
 }
