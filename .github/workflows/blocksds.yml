@@ -26,6 +26,15 @@ jobs:
           name: original-3ds-ui-layouts-ds-coordinates
           path: build/original_ui_ds_panes.json
           if-no-files-found: error
+      - name: Audit original 3DS UI source availability
+        run: |
+          python3 tools/audit_original_ui.py ui_mapping/original_pane_geometry.json ui_mapping/original_ui build/original_ui_asset_audit.json
+      - name: Upload original UI asset coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: original-3ds-ui-source-coverage
+          path: build/original_ui_asset_audit.json
+          if-no-files-found: error
       - name: Compile enhanced ROM with DS fallback
         run: |
           docker run --rm -v "$PWD:/workspace" -w /workspace \
