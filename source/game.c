@@ -544,7 +544,9 @@ int game_leave_search(Game *g) {
     /* Back exits without awarding an unfinished capture or item. */
     g->session_caught=-1;
     g->session_item=-1;
+    g->session_species=-1;
     g->session_type=0;
+    g->capture_hp=0;
     g->requested_save=1;
     return 1;
 }
@@ -580,6 +582,8 @@ void game_tick(Game *g) {
         if (g->capture_timeout<=0) {
             g->capture_timeout=0;
             g->screen=STATE_RESULTS;g->session_caught=-1;
+            g->session_item=-1;g->session_species=-1;g->session_type=0;
+            g->capture_hp=0;
             g->freeze_frames=0;g->slow_frames=0;
             if(g->save.searches<UINT32_MAX)g->save.searches++;
             g->requested_save=1;
