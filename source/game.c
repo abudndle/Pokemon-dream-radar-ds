@@ -484,7 +484,7 @@ void game_capture(Game *g) {
     msg(g,"Storage full: choose a slot to replace, or press B to keep it.");
 }
 int game_replace_pending(Game *g, int slot) {
-    if(g->screen!=STATE_REPLACE)return 0;
+    if(!g || g->screen!=STATE_REPLACE)return 0;
     if(g->replace_kind==REPLACE_POKEMON) {
         if(slot<0 || slot>=g->save.pending_count ||
            g->replace_value<0 || g->replace_value>25)return 0;
@@ -505,7 +505,7 @@ int game_replace_pending(Game *g, int slot) {
     return 1;
 }
 int game_cancel_pending_replace(Game *g) {
-    if(g->screen!=STATE_REPLACE || g->replace_kind==REPLACE_NONE)return 0;
+    if(!g || g->screen!=STATE_REPLACE || g->replace_kind==REPLACE_NONE)return 0;
     g->session_caught=-4;
     g->replaced_slot=-1;
     conclude_capture(g);
