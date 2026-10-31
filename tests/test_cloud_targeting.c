@@ -40,7 +40,7 @@ int main(void) {
         }
     }
     for(int i=g.active_clouds;i<MAX_CLOUDS;i++)
-        assert(!g.clouds[i].alive && g.clouds[i].x==0 && g.clouds[i].y==0);
+        assert(!g.clouds[i].alive && g.clouds[i].x==0 && g.clouds[i].y==0 && g.clouds[i].kind==0);
     puts("PASS: nearest overlapping cloud selected; search ends once");
     return 0;
 }
