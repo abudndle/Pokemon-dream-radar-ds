@@ -1,0 +1,15 @@
+POKEMON DREAM RADAR - BLOCKSDS WINDOWS
+
+1. Extract the ZIP with right click > Extract All.
+2. Open DreamRadar_Ready. Confirm Makefile is next to source and nitrofs.
+3. In File Explorer, click the address bar and copy the full folder path.
+4. In your BlocksDS/MSYS2 terminal type: cd "/c/Users/YOURNAME/Downloads/DreamRadar_Ready"
+   Replace YOURNAME and path with your actual folder path.
+   Alternative: drag the DreamRadar_Ready folder into a Git Bash-compatible terminal after typing cd and a space.
+5. Check: pwd ; ls Makefile
+6. Run: make PLATFORM=ds
+   For DSi: make PLATFORM=dsi
+
+If no Makefile is found, you are in the wrong directory.
+If BlocksDS SDK is missing, install and configure BlocksDS.
+This is source code, not a tested bootable NDS ROM.

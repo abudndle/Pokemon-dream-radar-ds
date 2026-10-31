@@ -1,0 +1,39 @@
+gcc -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c tests/test_logic.c -o build/test_logic
+./build/test_logic
+PASS: single active game, source replacement, IDs, legends, upgrades, save, export
+gcc -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c source/twilight_saves.c source/save_backend.c tests/test_twilight.c -o build/test_twilight
+./build/test_twilight
+PASS: numbered slots, single active game, read-only saves, ROM/save stale checks
+gcc -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c source/twilight_saves.c source/save_backend.c tests/test_recovery.c -o build/test_recovery
+./build/test_recovery
+PASS: backup auto-repair, late corruption, migration and strict save length
+gcc -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c tests/test_archive.c -o build/test_archive
+./build/test_archive
+PASS: text archive export/explicit release, stale-archive protection, durable secret unlock
+gcc -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c tests/test_storage_replace.c -o build/test_storage_replace
+./build/test_storage_replace
+PASS: full Pokemon/item replacement, cancellation, one-time legends, migration, archive safety
+gcc -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c tests/test_item_catalog.c -o build/test_item_catalog
+./build/test_item_catalog
+PASS: 23 ROM-localized item names, six-stack limits, replacement, v3 migration, exports
+gcc -std=gnu11 -O2 -Wall -Wextra -Werror -Isource tests/test_burnet_tips.c -o build/test_burnet_tips
+./build/test_burnet_tips
+PASS: 30 original Burnet talk messages, all safe for DS prototype font
+gcc -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/photo_album.c tests/test_photo_album.c -o build/test_photo_album
+./build/test_photo_album
+PASS: indexed SD photo album, no overwrites, BMP pixel roundtrip, corrupt/truncated rejects
+gcc -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/platform_compat.c tests/test_platform_compat.c -o build/test_platform_compat
+./build/test_platform_compat
+PASS: camera-free DS/DSi menu routing and DLDI/SD filesystem detection
+gcc -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c tests/test_original_limits.c -o build/test_original_limits
+./build/test_original_limits
+PASS: 5 upgrade levels, 10..30 clouds, 6 Pokemon and item stacks
+gcc -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/reference_layout.c source/game.c tests/test_reference_layout.c -o build/test_reference_layout
+./build/test_reference_layout
+PASS: screenshot-aligned support hitboxes, six-by-two archive tray and live radar counts
+python3 tests/test_nds_header.py
+PASS: NDS header/ARM/NitroFS range sanity tests
+python3 tools/verify_assets.py
+PASS: NitroFS asset sizes (11 backgrounds and 68 sprites)
+gcc -std=gnu11 -Wall -Wextra -Werror -fsyntax-only -Isource -Itests/host_nds source/main.c
+gcc -std=gnu11 -Wall -Wextra -Werror -DDR_DS_ONLY -fsyntax-only -Isource -Itests/host_nds source/main.c

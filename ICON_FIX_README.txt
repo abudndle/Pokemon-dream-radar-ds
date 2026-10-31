@@ -1,0 +1,1 @@
+Fixed DS ROM icon: 32x32 indexed PNG, 15 visible colors plus palette index 0 reserved for transparency. Replace icon.png in your BlocksDS project and run make clean; make PLATFORM=ds BLOCKSDS=/opt/wonderful/thirdparty/blocksds/core.

@@ -1,0 +1,12 @@
+Dream Radar BlocksDS icon compatibility fix
+
+Original icon had more than 16 colors; the Nintendo DS ROM banner icon accepts at most 16.
+icon.png is now 32x32, indexed PNG with 16 colors. Original full-color icon is preserved as icon_original_fullcolor.png.
+Default BlocksDS path has been adjusted for a standard Wonderful Toolchain installation.
+
+Open Wonderful Toolchain terminal, cd into this folder, run:
+make PLATFORM=ds
+Then optionally:
+make PLATFORM=dsi
+
+Compiler warning lines about unused variables and GNU-stack are not what caused the old build to fail. A successful ndstool step must be confirmed locally.
