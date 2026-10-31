@@ -258,7 +258,7 @@ static int choice_species(Game *g) {
 }
 static void start_sphere(Game *g) {
     g->screen=STATE_SPHERE;
-    g->capture_timeout= (g->save.story_phase==0 && g->save.searches==0) ? 9999 * 60 : (90+g->save.upgrades[1]*30)*60;
+    g->capture_timeout= (g->ext_selection==EXT_BASIC && g->save.story_phase==0 && g->save.searches==0) ? 9999 * 60 : (90+g->save.upgrades[1]*30)*60;
     g->sphere_x=105;g->sphere_y=90;
     g->sphere_vx=1+(rnd(g)%3);g->sphere_vy=1+(rnd(g)%2);
     g->capture_hp=0;
