@@ -11,8 +11,8 @@ The source-of-truth checklist is [`feature_parity.json`](feature_parity.json), c
 | Dream Cloud generation and shooting | partial | Cloud hit detection and recharge work; original distribution and pacing not fully matched. |
 | Aim/beam input and capture | partial | Stylus/D-pad/A inputs work; original gyroscopic aiming is absent. |
 | Dream Orb currency and purchases | host tested | Overflow-safe counters and shop pricing tested; exact color-dependent logic missing. |
-| Pink/green/orange/blue Dream Orb cycle | unimplemented | Original per-search color count and color-cycle UI are absent. |
-| Color-influenced next-search Pokémon encounter selection | unimplemented | Current selection uses provisional encounter pools, not original per-color weighting. |
+| Pink/green/orange/blue Dream Orb cycle | partial | The four unlockable colors cycle in the radar HUD; hits record one batch color. Flying individual Orbs and split-chain timing remain unfinished. |
+| Color-influenced next-search Pokémon encounter selection | partial | Dominant color persists between scans and filters the original 15 normal species by documented color affinity. Exact weighted encounter rates remain unverified. |
 | Timed sphere chase and beam capture | partial | Timed movement, aim, HP and result handling work; original attack patterns differ. |
 | Original sphere projectile/penalty attacks | unimplemented | The original sphere's projectiles and hit-time penalties are not replicated. |
 | Beam, Energy and Visoscope upgrades | host tested | Five levels and Dream Orb costs tested; original animation/effects not exact. |
