@@ -9,6 +9,8 @@ int dr_settings_count(int dsi_mode);
 int dr_settings_hit(int x,int y,int dsi_mode);
 int dr_settings_action(int dsi_mode,int selection);
 int dr_camera_allowed(int dsi_mode,int camera_enabled);
+/* Only an explicit camera-enable action clears a prior failure latch. */
+int dr_camera_retry_latch(int camera_enabled,int previous_failure);
 /* Fire once when L and R become jointly held, only in DSi mode. */
 int dr_photo_shortcut(int dsi_mode,int held,int down,int l_mask,int r_mask);
 const char *dr_storage_root(int dsi_mode);
