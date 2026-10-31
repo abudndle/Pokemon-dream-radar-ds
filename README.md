@@ -1,3 +1,7 @@
+## Q12 mesh projection milestone
+
+The portable `dr_mesh_project_vertex()` function now converts decoded signed-Q12 XYZ mesh coordinates into orthographic DS screen coordinates, using caller-supplied screen center and scale. It validates parameters and uses 64-bit multiplication before division. `tests/test_dr_mesh.c` covers known vertex locations and invalid arguments; the existing `make test-host` target includes this suite. This is **CPU-side projection only**: there is not yet a triangle rasterizer or hardware 3D renderer, and no verified original Pokémon model files are currently packaged.
+
 ## DRM1 mesh decoder milestone
 
 The project now includes `source/dr_mesh.c` and `source/dr_mesh.h`, a bounded C decoder for the `DRM1` intermediate mesh files written by `tools/convert_extracted_obj.py`. Its format is an 8-byte header (`DRM1`, 16-bit vertex count, 16-bit triangle count), then packed signed Q12 XYZ vertices and unsigned 16-bit triangle indices (six bytes each). The decoder rejects truncated/appended payloads, invalid indices, repeated vertices and zero-area geometry. Run `make test-host` to compile its host regression test.
