@@ -44,6 +44,8 @@ build-all:
 
 test-host:
 	@mkdir -p build
+	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c source/reference_layout.c tests/test_replacement_ui.c -o build/test_replacement_ui
+	./build/test_replacement_ui
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c source/reference_layout.c tests/test_shop_purchase.c -o build/test_shop_purchase
 	./build/test_shop_purchase
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/cloud_animation.c tests/test_cloud_animation.c -o build/test_cloud_animation

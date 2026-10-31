@@ -86,6 +86,10 @@ int game_buy(Game *g, int kind, int idx);
 void game_capture(Game *g);
 /* Full queue: choose one occupied slot, or decline; never auto-overwrite. */
 int game_replace_pending(Game *g, int slot);
+/* UI decisions: selection changes disarm; two confirmations commit once. */
+int game_select_pending_replace(Game *g,int slot);
+typedef enum { REPLACE_REJECTED, REPLACE_ARMED, REPLACE_COMMITTED } ReplaceDecision;
+ReplaceDecision game_confirm_pending_replace(Game *g);
 int game_cancel_pending_replace(Game *g);
 int game_item_slot_kind(const Game *g, int slot);
 const char *game_item_name(int item);

@@ -731,9 +731,9 @@ static void render(void) {
             snprintf(line,sizeof line,"NEW: %s",game_species_name(game.replace_value));
         else snprintf(line,sizeof line,"NEW: %s x1",game_item_name(game.replace_value));
         print_wrapped(top,10,43,37,GOLD,line,2);
-        print(top,10,78,WHITE,"Choose an occupied slot.");
-        print(top,10,93,WHITE,"It will be overwritten ONLY");
-        print(top,10,106,WHITE,"after you confirm twice.");
+        dr_replace_old_label(&game,line,sizeof line);
+        print_wrapped(top,10,78,37,CYAN,line,2);
+        print(top,10,106,WHITE,"A twice replaces; B keeps all.");
         if(game.replace_confirm) {
             rect(top,6,124,245,58,0x8844);
             border(top,6,124,245,58,PINK);
@@ -751,7 +751,7 @@ static void render(void) {
                     game_species_name(game.save.pending[i]));
             else snprintf(line,sizeof line,"%d. %s x%d",i+1,
                 game_item_name(game_item_slot_kind(&game,i)),game.save.pending_items[i]);
-            button(bottom,3+i*25,line,game.replace_selected==i);
+            button(bottom,dr_replace_row_top(i),line,game.replace_selected==i);
         }
         print(bottom,6,157,game.replace_confirm?PINK:CYAN,
               game.replace_confirm?"A: CONFIRM REPLACE":"A: CHOOSE SLOT");
@@ -845,7 +845,7 @@ static void render(void) {
                 if(kind>=0)name=game_item_name(kind);
             }
             if(name) {
-                char detail[43];snprintf(detail,sizeof detail,"SLOT %d: %.26s",game.selection+1,name);
+                char detail[48];snprintf(detail,sizeof detail,"SLOT %d: %.26s",game.selection+1,name);
                 print(top,10,164,CYAN,detail);
             }
         }
@@ -1199,22 +1199,16 @@ static void handle_key(int keys,int down,touchPosition *touch) {
             return;
         }
         if(down&KEY_UP) {
-            game.replace_selected=(game.replace_selected+5)%6;
-            game.replace_confirm=0;
+            game_select_pending_replace(&game,(game.replace_selected+5)%6);
         }
         if(down&KEY_DOWN) {
-            game.replace_selected=(game.replace_selected+1)%6;
-            game.replace_confirm=0;
+            game_select_pending_replace(&game,(game.replace_selected+1)%6);
         }
-        if((down&KEY_TOUCH) && touch->py>=3 && touch->py<153) {
-            int selected=(touch->py-3)/25;
-            if(selected!=game.replace_selected)game.replace_confirm=0;
-            game.replace_selected=selected;
-            if(game.replace_confirm)game_replace_pending(&game,game.replace_selected);
-            else game.replace_confirm=1;
+        int selected=(down&KEY_TOUCH)?dr_replace_hit(touch->px,touch->py):-1;
+        if(selected>=0) {
+            if(game_select_pending_replace(&game,selected))game_confirm_pending_replace(&game);
         } else if(down&KEY_A) {
-            if(game.replace_confirm)game_replace_pending(&game,game.replace_selected);
-            else game.replace_confirm=1;
+            game_confirm_pending_replace(&game);
         }
         return;
     }

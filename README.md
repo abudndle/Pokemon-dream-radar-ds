@@ -6,6 +6,15 @@ expire; tapping an unavailable control explains why. See
 `SUPPORT_GAMEPLAY_MILESTONE.md` for behavior and validation. The unified ROM
 build and container checks pass; emulator/hardware behavior remains unverified.
 
+## Full-storage review and confirmation
+
+The replacement prompt now previews the old selected Pokémon or item stack with
+the new reward. Selection changes disarm the first confirmation; two confirmations
+of the same slot commit once. Shared draw/touch row geometry ignores row gaps and
+margins. B/SELECT keeps existing storage. See
+`STORAGE_REPLACEMENT_MILESTONE.md` for scope and host coverage. Original assets and
+the private save format are unchanged; emulator/hardware behavior is unverified.
+
 ## Capture timing and original layout validation
 
 Overlapping Vortex and Dragnet charges now preserve Dragnet's remaining duration

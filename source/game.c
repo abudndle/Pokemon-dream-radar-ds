@@ -568,20 +568,45 @@ void game_capture(Game *g) {
     g->screen=STATE_REPLACE;
     msg(g,"Storage full: choose a slot to replace, or press B to keep it.");
 }
-int game_replace_pending(Game *g, int slot) {
+static int replacement_slot_valid(const Game *g,int slot) {
     if(!g || g->screen!=STATE_REPLACE)return 0;
     if(g->replace_kind==REPLACE_POKEMON) {
-        /* Both the selected slot and saved queue length must fit the actual
-           six-element array, even when runtime state is damaged. */
-        if(g->save.pending_count>MAX_CAUGHT ||
-           slot<0 || slot>=MAX_CAUGHT || slot>=g->save.pending_count ||
-           g->replace_value<0 || g->replace_value>25)return 0;
+        return g->save.pending_count<=MAX_CAUGHT &&
+               slot>=0 && slot<MAX_CAUGHT && slot<g->save.pending_count &&
+               g->replace_value>=0 && g->replace_value<=25;
+    }
+    if(g->replace_kind==REPLACE_ITEM)
+        return slot>=0 && slot<MAX_ITEMS && g->save.pending_items[slot] &&
+               g->replace_value>=0 && g->replace_value<RESEARCH_ITEM_TYPES;
+    return 0;
+}
+int game_select_pending_replace(Game *g,int slot) {
+    if(!replacement_slot_valid(g,slot))return 0;
+    if(slot!=g->replace_selected)g->replace_confirm=0;
+    g->replace_selected=slot;
+    return 1;
+}
+ReplaceDecision game_confirm_pending_replace(Game *g) {
+    if(!g || g->screen!=STATE_REPLACE)return REPLACE_REJECTED;
+    if(!replacement_slot_valid(g,g->replace_selected)) {
+        g->replace_confirm=0;
+        return REPLACE_REJECTED;
+    }
+    if(!g->replace_confirm) {
+        g->replace_confirm=1;
+        return REPLACE_ARMED;
+    }
+    return game_replace_pending(g,g->replace_selected)?REPLACE_COMMITTED:REPLACE_REJECTED;
+}
+int game_replace_pending(Game *g, int slot) {
+    /* Keep the low-level commit API for callers that already made a choice.
+       Interactive input uses the shared two-step decision functions above. */
+    if(!replacement_slot_valid(g,slot))return 0;
+    if(g->replace_kind==REPLACE_POKEMON) {
         invalidate_archive(g);
         g->save.pending[slot]=(uint8_t)g->replace_value;
         accept_pokemon(g,g->replace_value);
     } else if(g->replace_kind==REPLACE_ITEM) {
-        if(slot<0 || slot>=MAX_ITEMS || !g->save.pending_items[slot] ||
-           g->replace_value<0 || g->replace_value>=RESEARCH_ITEM_TYPES)return 0;
         invalidate_archive(g);
         g->save.reserved[2+slot]=(uint8_t)(g->replace_value+1);
         g->save.pending_items[slot]=1;

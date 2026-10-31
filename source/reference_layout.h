@@ -17,6 +17,9 @@ int dr_lab_hit(int x,int y,int count);
 int dr_shop_row_top(int index);
 int dr_shop_hit(int x, int y);
 void dr_shop_purchase_label(const Game *g,int row,char *text,size_t size);
+int dr_replace_row_top(int index);
+int dr_replace_hit(int x,int y);
+void dr_replace_old_label(const Game *g,char *text,size_t size);
 int dr_quad_hit(const int xy[8],int x,int y); /* Runtime convex touch area */
 /* Results feedback never promises a save unless the write completed. */
 const char *dr_research_save_status(int storage_ready,int save_pending);
