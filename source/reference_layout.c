@@ -53,8 +53,8 @@ void dr_radar_counts(const Game *g,int *white,int *pink) {
     int w=0,p=0;
     for(int i=0;i<g->active_clouds && i<MAX_CLOUDS;i++) {
         if(!g->clouds[i].alive)continue;
-        if(g->clouds[i].kind)w++;
-        else p++;
+        if(g->clouds[i].kind)p++;
+        else w++;
     }
     if(white)*white=w;
     if(pink)*pink=p;
