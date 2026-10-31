@@ -348,13 +348,36 @@ void game_secret_key(Game *g, int key) {
 /* Runtime-only orb entities. Shooting a cloud creates a cluster; each orb
  * requires a separate shot, cycles color, moves, and disappears after TTL.
  * This avoids granting currency simply for breaking a Dream Cloud. */
+/* A research search is one outing even if it contains several Pokémon
+ * encounters. Older callers expect the first result to count the outing;
+ * later results and the final cloud never increment it a second time. */
+static void count_search_once(Game *g) {
+    if(g->search_counted)return;
+    if(g->save.searches<UINT32_MAX)g->save.searches++;
+    g->search_counted=1;
+}
+static int radar_has_remaining(const Game *g) {
+    if(!g)return 0;
+    for(int i=0;i<g->active_clouds && i<MAX_CLOUDS;i++)
+        if(g->clouds[i].alive)return 1;
+    return game_active_dream_orbs(g)>0;
+}
+static void discard_radar_entities(Game *g) {
+    for(int i=0;i<MAX_CLOUDS;i++)g->clouds[i].alive=0;
+    for(int i=0;i<MAX_DREAM_ORBS;i++)g->dream_orbs[i].alive=0;
+    g->orb_chain_valid=0;
+    g->orb_group_collected=0;
+    g->orb_group_target=0;
+    g->radar_resume_pending=0;
+}
 static void complete_radar_if_empty(Game *g) {
     if(g->screen!=STATE_RADAR)return;
     for(int i=0;i<g->active_clouds && i<MAX_CLOUDS;i++)
         if(g->clouds[i].alive)return;
     if(game_active_dream_orbs(g))return;
     finish_orb_search(g);
-    if(g->save.searches<UINT32_MAX)g->save.searches++;
+    count_search_once(g);
+    g->radar_resume_pending=0;
     g->screen=STATE_RESULTS;
     g->requested_save=1;
 }
@@ -417,6 +440,10 @@ void game_begin_search(Game *g, int ext) {
     if (!g) return;
     /* Never restart an encounter or replace an unresolved storage choice. */
     if (g->screen==STATE_RADAR || g->screen==STATE_SPHERE || g->screen==STATE_REPLACE) return;
+    /* Direct API callers may start from an intermediate results screen.
+       Explicitly discard the old scan instead of silently reusing it. */
+    if(g->screen==STATE_RESULTS && g->radar_resume_pending)
+        game_finish_pending_radar(g);
     if (ext<0 || ext>=EXT_COUNT || !game_extension_unlocked(g,ext)) { msg(g,"This Extension is locked.");return; }
     /* All three cloud-based research modes need at least one cloud.
        Never charge a paid extension when there is nothing to scan. */
@@ -433,6 +460,8 @@ void game_begin_search(Game *g, int ext) {
     g->requested_save=1;
     g->ext_selection=ext;
     g->screen=STATE_RADAR;
+    g->search_counted=0;
+    g->radar_resume_pending=0;
     /* A new radar session must not retain the previous sphere timer. */
     g->capture_hp=0;g->capture_timeout=0;g->cloud_hit=0;
     g->projectile_active=0;g->projectile_enabled=0;
@@ -686,6 +715,9 @@ void game_fire(Game *g) {
             if(g->cloud_hit<0)g->cloud_hit=0;
             if(g->cloud_hit<INT_MAX)g->cloud_hit++;
             if (c->kind && (g->ext_selection!=EXT_BASIC || (rnd(g)%3)==0)) {
+                /* The spawned sphere is one encounter, not the end of the
+                   whole search. Remaining clouds/Orbs pause in memory. */
+                g->radar_resume_pending=radar_has_remaining(g);
                 start_sphere(g);return;
             }
             /* Pink clouds yield 3..5 depending on their animated size;
@@ -742,14 +774,19 @@ static void accept_pokemon(Game *g, int species) {
     g->session_caught=species;
 }
 static void conclude_capture(Game *g) {
-    finish_orb_search(g);
+    /* End only this encounter. Preserve clouds/Orbs and their color
+       tallies until the player finishes or explicitly abandons the scan. */
+    if(!g->radar_resume_pending || !radar_has_remaining(g)) {
+        g->radar_resume_pending=0;
+        finish_orb_search(g);
+    }
     g->projectile_active=0;
     g->projectile_enabled=0;
     /* Support effects are encounter-local, including on successful captures
        and when full storage opens a replacement decision. */
     g->freeze_frames=0;
     g->slow_frames=0;
-    if(g->save.searches<UINT32_MAX)g->save.searches++;
+    count_search_once(g);
     g->requested_save=1;
     g->screen=STATE_RESULTS;
     g->replace_kind=REPLACE_NONE;
@@ -858,12 +895,40 @@ int game_cancel_pending_replace(Game *g) {
     msg(g,"Replacement canceled; stored Pokemon and items kept.");
     return 1;
 }
+/* The results screen is a checkpoint: A continues this exact radar
+ * outing without paying again, rerolling clouds or resetting orb totals.
+ * B explicitly abandons the remainder and settles the previous color. */
+int game_resume_radar(Game *g) {
+    if(!g || g->screen!=STATE_RESULTS || !g->radar_resume_pending ||
+       !radar_has_remaining(g))return 0;
+    g->screen=STATE_RADAR;
+    g->radar_resume_pending=0;
+    g->session_caught=-1;
+    g->session_species=-1;
+    g->session_item=-1;
+    g->session_type=0;
+    g->capture_timeout=0;
+    g->capture_hp=0;
+    g->replaced_slot=-1;
+    g->projectile_active=0;
+    g->projectile_enabled=0;
+    return 1;
+}
+int game_finish_pending_radar(Game *g) {
+    if(!g || g->screen!=STATE_RESULTS || !g->radar_resume_pending)return 0;
+    finish_orb_search(g);
+    count_search_once(g);
+    discard_radar_entities(g);
+    g->requested_save=1;
+    return 1;
+}
 int game_leave_search(Game *g) {
     if(!g || (g->screen!=STATE_RADAR && g->screen!=STATE_SPHERE))return 0;
     finish_orb_search(g);
+    discard_radar_entities(g);
     g->projectile_active=0;
     g->projectile_enabled=0;
-    if(g->save.searches<UINT32_MAX)g->save.searches++;
+    count_search_once(g);
     g->screen=STATE_RESULTS;
     g->freeze_frames=0;
     g->slow_frames=0;
@@ -929,7 +994,10 @@ void game_tick(Game *g) {
             tick_projectile(g);
         if (g->capture_timeout>0) g->capture_timeout--;
         if (g->capture_timeout<=0) {
-            finish_orb_search(g);
+            if(!g->radar_resume_pending || !radar_has_remaining(g)) {
+                g->radar_resume_pending=0;
+                finish_orb_search(g);
+            }
             g->capture_timeout=0;
             g->projectile_active=0;
             g->projectile_enabled=0;
@@ -937,7 +1005,7 @@ void game_tick(Game *g) {
             g->session_item=-1;g->session_species=-1;g->session_type=0;
             g->capture_hp=0;
             g->freeze_frames=0;g->slow_frames=0;
-            if(g->save.searches<UINT32_MAX)g->save.searches++;
+            count_search_once(g);
             g->requested_save=1;
             msg(g,"The Pokemon escaped!");
         }
