@@ -92,22 +92,23 @@
       "id": "sphere_capture",
       "feature": "Timed sphere chase and beam capture",
       "status": "partial",
-      "gap": "Timed sphere targeting, projectiles, storage and per-encounter results are implemented. Multiple encounters within one radar scan now resume without replaying earned rewards or incrementing search count twice; original attack patterns and timing remain provisional.",
+      "gap": "DS/DSi capture spheres now use five bounded difficulty profiles selected from the encounter species/type and dedicated legendary Extensions, with different hit radii, speeds, periodic evasion turns, and displayed profile labels. Original per-species parameter tables, animation and emulator timing remain unverified.",
       "evidence": [
         "source/game.c",
+        "source/game.h",
         "source/main.c",
-        "tests/test_radar_resume.c",
-        "tests/test_sphere_projectiles.c"
+        "tests/test_capture_profiles.c",
+        "tests/test_radar_resume.c"
       ]
     },
     {
       "id": "sphere_projectiles",
       "feature": "Original sphere projectile/penalty attacks",
       "status": "partial",
-      "gap": "DS/DSi capture spheres now launch shootable/dodgeable energy balls that subtract a bounded 3-second penalty; attack patterns, per-species penalties and visuals are provisional and not retail-accurate.",
+      "gap": "Staggered one-to-three-shot volleys and bounded, class-specific time penalties now distinguish ordinary, item and legendary encounters. Original 3DS patterns can fire several shots simultaneously; this DS adaptation remains provisional.",
       "evidence": [
         "source/game.c",
-        "source/main.c",
+        "tests/test_capture_profiles.c",
         "tests/test_sphere_projectiles.c"
       ]
     },
