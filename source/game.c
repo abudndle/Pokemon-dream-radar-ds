@@ -328,6 +328,8 @@ void game_fire(Game *g) {
             }
         }
     } else if (g->screen==STATE_SPHERE) {
+        /* An expired encounter must not be captured between timer ticks. */
+        if(g->capture_timeout<=0)return;
         int dx=g->sphere_x-g->aim_x, dy=g->sphere_y-g->aim_y;
         if (dx*dx+dy*dy<22*22) {
             g->capture_hp += g->save.upgrades[0]*(g->freeze_frames ? 5 : 3);
