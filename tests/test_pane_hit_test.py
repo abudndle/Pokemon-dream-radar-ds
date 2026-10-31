@@ -25,6 +25,14 @@ transparent["effective_alpha"]=0
 assert not pane_hit(transparent,20,20)
 transparent["effective_alpha"]=255
 assert pane_hit(transparent,20,20)
+transparent["effective_alpha"]=256
+assert not pane_hit(transparent,20,20)
+transparent["effective_alpha"]=-1
+assert not pane_hit(transparent,20,20)
+transparent["effective_alpha"]=True
+assert not pane_hit(transparent,20,20)
+transparent["effective_alpha"]=128
+assert pane_hit(transparent,20,20)
 
 # Diamond's bounding rectangle contains a large region outside its quad.
 diamond=pane([[100,70],[130,100],[70,100],[100,130]])
