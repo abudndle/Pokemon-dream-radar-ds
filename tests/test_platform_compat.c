@@ -43,6 +43,14 @@ int main(void) {
     assert(mkdir(probe,0700)==0);
     assert(!dr_storage_ready(root)); /* Must not overwrite existing probe */
     assert(rmdir(probe)==0);
+    /* A pre-existing regular file must remain unchanged, not be truncated. */
+    FILE *sentinel=fopen(probe,"wb");assert(sentinel);
+    assert(fputs("keep",sentinel)>=0 && fclose(sentinel)==0);
+    assert(!dr_storage_ready(root));
+    char readback[8]={0};sentinel=fopen(probe,"rb");assert(sentinel);
+    assert(fread(readback,1,4,sentinel)==4 && fclose(sentinel)==0);
+    assert(strcmp(readback,"keep")==0);
+    assert(remove(probe)==0);
     char sub[300];snprintf(sub,sizeof sub,"%sDreamRadarDSi",root);
     assert(rmdir(sub)==0);assert(rmdir(dir)==0);
     puts("PASS: camera-free DS/DSi menu routing and DLDI/SD filesystem detection");
