@@ -283,11 +283,11 @@ static void start_sphere(Game *g) {
     g->capture_hp=0;
     /* Dedicated legendary and special encounters cannot randomly turn into
        an item. Only cloud-search modes roll the item encounter chance. */
-    int cloud_search=(g->ext_selection==EXT_BASIC ||
-                      g->ext_selection==EXT_RETRIEVAL ||
-                      g->ext_selection==EXT_DOWSING);
-    g->session_type = (g->ext_selection==EXT_DOWSING ||
-            (cloud_search && (rnd(g)%4)==0)) ? 1:0;
+    /* Retrieval and Dowsing are item-focused research; ordinary cloud
+       hunting retains the provisional one-in-four item encounter roll. */
+    g->session_type = (g->ext_selection==EXT_RETRIEVAL ||
+                       g->ext_selection==EXT_DOWSING ||
+                       (g->ext_selection==EXT_BASIC && (rnd(g)%4)==0)) ? 1:0;
     g->session_species=choice_species(g);
     /* Prototype drop selection: broaden item variety as story research progresses.
        The 23 labels are original; these drop probabilities are NOT extracted
