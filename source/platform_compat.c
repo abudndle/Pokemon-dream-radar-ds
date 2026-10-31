@@ -34,6 +34,9 @@ int dr_photo_shortcut(int dsi_mode,int held,int down,int l_mask,int r_mask){
 int dr_photo_capture_ready(int dsi_mode,int storage_ready,int camera_active,int camera_ok,int frame_count){
     return dsi_mode && storage_ready && camera_active && camera_ok && frame_count>0;
 }
+int dr_camera_next_frame_count(int frame_count){
+    return frame_count<0?1:frame_count<2147483647?frame_count+1:2147483647;
+}
 const char *dr_storage_root(int dsi_mode){return dsi_mode?"sd:/":"fat:/";}
 int dr_storage_ready(const char *root){
     if(!root || !*root)return 0;
