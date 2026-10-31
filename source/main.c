@@ -280,8 +280,8 @@ static void render_ds_search_sandbox(int show_clouds) {
         if(sx>=-32 && sx<SW && sy>=-32 && sy<SH)
             draw_sprite(top,c->kind ? S_CLOUD_PINK : S_CLOUD_WHITE,sx-16,sy-16);
     }
-    draw_sprite(top,S_RETICLE,112,80);
     if(show_clouds) {
+        draw_sprite(top,S_RETICLE,112,80);
         char line[32];
         snprintf(line,sizeof line,"CLOUDS %d/%d",dr_remaining_clouds(&game),game.active_clouds);
         rect(top,2,2,121,17,0x8421);
@@ -499,6 +499,8 @@ static void render(void) {
                 render_ds_search_sandbox(0);
                 draw_sprite(top,S_ORB,game.sphere_x-game.aim_x+128-29,
                             game.sphere_y-game.aim_y+96-29);
+                /* Draw sight after the orb so the target cannot hide the crosshair. */
+                draw_sprite(top,S_RETICLE,112,80);
             } else {
                 render_camera_background();
                 draw_sprite(top,S_ORB,game.sphere_x-29,game.sphere_y-29);
