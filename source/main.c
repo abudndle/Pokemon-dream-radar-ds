@@ -278,7 +278,7 @@ static void render_ds_search_sandbox(int show_clouds) {
         const int sx=c->x-game.aim_x+128;
         const int sy=c->y-game.aim_y+96;
         if(sx>=-32 && sx<SW && sy>=-32 && sy<SH)
-            draw_sprite(top,S_CLOUD_WHITE,sx-16,sy-16);
+            draw_sprite(top,c->kind ? S_CLOUD_PINK : S_CLOUD_WHITE,sx-16,sy-16);
     }
     draw_sprite(top,S_RETICLE,112,80);
     if(show_clouds) {
