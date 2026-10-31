@@ -33,6 +33,11 @@ int main(void) {
     assert(dr_camera_retry_latch(1,1)==0);
     assert(dr_camera_retry_latch(0,1)==1);
     assert(dr_camera_retry_latch(1,0)==0);
+    assert(dr_camera_next_frame_count(0)==1);
+    assert(dr_camera_next_frame_count(1)==2);
+    assert(dr_camera_next_frame_count(2147483646)==2147483647);
+    assert(dr_camera_next_frame_count(2147483647)==2147483647);
+    assert(dr_camera_next_frame_count(-1)==1);
     assert(dr_photo_capture_ready(1,1,1,1,1));
     assert(!dr_photo_capture_ready(0,1,1,1,1));
     assert(!dr_photo_capture_ready(1,0,1,1,1));
