@@ -64,6 +64,29 @@ int dr_mesh_project_vertex(const DrMeshVertex *v,int cx,int cy,int scale,int *x,
     return 1;
 }
 
+/* Q12 sin/cos table: 16 fixed yaw orientations around vertical Y.
+   Integer-only transforms avoid floating point/libm on DS ARM9. */
+static const int16_t mesh_cos_yaw[16]={
+    4096,3784,2896,1567,0,-1567,-2896,-3784,
+    -4096,-3784,-2896,-1567,0,1567,2896,3784
+};
+static const int16_t mesh_sin_yaw[16]={
+    0,1567,2896,3784,4096,3784,2896,1567,
+    0,-1567,-2896,-3784,-4096,-3784,-2896,-1567
+};
+int dr_mesh_project_vertex_yaw(const DrMeshVertex *v,int cx,int cy,int scale,
+                               unsigned yaw_step,int *x,int *y) {
+    if(!v || !x || !y || yaw_step>=16 ||
+       scale<1 || scale>256 || cx<0 || cx>255 || cy<0 || cy>191)return 0;
+    /* x' = x*cos(yaw) + z*sin(yaw), preserving all signed Q12
+       coordinates using 64-bit intermediates before dividing. */
+    int64_t rotated=(int64_t)v->x*mesh_cos_yaw[yaw_step]+
+                    (int64_t)v->z*mesh_sin_yaw[yaw_step];
+    *x=cx+(int)(rotated*scale/(4096LL*4096LL));
+    *y=cy-(int)((int64_t)v->y*scale/4096);
+    return 1;
+}
+
 /* Bounded integer Bresenham rasterizer; clipped through guarded writes. */
 static void mesh_line(uint16_t *pixels,int w,int h,int x0,int y0,int x1,int y1,uint16_t color) {
     int dx=abs(x1-x0),dy=abs(y1-y0);
@@ -77,23 +100,31 @@ static void mesh_line(uint16_t *pixels,int w,int h,int x0,int y0,int x1,int y1,u
         if(twice<dx){err+=dx;y0+=sy;}
     }
 }
-int dr_mesh_wireframe(const DrMesh *mesh,uint16_t *pixels,int width,int height,
-                      int cx,int cy,int scale,uint16_t color) {
+int dr_mesh_wireframe_yaw(const DrMesh *mesh,uint16_t *pixels,int width,int height,
+                          int cx,int cy,int scale,uint16_t color,unsigned yaw_step) {
     if(!mesh || !pixels || !mesh->vertex || !mesh->triangle ||
        !mesh->vertices || !mesh->triangles || mesh->triangles>DR_MESH_MAX_TRIANGLES ||
        width<1 || width>256 || height<1 || height>192 ||
-       cx<0 || cx>=width || cy<0 || cy>=height || scale<1 || scale>256)return 0;
+       cx<0 || cx>=width || cy<0 || cy>=height ||
+       scale<1 || scale>256 || yaw_step>=16)return 0;
     for(unsigned i=0;i<mesh->triangles;i++) {
         DrMeshTriangle t=mesh->triangle[i];
         if(t.a>=mesh->vertices || t.b>=mesh->vertices || t.c>=mesh->vertices)return 0;
         int x[3],y[3];
         unsigned indices[3]={t.a,t.b,t.c};
         for(int j=0;j<3;j++)
-            if(!dr_mesh_project_vertex(&mesh->vertex[indices[j]],cx,cy,scale,&x[j],&y[j]))return 0;
+            if(!dr_mesh_project_vertex_yaw(&mesh->vertex[indices[j]],cx,cy,scale,
+                                           yaw_step,&x[j],&y[j]))return 0;
         for(int j=0;j<3;j++) {
             int k=(j+1)%3;
             mesh_line(pixels,width,height,x[j],y[j],x[k],y[k],color);
         }
     }
     return 1;
+}
+
+/* Keep existing consumers byte-for-byte compatible at zero yaw. */
+int dr_mesh_wireframe(const DrMesh *mesh,uint16_t *pixels,int width,int height,
+                      int cx,int cy,int scale,uint16_t color) {
+    return dr_mesh_wireframe_yaw(mesh,pixels,width,height,cx,cy,scale,color,0);
 }
