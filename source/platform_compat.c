@@ -28,7 +28,11 @@ const char *dr_storage_root(int dsi_mode){return dsi_mode?"sd:/":"fat:/";}
 int dr_storage_ready(const char *root){
     if(!root || !*root)return 0;
     char dir[128],probe[160];struct stat st;
-    int dir_len=snprintf(dir,sizeof dir,"%sDreamRadarDSi",root);
+    size_t root_len=strlen(root);
+    /* Accept mounted roots (sd:/, fat:/) and paths without a trailing
+       separator; never accidentally create a sibling directory. */
+    const char *separator=(root[root_len-1]=='/')?"":"/";
+    int dir_len=snprintf(dir,sizeof dir,"%s%sDreamRadarDSi",root,separator);
     if(dir_len<0 || dir_len>=(int)sizeof dir)return 0;
     if(mkdir(dir,0777)!=0) {
         /* Only an existing directory is acceptable. Do not silently
