@@ -335,7 +335,8 @@ static void button(u16 *v,int y,const char *name,int selected) {
     print(v,19,y+8,WHITE,name);
 }
 static void coins(int y) {
-    char text[45];snprintf(text,sizeof text,"Dream Orbs: %lu",(unsigned long)game.save.orbs);
+    char text[45];snprintf(text,sizeof text,"Orbs: %lu  %s",
+        (unsigned long)game.save.orbs,game_orb_color_name(game_orb_color(&game)));
     print(top,11,y,GOLD,text);
 }
 static void top_title(const char *s) {rect(top,0,0,256,24,0x8844);print(top,10,8,WHITE,s);}
@@ -412,6 +413,16 @@ static void render_search_bottom(void) {
     rect(bottom,207,4,45,16,0x8000);
     snprintf(text,sizeof text,"%lu",(unsigned long)game.save.orbs);
     print(bottom,214,8,WHITE,text);
+    /* DS adaptation of the original orb-color counter and cycling orb.
+       Individual flying/orb-chain sprites still need implementation. */
+    if(game.screen==STATE_RADAR) {
+        char color_line[45];
+        snprintf(color_line,sizeof color_line,"LAST: %s  LIVE: %s",
+                 game_orb_color_name((OrbColor)game.search_orb_color),
+                 game_orb_color_name(game_orb_live_color(&game)));
+        rect(bottom,4,152,247,15,0x8000);
+        print(bottom,8,155,CYAN,color_line);
+    }
     /* Counters appear inside the three original support-item control hexagons. */
     for(int i=0;i<3;i++) {
         int sx,sy;dr_support_center(i,&sx,&sy);
@@ -705,6 +716,9 @@ static void render(void) {
         border(bottom,8,22,240,124,CYAN);
         char txt[90];snprintf(txt,sizeof txt,"Dream Orbs collected: %d",game.session_orbs);
         print(bottom,16,38,WHITE,txt);
+        snprintf(txt,sizeof txt,"Next search: %s orbs",
+                 game_orb_color_name(game_orb_color(&game)));
+        print(bottom,16,53,CYAN,txt);
         if(game.session_caught>=0) {
             snprintf(txt,sizeof txt,"Caught: %s",game_species_name(game.session_caught));
             print(bottom,16,68,GOLD,txt);
