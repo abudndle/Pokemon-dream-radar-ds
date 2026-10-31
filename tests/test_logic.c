@@ -24,6 +24,13 @@ int main(void) {
     assert(!game_buy(&g,0,0) && g.save.orbs==1000);
     g.save.upgrades[0]=1;
     g.save.orbs=0;
+    g.save.goods[1]=255;
+    g.save.orbs=1000;
+    assert(!game_buy(&g,1,1) && g.save.orbs==1000 && g.save.goods[1]==255);
+    g.save.goods[1]=9;
+    assert(!game_buy(&g,1,1) && g.save.orbs==1000);
+    g.save.goods[1]=0;
+    g.save.orbs=0;
 
     assert(game_identify_cart("ADAE")==GAME_DIAMOND);
     assert(game_identify_cart("APAJ")==GAME_PEARL);
