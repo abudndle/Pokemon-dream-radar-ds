@@ -9,6 +9,8 @@ void dr_transfer_slot_rect(int index,int *x,int *y,int *w,int *h);
 int dr_transfer_slot_at(int x, int y); /* Pokemon 0..5, items 6..11, -1=none */
 /* Shared draw / touch geometry for the 6-row Development Lab shop.
    These are DS adaptation values; not yet decoded from original .bclyt. */
+int dr_lab_row_top(int index);
+int dr_lab_hit(int x,int y,int count);
 int dr_shop_row_top(int index);
 int dr_shop_hit(int x, int y);
 int dr_remaining_clouds(const Game *g);
