@@ -15,6 +15,17 @@ int main(void) {
     g.requested_save=0;
     game_regen_clouds(&g,1001);
     assert(!g.requested_save);
+    /* Verify the timer survives a genuine private save/load round trip. */
+    const char *path="/tmp/dream_radar_cloud_recharge_test.sav";
+    assert(game_save(&g,path));
+    Game restored;
+    game_new(&restored,99);
+    assert(game_load(&restored,path));
+    assert(restored.save.last_cloud_time==1000);
+    assert(restored.save.cloud_count==g.save.cloud_count);
+    game_regen_clouds(&restored,1300);
+    assert(restored.save.cloud_count==g.save.cloud_count+1);
+    assert(remove(path)==0);
     g.save.cloud_count=0;
     g.save.last_cloud_time=1000;
     game_regen_clouds(&g,1299);
