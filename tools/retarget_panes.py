@@ -75,6 +75,7 @@ def convert(layout):
             "viewport_coverage": coverage,
             "visible_in_viewport": visible,
             "clipped_bounds_ds": clipped,
+            "world_corners_ds": [[round(px*scale_x,4),round(py*scale_y,4)] for px,py in corners],
             "world_bounds_ds": bounds,
             "world_translation_ds": [round(x*scale_x,4),round(y*scale_y,4)],
             "world_rotation_z": round(z_angle,4),
