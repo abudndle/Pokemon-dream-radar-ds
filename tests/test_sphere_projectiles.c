@@ -14,7 +14,7 @@ static void begin(Game *g) {
     game_fire(g);
     assert(g->screen==STATE_SPHERE);
     assert(g->projectile_enabled && !g->projectile_active);
-    assert(g->projectile_cooldown==90);
+    assert(g->projectile_cooldown==game_capture_profile(g).attack_interval);
 }
 
 int main(void) {
