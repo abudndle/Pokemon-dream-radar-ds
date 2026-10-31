@@ -68,6 +68,7 @@ int save_backend_load(SaveBackend *backend,Game *g) {
     return 0;
 }
 int save_backend_write(SaveBackend *backend,Game *g) {
+    if(!backend || !g || !backend->active[0])return 0;
     char temp[TW_MAX_PATH],bak[TW_MAX_PATH];
     size_t len=strlen(backend->active);
     if(len+sizeof(".tmp")>sizeof temp || len+sizeof(".bak")>sizeof bak)return 0;
