@@ -5,7 +5,7 @@
 #include <nds.h>
 #ifndef DR_DS_ONLY
 #include <nds/arm9/camera.h>
-#include <nds/arm9/ndma.h>
+#include <nds/ndma.h>
 #endif
 #include <fat.h>
 #include <filesystem.h>
