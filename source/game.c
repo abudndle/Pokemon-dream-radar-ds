@@ -618,6 +618,7 @@ int game_export(Game *g, const char *path) {
        cannot destroy the previous complete archive. */
     if (!g || !path || !*path) return 0;
     g->pending_export_signature=0;
+    if(g->save.pending_count>MAX_CAUGHT)return 0;
     size_t n=strlen(path);
     if (n > 480) return 0;
     char temporary[512];
