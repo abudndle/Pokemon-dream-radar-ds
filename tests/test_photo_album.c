@@ -18,6 +18,10 @@ int main(void) {
     assert(!dr_photo_save_new("",&untouched,src,DR_PHOTO_W*DR_PHOTO_H));
     assert(!dr_photo_save_new(dir,&untouched,src,0));
     assert(untouched==7);
+    /* A non-existent album folder is an I/O error, not an empty slot. */
+    int missing_next=4;
+    assert(!dr_photo_save_new("/tmp/dr-no-such-album-directory-922",&missing_next,src,DR_PHOTO_W*DR_PHOTO_H));
+    assert(missing_next==4);
     int next=0, found=-1;
     assert(!dr_photo_find("",-1,1,&found));
     assert(!dr_photo_find(dir,-1,1,&found));
