@@ -131,6 +131,21 @@ int main(void) {
     Game other;game_new(&other,0xabcd);
     assert(game_load(&other,"/tmp/dream_radar_logic_test.sav"));
     assert(other.save.legends_caught==g.save.legends_caught);
+    /* Loading a legacy layout migrates its item metadata and requests a
+       new private save only once the migrated state is installed. */
+    SaveData legacy=g.save;
+    legacy.reserved[8]=0;
+    legacy.checksum=game_checksum(&legacy);
+    FILE *legacy_file=fopen("/tmp/dream_radar_legacy_test.sav","wb");
+    assert(legacy_file);
+    assert(fwrite(&legacy,1,sizeof legacy,legacy_file)==sizeof legacy);
+    assert(fclose(legacy_file)==0);
+    Game migrated;game_new(&migrated,0x5555);
+    migrated.requested_save=0;
+    assert(game_load(&migrated,"/tmp/dream_radar_legacy_test.sav"));
+    assert(migrated.save.reserved[8]==ITEM_LAYOUT_MARKER);
+    assert(migrated.requested_save==1);
+    remove("/tmp/dream_radar_legacy_test.sav");
     other.save.magic=0;
     assert(other.save.checksum != game_checksum(&other.save));
     assert(game_export(&g,"/tmp/dream_radar_logic_export.txt"));
