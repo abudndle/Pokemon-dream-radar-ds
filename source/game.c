@@ -103,16 +103,18 @@ int game_load(Game *g, const char *file) {
     for (int i=0;i<MAX_CAUGHT;i++) if (i<s.pending_count && s.pending[i]>25) return 0;
     /* Older v3 homebrew saves indexed item stacks by item ID. Reconstruct
        type metadata in unused bytes without changing save size/version. */
+    int migrated_item_layout=0;
     if(s.reserved[8]!=ITEM_LAYOUT_MARKER) {
+        migrated_item_layout=1;
         s.reserved[8]=ITEM_LAYOUT_MARKER;
         for(int i=0;i<MAX_ITEMS;i++)s.reserved[2+i]=(uint8_t)(i+1);
-        g->requested_save=1;
     } else {
         for(int i=0;i<MAX_ITEMS;i++) {
             if(s.reserved[2+i]<1 || s.reserved[2+i]>RESEARCH_ITEM_TYPES)return 0;
         }
     }
     g->save = s;
+    if(migrated_item_layout)g->requested_save=1;
     /* The three secret research extensions persist in unused reserved bytes,
        preserving version 3 save compatibility with previous milestone builds. */
     g->special_unlocked = s.reserved[1];
