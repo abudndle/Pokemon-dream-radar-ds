@@ -977,7 +977,7 @@ static void handle_key(int keys,int down,touchPosition *touch) {
             else {snprintf(game.message,sizeof game.message,"Camera photo unavailable.");game.messages=120;}
         }
         if((down&KEY_B) || ((down&KEY_TOUCH) && touch->px>=188 && touch->py>=174)){
-            game.save.searches++;game.requested_save=1;switch_screen(STATE_RESULTS);
+            game_leave_search(&game);
         }
         return;
     }
