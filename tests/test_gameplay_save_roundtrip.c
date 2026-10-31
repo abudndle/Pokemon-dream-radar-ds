@@ -40,6 +40,21 @@ int main(void) {
     assert(game_item_slot_kind(&loaded,0)==7);
     assert(loaded.save.searches==searches);
     assert(loaded.save.reserved[8]==ITEM_LAYOUT_MARKER);
+    /* Corrupt the stored Pokémon ID without updating its checksum.
+       A second load must reject it and leave a fresh game unchanged. */
+    FILE *corrupt=fopen(path,"r+b");
+    assert(corrupt);
+    assert(fseek(corrupt,(long)offsetof(SaveData,pending),SEEK_SET)==0);
+    int old=fgetc(corrupt);
+    assert(old!=EOF);
+    assert(fseek(corrupt,-1L,SEEK_CUR)==0);
+    assert(fputc(old ^ 1,corrupt)!=EOF);
+    assert(fclose(corrupt)==0);
+    game_new(&loaded,24680);
+    assert(!game_load(&loaded,path));
+    assert(loaded.save.pending_count==0);
+    assert(loaded.save.caught_count==0);
+    assert(loaded.save.story_phase==0);
     assert(unlink(path)==0);
     puts("PASS: captured Pokémon, research items and progression survive save reload");
     return 0;
