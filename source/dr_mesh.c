@@ -125,6 +125,17 @@ int dr_mesh_project_vertex_yaw(const DrMeshVertex *v,int cx,int cy,int scale,
     return 1;
 }
 
+/* Depth is rotated alongside X to match the orthographic yaw projection.
+ * Positive Z faces the viewer. The Q12 result fits signed 32 bits even
+ * for extreme signed-16-bit DRM1 vertices. */
+int dr_mesh_depth_vertex_yaw(const DrMeshVertex *v,unsigned yaw_step,int *z) {
+    if(!v || !z || yaw_step>=16)return 0;
+    int64_t rotated=(int64_t)v->z*mesh_cos_yaw[yaw_step]-
+                    (int64_t)v->x*mesh_sin_yaw[yaw_step];
+    *z=(int)(rotated/4096);
+    return 1;
+}
+
 /* Clip projected lines to the DS viewport before rasterizing. Extreme Q12
  * vertices can otherwise require millions of invisible Bresenham steps. */
 static unsigned mesh_outcode(int x,int y,int w,int h) {

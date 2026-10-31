@@ -300,12 +300,13 @@
       "id": "original_3d_models",
       "feature": "Original Pokémon 3D geometry and animations",
       "status": "partial",
-      "gap": "Optional DRM1 models render as solid triangles or with user-converted DRT1 UV/RGB555 sidecars; authentic original rigs, materials and animation remain absent.",
+      "gap": "Optional DRM1 models render as solid triangles or with user-converted DRT1 UV/RGB555 sidecars and a 16-bit depth buffer; original rigs, materials and animation remain absent.",
       "evidence": [
         "source/dr_mesh.c",
         "source/dr_texture.c",
         "docs/DRT1_TEXTURES.md",
         "tests/test_mesh_texture.c",
+        "tests/test_mesh_depth.c",
         "source/main.c"
       ]
     },

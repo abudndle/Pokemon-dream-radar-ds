@@ -1,6 +1,6 @@
 # Optional DRT1 texture sidecars (DS model-preview milestone)
 
-The port can draw user-converted **DRM1** Pokémon meshes with small, opaque RGB555 textures. This is an initial CPU-rendered preview, **not** an original 3DS model/texture importer, faithful material renderer, depth buffer, or skeletal animation implementation. No Nintendo 3DS models or textures are distributed in the public repository.
+The port can draw user-converted **DRM1** Pokémon meshes with small, opaque RGB555 textures. This is an initial CPU-rendered preview with a 16-bit software depth buffer, **not** an original 3DS model/texture importer, faithful material renderer, or skeletal animation implementation. No Nintendo 3DS models or textures are distributed in the public repository.
 
 ## File placement
 
@@ -44,7 +44,8 @@ For example, for a three-vertex triangle UV JSON can be `[[0,0],[4096,0],[0,4096
 ## Current limitations
 
 - Small opaque textures only (maximum 64×64, no alpha transparency).
-- Affine UV mapping, painter-order triangles, no Z-buffer or lighting; triangles can overdraw one another incorrectly.
+- Affine UV mapping and a 16-bit depth test: overlapping triangles select the closest quantized camera-space depth rather than the last triangle in file order. Coplanar fragments at identical quantized depth still retain the first submitted texel. No perspective correction or lighting.
+- The depth buffer reserves 96 KiB of static RAM and is reset for each model draw. Hidden pixels skip UV lookup, but dense meshes may still be expensive on the DS ARM9.
 - No original 3DS material/shader/skeletal animation decode; only exported DRM1 meshes with hand-provided or externally converted UV data.
 - CPU rendering may be expensive for dense meshes. Model complexity needs further optimization for DS hardware.
 - The original item icons remain sprites, not 3D item meshes.

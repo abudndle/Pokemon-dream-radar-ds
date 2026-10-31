@@ -35,7 +35,7 @@ The source-of-truth checklist is [`feature_parity.json`](feature_parity.json), c
 | Original BCLIM graphics mapped to DS assets | partial | Conversion and SD override exist; wholesale original UI integration is incomplete. |
 | Original BCLYT screen positions and pane hierarchy | investigation only | 135 original layouts inventoried; runtime compositor retargeting not integrated. |
 | Original BCLAN animation keyframes and playback | investigation only | Clip lengths and loop flags identified; actual keyframe decoding and rendering pending. |
-| Original Pokémon 3D geometry and animations | partial | Optional DRM1 models render as solid triangles or with user-converted DRT1 UV/RGB555 sidecars; authentic original rigs, materials and animation remain absent. |
+| Original Pokémon 3D geometry and animations | partial | Optional DRM1 models render as solid triangles or with user-converted DRT1 UV/RGB555 sidecars and a 16-bit depth buffer; original rigs, materials and animation remain absent. |
 | Original music, sound effects and timing | unimplemented | No verified original 3DS audio conversion and playback across scenes. |
 | Real Black 2/White 2 Nintendo 3DS Link transfers | unimplemented | Only a safe text archive is exported; no retail transfer, save injection or handshake. |
 | Unova Link receiving Pokémon/items into Black 2/White 2 | unimplemented | No compatible send/receive implementation or save-verified integration. |

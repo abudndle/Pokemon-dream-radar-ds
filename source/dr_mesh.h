@@ -27,6 +27,9 @@ int dr_mesh_project_vertex(const DrMeshVertex *v,int cx,int cy,int scale,int *x,
  * No floating-point or DS GPU dependency. */
 int dr_mesh_project_vertex_yaw(const DrMeshVertex *v,int cx,int cy,int scale,
                                unsigned yaw_step,int *x,int *y);
+/* Signed Q12 camera-space depth, positive towards the viewer. Matches the
+ * 16-step yaw projection; returns zero without writing on bad inputs. */
+int dr_mesh_depth_vertex_yaw(const DrMeshVertex *v,unsigned yaw_step,int *z);
 /* Draw triangle edges into a caller-owned RGB555 framebuffer (no GPU). 
  * Returns 0 for invalid inputs; pixels outside the viewport are clipped. */
 int dr_mesh_wireframe(const DrMesh *mesh,uint16_t *pixels,int width,int height,
