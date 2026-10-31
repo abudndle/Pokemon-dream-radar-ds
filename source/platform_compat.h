@@ -2,7 +2,7 @@
 #ifndef DR_PLATFORM_COMPAT_H
 #define DR_PLATFORM_COMPAT_H
 
-enum {DR_SETTING_CAMERA,DR_SETTING_OPTICAL,DR_SETTING_CART,DR_SETTING_SD};
+enum {DR_SETTING_CAMERA,DR_SETTING_OPTICAL,DR_SETTING_CART,DR_SETTING_SD,DR_SETTING_PLACEHOLDER};
 int dr_lab_count(int dsi_mode);
 int dr_lab_action(int dsi_mode,int selection);
 int dr_settings_count(int dsi_mode);
