@@ -21,7 +21,7 @@ static void put32(unsigned char *p,uint32_t v) {
     for(int i=0;i<4;i++)p[i]=(unsigned char)(v>>(8*i));
 }
 static int photo_path(char *out,size_t cap,const char *folder,int slot) {
-    if(!folder || slot<0 || slot>=DR_PHOTO_MAX)return 0;
+    if(!out || cap<20 || !folder || !*folder || slot<0 || slot>=DR_PHOTO_MAX)return 0;
     size_t n=strlen(folder);
     if(n>cap-20)return 0;
     int r=snprintf(out,cap,"%s%sphoto_%03d.bmp",folder,
@@ -34,7 +34,7 @@ static int existing_photo(const char *folder,int slot) {
            stat(path,&st)==0 && S_ISREG(st.st_mode);
 }
 int dr_photo_find(const char *folder,int from,int direction,int *slot_out) {
-    if(!folder || !slot_out || (direction!=1 && direction!=-1))return 0;
+    if(!folder || !*folder || !slot_out || (direction!=1 && direction!=-1))return 0;
     /* from is the current slot, -1 starts a new forward search. */
     if(from<-1 || from>=DR_PHOTO_MAX)return 0;
     for(int n=0;n<DR_PHOTO_MAX;n++) {
