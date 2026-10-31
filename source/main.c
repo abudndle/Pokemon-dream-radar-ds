@@ -897,7 +897,8 @@ static void update_camera(void) {
     }
 }
 static int save_photo(void) {
-    if(!photo_storage_ready || !running_dsi || !game.camera_ok || camera_frames<1)return 0;
+    if(!dr_photo_capture_ready(running_dsi,photo_storage_ready,
+                               game.camera_active,game.camera_ok,camera_frames))return 0;
     return dr_photo_save_new(photo_dir, &photo_index,
                              camera_last_frame, PIXELS);
 }
