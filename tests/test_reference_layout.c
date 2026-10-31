@@ -3,6 +3,18 @@
 #include <assert.h>
 #include <stdio.h>
 int main(void) {
+    for(int count=6;count<=7;count++) {
+        for(int i=0;i<count;i++) {
+            int y=dr_lab_row_top(i);
+            assert(dr_lab_hit(10,y,count)==i);
+            assert(dr_lab_hit(245,y+21,count)==i);
+            assert(dr_lab_hit(128,y+22,count)==-1);
+        }
+        assert(dr_lab_hit(9,3,count)==-1);
+        assert(dr_lab_hit(246,3,count)==-1);
+        assert(dr_lab_hit(128,dr_lab_row_top(count),count)==-1);
+    }
+
     /* Original title layout: visual rectangles and touch targets must agree. */
     for(int i=0;i<4;i++) {
         const DrPaneRect *r=&dr_title_panes[i];
