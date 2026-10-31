@@ -18,6 +18,22 @@ int main(void) {
     assert(g.screen==STATE_RESULTS && g.session_caught==-1);
     game_fire(&g);
     assert(g.save.caught_count==count);
+    /* Invalid touchscreen coordinates never award shots or mutate clouds. */
+    game_new(&g,91);
+    game_begin_search(&g,EXT_BASIC);
+    assert(g.screen==STATE_RADAR);
+    g.active_clouds=1;
+    g.clouds[0].alive=1;
+    g.clouds[0].x=128;g.clouds[0].y=90;g.clouds[0].kind=0;
+    g.aim_x=2147483647;g.aim_y=-2147483647;
+    game_fire(&g);
+    assert(g.clouds[0].alive && g.cloud_hit==0);
+    g.screen=STATE_SPHERE;
+    g.capture_timeout=100;
+    g.capture_hp=0;
+    g.sphere_x=128;g.sphere_y=90;
+    game_fire(&g);
+    assert(g.capture_hp==0);
     puts("PASS: expired capture cannot be completed by a late shot");
     return 0;
 }
