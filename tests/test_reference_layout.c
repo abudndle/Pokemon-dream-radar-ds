@@ -35,6 +35,11 @@ int main(void) {
     }
     assert(dr_title_hit(128,10)==-1);
     assert(dr_title_hit(128,185)==-1);
+    /* Touch coordinates are bounded to the 256x192 DS viewport. */
+    assert(dr_support_at(-2147483647,0)==-1);
+    assert(dr_support_at(2147483647,0)==-1);
+    assert(dr_support_at(0,-2147483647)==-1);
+    assert(dr_support_at(0,2147483647)==-1);
     for(int i=0;i<3;i++) {
         int x,y;dr_support_center(i,&x,&y);
         assert(x>=0 && y>=0);
