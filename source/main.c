@@ -181,8 +181,8 @@ static void button(u16 *v,int y,const char *name,int selected) {
     /* Preserve the texture beneath each label rather than painting over it
        with opaque generic bars. Only selection focus is overlaid live. */
     if(selected) {
-        border(v,10,y,236,24,WHITE);
-        border(v,12,y+2,232,20,CYAN);
+        border(v,10,y,236,22,WHITE);
+        border(v,12,y+2,232,18,CYAN);
     }
     print(v,19,y+8,WHITE,name);
 }
@@ -465,7 +465,7 @@ static void render(void) {
         {const char *opts[]={"START SEARCH","DEVELOPMENT LAB","SEND RESEARCH DATA",
                              "RECORDS","OPTIONS","TALK TO BURNET","PHOTO ALBUM"};
          for(int i=0;i<dr_lab_count(running_dsi);i++)
-             button(bottom,3+i*23,opts[dr_lab_action(running_dsi,i)],game.selection==i);}
+             button(bottom,dr_lab_row_top(i),opts[dr_lab_action(running_dsi,i)],game.selection==i);}
         print(bottom,11,176,GRAY,"Y: CHECK DS CART  B: TITLE");
         break;
     case STATE_SHOP: {
@@ -1160,15 +1160,11 @@ static void handle_key(int keys,int down,touchPosition *touch) {
         int count=dr_lab_count(running_dsi);
         if(down&KEY_DOWN)game.selection=(game.selection+1)%count;
         if(down&KEY_UP)game.selection=(game.selection+count-1)%count;
-        /* Do not change the selected action when touching the margin or
-           the status/footer region: input must share the button bounds. */
-        if((down&KEY_TOUCH) && touch->px>=10 && touch->px<246 &&
-           touch->py>=3 && touch->py<3+23*count)
-            game.selection=(touch->py-3)/23;
+        int touched=(down&KEY_TOUCH) ? dr_lab_hit(touch->px,touch->py,count) : -1;
+        if(touched>=0)game.selection=touched;
         if(down&KEY_Y)check_cartridge();
         if(down&KEY_B)switch_screen(STATE_TITLE);
-        if((down&KEY_A) || ((down&KEY_TOUCH) && touch->px>=10 && touch->px<246 &&
-                            touch->py>=3 && touch->py<3+23*count)){
+        if((down&KEY_A) || touched>=0){
             GameScreen pages[]={STATE_EXTENSIONS,STATE_SHOP,STATE_TRANSFER,
                                 STATE_RECORDS,STATE_SETTINGS,STATE_TIPS,STATE_ALBUM};
             int action=dr_lab_action(running_dsi,game.selection);
