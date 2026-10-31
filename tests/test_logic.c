@@ -50,6 +50,8 @@ int main(void) {
     g.save.goods[1]=0;
     g.save.orbs=0;
 
+    game_set_cart_source(NULL,GAME_BLACK2,CART_SOURCE_SLOT1);
+    game_set_cart(NULL,GAME_BLACK2);
     assert(game_identify_cart("ADAE")==GAME_DIAMOND);
     assert(game_identify_cart("APAJ")==GAME_PEARL);
     assert(game_identify_cart("CPUF")==GAME_PLATINUM);
