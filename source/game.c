@@ -507,14 +507,16 @@ void game_tick(Game *g) {
                signed overflow before the viewport clamp. */
             int64_t nx=(int64_t)g->sphere_x+g->sphere_vx;
             int64_t ny=(int64_t)g->sphere_y+g->sphere_vy;
+            /* Bounce based on the unclamped position; clamping first hides
+               boundary crossings and leaves the target stuck at an edge. */
             g->sphere_x=nx<20?20:nx>236?236:(int)nx;
             g->sphere_y=ny<30?30:ny>164?164:(int)ny;
-            /* Keep the target inside the actual DS capture viewport. Previously
-               reversing velocity alone let it draw outside the touch area. */
-            if (g->sphere_x<20) { g->sphere_x=20; if(g->sphere_vx<0) g->sphere_vx=-g->sphere_vx; }
-            if (g->sphere_x>236) { g->sphere_x=236; if(g->sphere_vx>0) g->sphere_vx=-g->sphere_vx; }
-            if (g->sphere_y<30) { g->sphere_y=30; if(g->sphere_vy<0) g->sphere_vy=-g->sphere_vy; }
-            if (g->sphere_y>164) { g->sphere_y=164; if(g->sphere_vy>0) g->sphere_vy=-g->sphere_vy; }
+            if (nx<20 && g->sphere_vx<0)
+                g->sphere_vx=g->sphere_vx==INT32_MIN?INT32_MAX:-g->sphere_vx;
+            if (nx>236 && g->sphere_vx>0)g->sphere_vx=-g->sphere_vx;
+            if (ny<30 && g->sphere_vy<0)
+                g->sphere_vy=g->sphere_vy==INT32_MIN?INT32_MAX:-g->sphere_vy;
+            if (ny>164 && g->sphere_vy>0)g->sphere_vy=-g->sphere_vy;
         }
         if (g->capture_timeout>0) g->capture_timeout--;
         if (g->capture_timeout<=0) {
