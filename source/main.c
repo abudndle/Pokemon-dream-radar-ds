@@ -1129,9 +1129,9 @@ static void handle_key(int keys,int down,touchPosition *touch) {
         int count=dr_settings_count(running_dsi);
         if(down&KEY_DOWN)game.selection=(game.selection+1)%count;
         if(down&KEY_UP)game.selection=(game.selection+count-1)%count;
-        if((down&KEY_TOUCH) && touch->py>=16 && touch->py<16+35*count)
-            game.selection=(touch->py-16)/35;
-        if((down&KEY_A) || ((down&KEY_TOUCH) && touch->py>=16 && touch->py<16+35*count)){
+        int touched=(down&KEY_TOUCH) ? dr_settings_hit(touch->px,touch->py,running_dsi) : -1;
+        if(touched>=0)game.selection=touched;
+        if((down&KEY_A) || touched>=0){
             int action=dr_settings_action(running_dsi,game.selection);
             if(action==DR_SETTING_CAMERA){game.save.camera_enabled=!game.save.camera_enabled;game.requested_save=1;}
             if(action==DR_SETTING_OPTICAL){game.save.optical_aim=!game.save.optical_aim;game.requested_save=1;}
