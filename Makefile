@@ -62,6 +62,8 @@ test-host:
 	./build/test_orb_colors
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c tests/test_dream_orb_entities.c -o build/test_dream_orb_entities
 	./build/test_dream_orb_entities
+	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c tests/test_radar_resume.c -o build/test_radar_resume
+	./build/test_radar_resume
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c tests/test_sphere_projectiles.c -o build/test_sphere_projectiles
 	./build/test_sphere_projectiles
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c tests/test_simulator_item_rewards.c -o build/test_simulator_item_rewards
