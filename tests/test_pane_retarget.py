@@ -27,6 +27,10 @@ with tempfile.TemporaryDirectory() as d:
             assert len(p["world_translation_ds"])==2
             assert len(p["world_scale"])==2
             assert len(p["world_size_ds"])==2
+            assert isinstance(p["visible_in_viewport"],bool)
+            if p["clipped_bounds_ds"] is not None:
+                a,b,c,d=p["clipped_bounds_ds"]
+                assert 0<=a<c<=256 and 0<=b<d<=192
             assert len(p["world_bounds_ds"])==4
             assert p["world_bounds_ds"][0]<=p["world_bounds_ds"][2]
             assert p["world_bounds_ds"][1]<=p["world_bounds_ds"][3]
@@ -74,4 +78,6 @@ assert child["world_rotation_z"]==90
 assert child["world_scale"]==[2,2]
 assert child["world_size_ds"]==[25.6,32.0]
 assert child["world_bounds_ds"]==[-25.6,16.0,0.0,48.0]
+assert child["visible_in_viewport"] is False
+assert child["clipped_bounds_ds"] is None
 print("PASS: 22 original UI pane hierarchies retargeted to DS viewport")
