@@ -172,6 +172,16 @@ static void cache_backgrounds(void) {
         if(fseek(f,0,SEEK_END)==0 && ftell(f)==(long)(PIXELS*2u) &&
            fseek(f,0,SEEK_SET)==0)
             bg_valid[i]=(fread(bg_cache[i],2,PIXELS,f)==PIXELS);
+        if(bg_valid[i]) {
+            /* A background is opaque RGB555; transparent pixels in
+               extracted assets must not silently render as black. */
+            for(int pixel=0;pixel<PIXELS;pixel++) {
+                if(!(bg_cache[i][pixel]&0x8000u)) {
+                    bg_valid[i]=0;
+                    break;
+                }
+            }
+        }
         if(fclose(f)!=0)bg_valid[i]=0;
     }
 }
