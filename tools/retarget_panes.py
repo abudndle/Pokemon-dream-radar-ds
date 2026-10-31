@@ -22,6 +22,11 @@ def convert(layout):
         return {
             "name": pane["name"],
             "type": pane["type"],
+            "flags": pane["flags"],
+            "origin": pane["origin"],
+            "alpha": pane["alpha"],
+            "rotation": pane["rotation"],
+            "scale": pane["scale"],
             "translation_ds": [
                 round(pane["translation"][0]*scale_x, 4),
                 round(pane["translation"][1]*scale_y, 4)
