@@ -1,3 +1,21 @@
+## Standard LZ40 compatibility probe (private)
+
+The original Dream Radar `.carc` files share a `0x40` header, but a header alone
+does not establish a working decoder. The following **read-only diagnostic**
+tries the documented low-endian Nintendo LZ40 token format against each archive:
+
+```sh
+python3 tools/probe_ncch_lz40.py /private/game.ncch build/private_lz40_probe.json
+```
+
+The probe uses bounded decoded lengths, validates all backwards references,
+and outputs **only a JSON pass/failure summary**, not original game payloads.
+In our tested copy, the standard LZ40 interpretation fails on the first
+backreference of all 177 archives. This narrows the problem to a different
+container variant or coding method; do **not** label the originals decompressed
+or use invalid output as Pokémon models. Synthetic LZ40 codec vectors are
+covered by `tests/test_ncch_lz40_probe.py`.
+
 ## Read-only decrypted NCCH / CARC archive audit
 
 For your **privately held decrypted** Dream Radar NCCH, inventory RomFS paths
