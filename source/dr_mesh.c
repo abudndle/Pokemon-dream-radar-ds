@@ -63,3 +63,37 @@ int dr_mesh_project_vertex(const DrMeshVertex *v,int cx,int cy,int scale,int *x,
     *y=cy-(int)(py/4096);
     return 1;
 }
+
+/* Bounded integer Bresenham rasterizer; clipped through guarded writes. */
+static void mesh_line(uint16_t *pixels,int w,int h,int x0,int y0,int x1,int y1,uint16_t color) {
+    int dx=abs(x1-x0),dy=abs(y1-y0);
+    int sx=x0<x1?1:-1,sy=y0<y1?1:-1;
+    int err=dx-dy;
+    for(;;) {
+        if(x0>=0 && x0<w && y0>=0 && y0<h)pixels[(size_t)y0*w+x0]=color;
+        if(x0==x1 && y0==y1)break;
+        int twice=2*err;
+        if(twice>-dy){err-=dy;x0+=sx;}
+        if(twice<dx){err+=dx;y0+=sy;}
+    }
+}
+int dr_mesh_wireframe(const DrMesh *mesh,uint16_t *pixels,int width,int height,
+                      int cx,int cy,int scale,uint16_t color) {
+    if(!mesh || !pixels || !mesh->vertex || !mesh->triangle ||
+       !mesh->vertices || !mesh->triangles || mesh->triangles>DR_MESH_MAX_TRIANGLES ||
+       width<1 || width>256 || height<1 || height>192 ||
+       cx<0 || cx>=width || cy<0 || cy>=height || scale<1 || scale>256)return 0;
+    for(unsigned i=0;i<mesh->triangles;i++) {
+        DrMeshTriangle t=mesh->triangle[i];
+        if(t.a>=mesh->vertices || t.b>=mesh->vertices || t.c>=mesh->vertices)return 0;
+        int x[3],y[3];
+        unsigned indices[3]={t.a,t.b,t.c};
+        for(int j=0;j<3;j++)
+            if(!dr_mesh_project_vertex(&mesh->vertex[indices[j]],cx,cy,scale,&x[j],&y[j]))return 0;
+        for(int j=0;j<3;j++) {
+            int k=(j+1)%3;
+            mesh_line(pixels,width,height,x[j],y[j],x[k],y[k],color);
+        }
+    }
+    return 1;
+}
