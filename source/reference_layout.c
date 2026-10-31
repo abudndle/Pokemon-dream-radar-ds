@@ -58,16 +58,25 @@ int dr_shop_hit(int x,int y) {
     return index<6 && y<dr_shop_row_top(index)+22?index:-1;
 }
 int dr_remaining_clouds(const Game *g) {
+    if(!g)return 0;
     int left=0;
-    for(int i=0;i<g->active_clouds && i<MAX_CLOUDS;i++)if(g->clouds[i].alive)left++;
+    int count=g->active_clouds;
+    if(count<0)count=0;
+    if(count>MAX_CLOUDS)count=MAX_CLOUDS;
+    for(int i=0;i<count;i++)if(g->clouds[i].alive)left++;
     return left;
 }
 void dr_radar_counts(const Game *g,int *white,int *pink) {
     int w=0,p=0;
-    for(int i=0;i<g->active_clouds && i<MAX_CLOUDS;i++) {
-        if(!g->clouds[i].alive)continue;
-        if(g->clouds[i].kind)p++;
-        else w++;
+    if(g) {
+        int count=g->active_clouds;
+        if(count<0)count=0;
+        if(count>MAX_CLOUDS)count=MAX_CLOUDS;
+        for(int i=0;i<count;i++) {
+            if(!g->clouds[i].alive)continue;
+            if(g->clouds[i].kind)p++;
+            else w++;
+        }
     }
     if(white)*white=w;
     if(pink)*pink=p;
