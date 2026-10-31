@@ -48,6 +48,18 @@ int main(void) {
     game_regen_clouds(&g,4000);
     assert(g.save.last_cloud_time==4000);
     assert(g.save.cloud_count==30 && g.requested_save);
+    /* A full reservoir must not bank recharge time for instant replenishment
+       after a cloud is spent; only the remainder of the interval carries. */
+    game_new(&g,17);
+    g.save.cloud_count=10;
+    g.save.last_cloud_time=1000;
+    game_regen_clouds(&g,10000);
+    assert(g.save.cloud_count==10 && g.save.last_cloud_time==10000);
+    g.save.cloud_count=9;
+    game_regen_clouds(&g,10001);
+    assert(g.save.cloud_count==9);
+    game_regen_clouds(&g,10300);
+    assert(g.save.cloud_count==10);
     puts("PASS: recharge intervals, huge clock jumps, caps, clock rollback");
     return 0;
 }
