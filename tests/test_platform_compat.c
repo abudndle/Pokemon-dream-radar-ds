@@ -29,6 +29,15 @@ int main(void) {
     assert(dr_settings_action(1,1)==DR_SETTING_OPTICAL);
     assert(!dr_camera_allowed(0,1) && !dr_camera_allowed(0,0));
     assert(!dr_camera_allowed(1,0) && dr_camera_allowed(1,1));
+    /* L+R is DSi-only and fires once on the second press, not while held. */
+    const int L=1<<9,R=1<<8;
+    assert(!dr_photo_shortcut(0,L|R,R,L,R));
+    assert(!dr_photo_shortcut(1,L,L,L,R));
+    assert(!dr_photo_shortcut(1,R,R,L,R));
+    assert(dr_photo_shortcut(1,L|R,R,L,R));
+    assert(dr_photo_shortcut(1,L|R,L,L,R));
+    assert(!dr_photo_shortcut(1,L|R,0,L,R));
+    assert(!dr_photo_shortcut(1,0,L|R,L,R));
     assert(strcmp(dr_storage_root(0),"fat:/")==0);
     assert(strcmp(dr_storage_root(1),"sd:/")==0);
     assert(!dr_storage_ready(NULL));
