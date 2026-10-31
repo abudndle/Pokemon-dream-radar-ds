@@ -1,5 +1,22 @@
 ## Gameplay integration: Pokémon capture and full storage
 
+## Batch conversion for user-provided Pokémon models
+
+Put privately exported, accurately indexed `pokemon_00.obj` through `pokemon_25.obj`
+files in one folder, then stage all valid exports at once:
+
+```sh
+python3 tools/stage_pokemon_models.py /private/pokemon_obj /tmp/DreamRadarDSi/Models
+```
+
+The script validates all selected files before writing any, creates numbered
+`DRM1` meshes and a `model_manifest.json` report. Copy the resulting `.drm`
+files to `sd:/DreamRadarDSi/Models/` or `fat:/DreamRadarDSi/Models/`.
+The report is diagnostic, not evidence of original game model provenance.
+No original models are bundled. Existing staged files are overwritten only
+after every source mesh passes conversion; backing up previous exports is
+recommended.
+
 ## Optional Pokémon models on SD / flashcart (development milestone)
 
 The rotating `DRM1` encounter renderer can now read **user-provided, converted**
