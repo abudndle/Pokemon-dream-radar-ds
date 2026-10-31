@@ -534,6 +534,16 @@ int game_cancel_pending_replace(Game *g) {
     msg(g,"Replacement canceled; stored Pokemon and items kept.");
     return 1;
 }
+int game_leave_search(Game *g) {
+    if(!g || (g->screen!=STATE_RADAR && g->screen!=STATE_SPHERE))return 0;
+    if(g->save.searches<UINT32_MAX)g->save.searches++;
+    g->screen=STATE_RESULTS;
+    g->freeze_frames=0;
+    g->slow_frames=0;
+    g->capture_timeout=0;
+    g->requested_save=1;
+    return 1;
+}
 void game_tick(Game *g) {
     if (!g) return;
     /* The play-time counter is persisted as uint32_t; never wrap to zero. */
