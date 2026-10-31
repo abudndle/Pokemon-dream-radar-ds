@@ -434,7 +434,7 @@ static void conclude_capture(Game *g) {
        and when full storage opens a replacement decision. */
     g->freeze_frames=0;
     g->slow_frames=0;
-    g->save.searches++;
+    if(g->save.searches<UINT32_MAX)g->save.searches++;
     g->requested_save=1;
     g->screen=STATE_RESULTS;
     g->replace_kind=REPLACE_NONE;
@@ -565,7 +565,7 @@ void game_tick(Game *g) {
             g->capture_timeout=0;
             g->screen=STATE_RESULTS;g->session_caught=-1;
             g->freeze_frames=0;g->slow_frames=0;
-            g->save.searches++;g->requested_save=1;
+            if(g->save.searches<UINT32_MAX)g->save.searches++;g->requested_save=1;
             msg(g,"The Pokemon escaped!");
         }
     }
