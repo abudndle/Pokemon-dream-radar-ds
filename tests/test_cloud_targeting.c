@@ -20,6 +20,21 @@ int main(void) {
     game_fire(&g);
     assert(g.cloud_hit==2 && g.screen==STATE_RESULTS);
     assert(g.save.searches==1);
+    /* Initial cloud placement should avoid visually stacked targets in
+       ordinary searches while keeping all positions inside the play area. */
+    game_new(&g,123);
+    g.save.cloud_count=10;
+    game_begin_search(&g,EXT_BASIC);
+    assert(g.active_clouds==10);
+    for(int i=0;i<g.active_clouds;i++) {
+        assert(g.clouds[i].x>=24 && g.clouds[i].x<=230);
+        assert(g.clouds[i].y>=24 && g.clouds[i].y<=152);
+        for(int j=0;j<i;j++) {
+            int dx=g.clouds[i].x-g.clouds[j].x;
+            int dy=g.clouds[i].y-g.clouds[j].y;
+            assert(dx*dx+dy*dy>=20*20);
+        }
+    }
     /* No ghost rewards after the completed search. */
     uint32_t orbs=g.save.orbs;
     game_fire(&g);
