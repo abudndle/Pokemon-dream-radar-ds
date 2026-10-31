@@ -1160,11 +1160,14 @@ static void handle_key(int keys,int down,touchPosition *touch) {
         int count=dr_lab_count(running_dsi);
         if(down&KEY_DOWN)game.selection=(game.selection+1)%count;
         if(down&KEY_UP)game.selection=(game.selection+count-1)%count;
-        if((down&KEY_TOUCH)&&touch->py>=3&&touch->py<3+23*count)
+        /* Do not change the selected action when touching the margin or
+           the status/footer region: input must share the button bounds. */
+        if((down&KEY_TOUCH) && touch->px>=10 && touch->px<246 &&
+           touch->py>=3 && touch->py<3+23*count)
             game.selection=(touch->py-3)/23;
         if(down&KEY_Y)check_cartridge();
         if(down&KEY_B)switch_screen(STATE_TITLE);
-        if((down&KEY_A) || ((down&KEY_TOUCH) && touch->px>=8 && touch->px<248 &&
+        if((down&KEY_A) || ((down&KEY_TOUCH) && touch->px>=10 && touch->px<246 &&
                             touch->py>=3 && touch->py<3+23*count)){
             GameScreen pages[]={STATE_EXTENSIONS,STATE_SHOP,STATE_TRANSFER,
                                 STATE_RECORDS,STATE_SETTINGS,STATE_TIPS,STATE_ALBUM};
