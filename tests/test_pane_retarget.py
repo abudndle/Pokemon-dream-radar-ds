@@ -26,6 +26,7 @@ with tempfile.TemporaryDirectory() as d:
             assert isinstance(p["translation_z"],(int,float))
             assert len(p["world_translation_ds"])==2
             assert len(p["world_scale"])==2
+            assert len(p["world_size_ds"])==2
             assert isinstance(p["world_rotation_z"],(int,float))
             assert len(p["translation_ds"])==2
             assert len(p["size_ds"])==2
@@ -68,4 +69,5 @@ child=convert(synthetic)["panes"][0]["children"][0]
 assert child["world_translation_ds"]==[0.0,16.0]
 assert child["world_rotation_z"]==90
 assert child["world_scale"]==[2,2]
+assert child["world_size_ds"]==[25.6,32.0]
 print("PASS: 22 original UI pane hierarchies retargeted to DS viewport")
