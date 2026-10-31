@@ -111,7 +111,8 @@ int main(void) {
     assert((g.save.legends_caught & 1u)!=0);
     assert(g.save.pending_count==4 && g.save.pending[3]==18);
     assert(!game_extension_unlocked(&g,EXT_DIALGA));
-    /* A simulator still awards no capture inventory or story progression. */
+    /* A simulator must not capture a duplicate legendary or advance the
+       story; it DOES award a research item from the Simulator's item pool. */
     g.save.orbs=1000;
     game_begin_search(&g,EXT_SIM_TORNADUS);
     assert(g.screen==STATE_RADAR);
@@ -121,11 +122,15 @@ int main(void) {
     unsigned before_count=g.save.caught_count;
     unsigned before_pending=g.save.pending_count;
     unsigned before_phase=g.save.story_phase;
+    int simulator_item=g.session_item;
+    assert(simulator_item>=0 && simulator_item<RESEARCH_ITEM_TYPES);
     game_capture(&g);
-    assert(g.screen==STATE_RESULTS && g.session_caught==-3);
+    assert(g.screen==STATE_RESULTS && g.session_caught==-2);
     assert(g.save.caught_count==before_count);
     assert(g.save.pending_count==before_pending);
     assert(g.save.story_phase==before_phase);
+    assert(g.save.pending_items[0]==1);
+    assert(game_item_slot_kind(&g,0)==simulator_item);
     puts("PASS: legendary escape, captures, replacement and 3-stage story progression");
     return 0;
 }
