@@ -1,0 +1,31 @@
+name: BlocksDS dual-target build
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+jobs:
+  host-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Portable logic and platform tests
+        run: |
+          make test-host test-syntax
+          python3 tests/test_nds_header.py
+          python3 tools/verify_assets.py
+  arm-binaries:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile both targets in BlocksDS image
+        run: |
+          docker run --rm -v "$PWD:/workspace" -w /workspace \
+            skylyrac/blocksds:slim-latest sh scripts/build_both.sh
+      - name: Upload untested ROMs
+        uses: actions/upload-artifact@v4
+        with:
+          name: untested-blocksds-roms
+          path: |
+            dream_radar_ds.nds
+            dream_radar_dsi.nds
+          if-no-files-found: error
