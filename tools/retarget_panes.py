@@ -19,7 +19,7 @@ def convert(layout):
     if not all(math.isfinite(v) and v > 0 for v in (source_width, source_height)):
         raise ValueError("invalid root dimensions")
     scale_x, scale_y = DS_WIDTH/source_width, DS_HEIGHT/source_height
-    def walk(pane, parent_x=0.0, parent_y=0.0, parent_angle=0.0, parent_sx=1.0, parent_sy=1.0):
+    def walk(pane, parent_x=0.0, parent_y=0.0, parent_angle=0.0, parent_sx=1.0, parent_sy=1.0, parent_visible=True, parent_alpha=255):
         values = (pane["translation"] + pane["rotation"] + pane["scale"] + pane["size"])
         if not all(math.isfinite(v) for v in values):
             raise ValueError(f'non-finite geometry in pane {pane["name"]}')
@@ -63,9 +63,12 @@ def convert(layout):
         # Pane flags can mark a node hidden; preserve that separately from
         # geometry, because a hidden in-bounds node must not receive input.
         flag_visible=bool(pane["flags"] & 1)
-        effective_visible=visible and flag_visible
+        effective_visible=visible and flag_visible and parent_visible
+        effective_alpha=round(parent_alpha*pane["alpha"]/255)
+        effective_visible=effective_visible and effective_alpha>0
         return {
             "flag_visible": flag_visible,
+            "effective_alpha": effective_alpha,
             "effective_visible": effective_visible,
             "viewport_coverage": coverage,
             "visible_in_viewport": visible,
@@ -91,7 +94,7 @@ def convert(layout):
                 round(pane["size"][0]*scale_x, 4),
                 round(pane["size"][1]*scale_y, 4)
             ],
-            "children": [walk(child,x,y,z_angle,sx,sy) for child in pane["children"]]
+            "children": [walk(child,x,y,z_angle,sx,sy, effective_visible, effective_alpha) for child in pane["children"]]
         }
     return {
         "source": Path(layout["file"]).name,
