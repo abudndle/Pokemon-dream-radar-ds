@@ -33,6 +33,12 @@ int main(void) {
     assert(dr_camera_retry_latch(1,1)==0);
     assert(dr_camera_retry_latch(0,1)==1);
     assert(dr_camera_retry_latch(1,0)==0);
+    assert(dr_photo_capture_ready(1,1,1,1,1));
+    assert(!dr_photo_capture_ready(0,1,1,1,1));
+    assert(!dr_photo_capture_ready(1,0,1,1,1));
+    assert(!dr_photo_capture_ready(1,1,0,1,1));
+    assert(!dr_photo_capture_ready(1,1,1,0,1));
+    assert(!dr_photo_capture_ready(1,1,1,1,0));
     /* L+R is DSi-only and fires once on the second press, not while held. */
     const int L=1<<9,R=1<<8;
     assert(!dr_photo_shortcut(0,L|R,R,L,R));
