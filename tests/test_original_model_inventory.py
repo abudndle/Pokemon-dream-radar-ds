@@ -49,6 +49,10 @@ with tempfile.TemporaryDirectory() as temp:
         {"files": [{"path": "../escape.bch", "bytes": 1, "sha256": "0" * 64}]},
         {"files": [{"path": "wrong.bch", "bytes": -1, "sha256": "0" * 64}]},
         {"files": [{"path": "wrong.bch", "bytes": 1, "sha256": "not-a-hash"}]},
+        {"files": [{"path": "folder//model.bch", "bytes": 1, "sha256": "0" * 64}]},
+        {"files": [{"path": "folder/./model.bch", "bytes": 1, "sha256": "0" * 64}]},
+        {"files": [{"path": "C:/model.bch", "bytes": 1, "sha256": "0" * 64}]},
+        {"files": [{"path": "folder/", "bytes": 1, "sha256": "0" * 64}]},
         {"models_converted": 0},
     ):
         try:
