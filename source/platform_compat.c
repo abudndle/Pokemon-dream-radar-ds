@@ -1,5 +1,7 @@
 #include "platform_compat.h"
 #include <stdio.h>
+#include <fcntl.h>
+#include <unistd.h>
 #include <string.h>
 #include <sys/stat.h>
 
@@ -30,9 +32,12 @@ int dr_storage_ready(const char *root){
     if(snprintf(probe,sizeof probe,"%s/.write_test.tmp",dir)>=(int)sizeof probe)return 0;
     /* Never overwrite a pre-existing file, even one with this internal name. */
     if(stat(probe,&st)==0)return 0;
-    FILE *f=fopen(probe,"wb");if(!f)return 0;
-    int ok=fputc(0x52,f)!=EOF;
-    if(fclose(f)!=0)ok=0;
+    /* Exclusive creation prevents replacing a file created after the stat check. */
+    int fd=open(probe,O_WRONLY|O_CREAT|O_EXCL,0600);
+    if(fd<0)return 0;
+    unsigned char marker=0x52;
+    int ok=write(fd,&marker,1)==1;
+    if(close(fd)!=0)ok=0;
     if(remove(probe)!=0)ok=0;
     return ok;
 }
