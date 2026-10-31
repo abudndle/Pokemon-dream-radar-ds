@@ -338,8 +338,7 @@ int game_use_support(Game *g, int slot) {
     } else if (slot == 1) {
         if (g->slow_frames >= 300) return 0;
         g->slow_frames = 300;
-    }
-    else {
+    } else {
         /* Never spend an Energy Recharge if its timer cannot increase.
            Saturate the addition without overflowing signed arithmetic. */
         if (g->capture_timeout >= 2147483647) return 0;
