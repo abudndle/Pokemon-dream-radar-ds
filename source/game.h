@@ -6,6 +6,7 @@
 #define MAX_CLOUDS 30
 #define MAX_DREAM_ORBS 24
 #define DREAM_ORB_CHAIN_LIMIT 20
+#define MAX_EXTRA_PROJECTILES 2
 #define MAX_ITEMS 6  /* Six pending item STACK slots. */
 #define RESEARCH_ITEM_TYPES 23 /* Original English Item.msbt ITEM_00..ITEM_22. */
 #define MAX_ITEM_STACK 255
@@ -63,6 +64,10 @@ typedef struct {
     uint8_t alive;
     uint8_t color_phase; /* per-orb offset during color cycling */
 } DreamOrb;
+typedef struct {
+    int x,y,vx,vy,ttl;
+    int active;
+} ExtraProjectile;
 
 typedef struct {
     SaveData save;
@@ -75,6 +80,7 @@ typedef struct {
     int projectile_x, projectile_y, projectile_vx, projectile_vy;
     int projectile_cooldown, projectile_lifetime, projectile_hits;
     int projectile_queued, capture_motion_ticks; /* Runtime-only per-encounter state. */
+    ExtraProjectile projectile_extra[MAX_EXTRA_PROJECTILES];
     int aim_x, aim_y, freeze_frames, slow_frames, active_clouds, cloud_hit;
     int session_orbs, session_caught, session_type, session_species, session_item;
     /* Runtime-only: preserve unfinished radar entities across sphere results. */
