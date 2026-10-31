@@ -23,6 +23,11 @@ int main(void) {
     assert(snprintf(rom,sizeof rom,"%s/DreamRadarDSi.nds",root) < (int)sizeof rom);
     SaveBackend backend;
     assert(save_backend_init(&backend,root,rom));
+    SaveBackend uninitialized={0};
+    Game write_probe;game_new(&write_probe,12);
+    assert(!save_backend_write(NULL,&write_probe));
+    assert(!save_backend_write(&uninitialized,&write_probe));
+    assert(!save_backend_write(&backend,NULL));
     Game null_case;game_new(&null_case,3);
     assert(!save_backend_load(NULL,&null_case));
     assert(!save_backend_load(&backend,NULL));
