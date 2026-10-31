@@ -15,6 +15,7 @@ int dr_camera_retry_latch(int camera_enabled,int previous_failure);
 int dr_photo_shortcut(int dsi_mode,int held,int down,int l_mask,int r_mask);
 /* Never save stale frames after the camera is stopped or unavailable. */
 int dr_photo_capture_ready(int dsi_mode,int storage_ready,int camera_active,int camera_ok,int frame_count);
+int dr_camera_next_frame_count(int frame_count);
 const char *dr_storage_root(int dsi_mode);
 /* Tests directory creation plus write access, but never touches retail .sav files. */
 int dr_storage_ready(const char *root);
