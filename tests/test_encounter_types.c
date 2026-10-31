@@ -38,6 +38,31 @@ int main(void) {
         trigger(&g,EXT_DOWSING);
         assert(g.session_type==1 && g.session_species==-1);
     }
+    /* Ordinary cloud searches must support both reward kinds, with exactly
+       one payload populated for each result. */
+    int pokemon_results=0,item_results=0;
+    for(unsigned seed=1;seed<=256;seed++) {
+        game_new(&g,seed);
+        g.save.story_phase=1;
+        game_begin_search(&g,EXT_BASIC);
+        assert(g.screen==STATE_RADAR);
+        g.active_clouds=1;
+        g.clouds[0].alive=1;
+        g.clouds[0].kind=1;
+        g.aim_x=g.clouds[0].x;g.aim_y=g.clouds[0].y;
+        /* Basic pink clouds have a one-in-three encounter roll; try with
+           fresh deterministic seeds until an encounter is actually begun. */
+        game_fire(&g);
+        if(g.screen!=STATE_SPHERE)continue;
+        if(g.session_type==1) {
+            item_results++;
+            assert(g.session_species==-1 && g.session_item>=0);
+        } else {
+            pokemon_results++;
+            assert(g.session_species>=0 && g.session_item==-1);
+        }
+    }
+    assert(pokemon_results>0 && item_results>0);
     puts("PASS: legendary, simulation, and dowsing encounter type policy");
     return 0;
 }
