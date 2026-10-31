@@ -49,7 +49,15 @@ def convert(layout):
                 round(min(pt[1] for pt in corners)*scale_y,4),
                 round(max(pt[0] for pt in corners)*scale_x,4),
                 round(max(pt[1] for pt in corners)*scale_y,4)]
+        # Clamp the envelope to the physical DS screen. Empty intersections
+        # are marked invisible rather than creating negative-size hit regions.
+        left=max(0.0,bounds[0]);top=max(0.0,bounds[1])
+        right=min(float(DS_WIDTH),bounds[2]);bottom=min(float(DS_HEIGHT),bounds[3])
+        visible=right>left and bottom>top
+        clipped=[left,top,right,bottom] if visible else None
         return {
+            "visible_in_viewport": visible,
+            "clipped_bounds_ds": clipped,
             "world_bounds_ds": bounds,
             "world_translation_ds": [round(x*scale_x,4),round(y*scale_y,4)],
             "world_rotation_z": round(z_angle,4),
