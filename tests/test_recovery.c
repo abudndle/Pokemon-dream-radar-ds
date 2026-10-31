@@ -98,7 +98,13 @@ int main(void) {
     assert(game_load(&valid,backend.active) && valid.save.orbs==444);
     /* Even internally consistent but invalid values cannot be loaded. */
     valid.save.story_phase=255;
-    assert(game_save(&valid,backend.active));
+    /* The public writer must refuse invalid progression without truncating
+       the primary. Model external corruption using a raw, checksummed file. */
+    assert(!game_save(&valid,backend.active));
+    valid.save.checksum=game_checksum(&valid.save);
+    FILE *invalid_primary=fopen(backend.active,"wb");assert(invalid_primary);
+    assert(fwrite(&valid.save,1,sizeof valid.save,invalid_primary)==sizeof valid.save);
+    assert(fclose(invalid_primary)==0);
     assert(!game_load(&valid,backend.active));
     /* Recovery remains possible after a second corrupted primary. */
     assert(save_backend_load(&backend,&valid) && backend.recovered_backup);
