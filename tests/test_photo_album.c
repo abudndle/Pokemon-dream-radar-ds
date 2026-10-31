@@ -21,6 +21,17 @@ int main(void) {
         /* BMP24 discards the low 3 bits in 5-to-8-to-5 conversion. */
         assert(src[i]==dst[i]);
     }
+    /* Nonzero BMP reserved bytes indicate a malformed album header. */
+    FILE *reserved=fopen(path,"r+b");assert(reserved);
+    assert(fseek(reserved,6,SEEK_SET)==0);
+    assert(fputc(1,reserved)!=EOF);
+    assert(fclose(reserved)==0);
+    assert(!dr_photo_read(path,dst,DR_PHOTO_W*DR_PHOTO_H));
+    reserved=fopen(path,"r+b");assert(reserved);
+    assert(fseek(reserved,6,SEEK_SET)==0);
+    assert(fputc(0,reserved)!=EOF);
+    assert(fclose(reserved)==0);
+    assert(dr_photo_read(path,dst,DR_PHOTO_W*DR_PHOTO_H));
     assert(!dr_photo_write(path,src,DR_PHOTO_W*DR_PHOTO_H));
     /* An otherwise valid BMP with a forged declared filesize is rejected. */
     FILE *badsize=fopen(path,"r+b");assert(badsize);
