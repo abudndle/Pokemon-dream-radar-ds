@@ -45,6 +45,8 @@ test-host:
 	@mkdir -p build
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/cloud_animation.c tests/test_cloud_animation.c -o build/test_cloud_animation
 	./build/test_cloud_animation
+	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c tests/test_cloud_recharge.c -o build/test_cloud_recharge
+	./build/test_cloud_recharge
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c tests/test_cloud_targeting.c -o build/test_cloud_targeting
 	./build/test_cloud_targeting
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c tests/test_effect_frame_timing.c -o build/test_effect_frame_timing
