@@ -19,7 +19,11 @@ int main(void) {
     assert(g.cloud_hit==1 && g.screen==STATE_RADAR);
     g.aim_x=110;
     game_fire(&g);
-    assert(g.cloud_hit==2 && g.screen==STATE_RESULTS);
+    assert(g.cloud_hit==2 && g.screen==STATE_RADAR);
+    assert(game_active_dream_orbs(&g)>0);
+    /* Uncollected Orbs expire; a scan ends only after its contents expire. */
+    for(int tick=0;tick<300 && g.screen==STATE_RADAR;tick++)game_tick(&g);
+    assert(g.screen==STATE_RESULTS);
     assert(g.save.searches==1);
     game_new(&g,44);
     game_begin_search(&g,EXT_BASIC);
@@ -30,6 +34,8 @@ int main(void) {
     g.clouds[0].x=128;g.clouds[0].y=90;
     g.aim_x=128;g.aim_y=90;
     game_fire(&g);
+    assert(g.save.searches==UINT32_MAX && g.screen==STATE_RADAR);
+    for(int tick=0;tick<300 && g.screen==STATE_RADAR;tick++)game_tick(&g);
     assert(g.save.searches==UINT32_MAX && g.screen==STATE_RESULTS);
     /* A corrupt nearly-overflowed hit counter must saturate safely. */
     game_new(&g,321);
@@ -40,7 +46,9 @@ int main(void) {
     g.clouds[0].x=128;g.clouds[0].y=90;
     g.aim_x=128;g.aim_y=90;
     game_fire(&g);
-    assert(g.cloud_hit==2147483647 && g.screen==STATE_RESULTS);
+    assert(g.cloud_hit==2147483647 && g.screen==STATE_RADAR);
+    for(int tick=0;tick<300 && g.screen==STATE_RADAR;tick++)game_tick(&g);
+    assert(g.screen==STATE_RESULTS);
     /* No ghost rewards after the completed search. */
     uint32_t orbs=g.save.orbs;
     game_fire(&g);
