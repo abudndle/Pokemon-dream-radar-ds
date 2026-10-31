@@ -60,6 +60,8 @@ static int photo_storage_ready;
 static u16 custom_background[PIXELS] __attribute__((aligned(32)));
 static int custom_background_loaded, custom_background_slot=-1;
 static int placeholder_preview_slot=-1;
+static u16 placeholder_preview[PIXELS] __attribute__((aligned(32)));
+static int placeholder_preview_loaded;
 #define CUSTOM_BG_MARKER 0xB6
 static int load_custom_background(int slot) {
     char filename[128];
@@ -69,6 +71,16 @@ static int load_custom_background(int slot) {
     if(!dr_photo_read(filename,custom_background,PIXELS))return 0;
     custom_background_loaded=1;
     custom_background_slot=slot;
+    return 1;
+}
+static int preview_custom_background(int slot) {
+    char filename[128];
+    if(!running_dsi || !photo_storage_ready || slot<0 || slot>=DR_PHOTO_MAX)return 0;
+    int n=snprintf(filename,sizeof filename,"%s/photo_%03d.bmp",photo_dir,slot);
+    if(n<0 || n>=(int)sizeof filename)return 0;
+    if(!dr_photo_read(filename,placeholder_preview,PIXELS))return 0;
+    placeholder_preview_slot=slot;
+    placeholder_preview_loaded=1;
     return 1;
 }
 static void restore_custom_background(void) {
@@ -762,7 +774,7 @@ static void render(void) {
         break; }
     case STATE_PLACEHOLDER: {
         load_bg("menu_top.raw",top,0x8824);
-        if(custom_background_loaded)memcpy(top,custom_background,sizeof top);
+        if(placeholder_preview_loaded)memcpy(top,placeholder_preview,sizeof top);
         else top_title("CAMERA-FREE BACKGROUND");
         load_bg("menu_bottom.raw",bottom,0x8824);
         print(bottom,10,12,WHITE,"CUSTOM BACKGROUND");
@@ -1198,7 +1210,9 @@ static void handle_key(int keys,int down,touchPosition *touch) {
             int direction=(down&KEY_RIGHT)?1:-1;
             if(photo_storage_ready &&
                dr_photo_find(photo_dir,placeholder_preview_slot,direction,&slot) &&
-               load_custom_background(slot))placeholder_preview_slot=slot;
+               preview_custom_background(slot)) {
+                /* Preview is separate; A must explicitly activate the image. */
+            }
             else {snprintf(game.message,sizeof game.message,"No readable 256x192 BMP photos found.");game.messages=120;}
         }
         if(down&KEY_A) {
@@ -1212,12 +1226,13 @@ static void handle_key(int keys,int down,touchPosition *touch) {
             custom_background_loaded=0;
             custom_background_slot=-1;
             placeholder_preview_slot=-1;
+            placeholder_preview_loaded=0;
             game.save.reserved[11]=0;
             game.requested_save=1;
             snprintf(game.message,sizeof game.message,"Original background restored.");
             game.messages=120;
         }
-        if(down&KEY_B)switch_screen(STATE_SETTINGS);
+        if(down&KEY_B){placeholder_preview_loaded=0;switch_screen(STATE_SETTINGS);}
         return;
     }
     if(game.screen==STATE_SETTINGS){
@@ -1233,11 +1248,14 @@ static void handle_key(int keys,int down,touchPosition *touch) {
             if(action==DR_SETTING_CART)check_cartridge();
             if(action==DR_SETTING_SD){scan_sd_saves();switch_screen(STATE_SD_SAVES);}
             if(action==DR_SETTING_PLACEHOLDER) {
-                placeholder_preview_slot=custom_background_slot;
-                if(placeholder_preview_slot<0 && photo_storage_ready) {
+                placeholder_preview_slot=-1;
+                placeholder_preview_loaded=0;
+                if(custom_background_slot>=0)
+                    preview_custom_background(custom_background_slot);
+                if(!placeholder_preview_loaded && photo_storage_ready) {
                     int found=-1;
-                    if(dr_photo_find(photo_dir,-1,1,&found) &&
-                       load_custom_background(found))placeholder_preview_slot=found;
+                    if(dr_photo_find(photo_dir,-1,1,&found))
+                        preview_custom_background(found);
                 }
                 switch_screen(STATE_PLACEHOLDER);
             }
