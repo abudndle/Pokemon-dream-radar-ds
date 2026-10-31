@@ -4,6 +4,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <errno.h>
 
 static int path_append(char *dst,size_t cap,const char *a,const char *b) {
     const size_t len=strlen(a), sep=(len && a[len-1]=='/')?0:1;
@@ -80,7 +81,11 @@ int save_backend_write(SaveBackend *backend,Game *g) {
     /* Validate again at write time. The primary may have been corrupted after
        loading (card removal, incomplete external copy, etc.). Never rotate an
        invalid primary over a potentially good backup. */
-    if(stat(backend->active,&st)==0) {
+    if(stat(backend->active,&st)!=0) {
+        /* Only a missing primary is safe to treat as first-run storage.
+           Permission or device errors must never be mistaken for absence. */
+        if(errno!=ENOENT){remove(temp);return 0;}
+    } else {
         Game current;
         game_new(&current,1);
         if(backend->recovered_backup || !game_load(&current,backend->active)) {
