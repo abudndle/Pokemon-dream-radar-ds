@@ -1,3 +1,28 @@
+## Original BCLIM image conversion and removable-storage sprite overrides
+
+The DS port now supports a **private** BCLIM-to-DS RGB555 sprite converter.
+It handles 3DS Morton tiles, power-of-two backing textures, transparency,
+nearest-neighbor downscaling, and uncompressed image formats
+`0, 1, 2, 3, 5, 6, 7, 8, 9, 12, 13`. Other formats (including ETC1/ETC1A4)
+are rejected explicitly. Converted files are not committed to this repository.
+
+Example with a privately extracted English title logo:
+
+```sh
+python3 tools/convert_bclim_spr.py /private/game/LocalizeTex/Tex_Title_En/timg/titlelogo00.bclim /private/DreamRadarDSi/Sprites/logo.spr
+```
+
+Copy the resulting `.spr` to `sd:/DreamRadarDSi/Sprites/` on DSi or
+`fat:/DreamRadarDSi/Sprites/` on compatible DS flashcart/DLDI storage.
+The runtime checks those paths before the original bundled NitroFS sprites;
+invalid, empty, corrupted, or absent override files fall back to NitroFS.
+Permitted filenames are the 68 names in `source/main.c`'s `sprite_files` list.
+
+Of 875 original UI BCLIM assets, 843 have supported uncompressed image
+formats, 838 convert to nonempty DS sprites, five are fully transparent
+and correctly rejected, and 32 have unsupported formats. Some textures
+(e.g. 400x240) use 512x256 internal storage, which the converter handles.
+These are tools and optional overrides, not a finished original 3DS UI port.
 ## Verified original Dream Radar DARC / BCLIM inventory
 
 After local-only LZH8 decompression, `tools/inventory_darc.py` validates
