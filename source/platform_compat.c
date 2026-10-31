@@ -24,6 +24,10 @@ int dr_settings_action(int dsi_mode,int selection){
     return dsi_mode?selection:selection+2;
 }
 int dr_camera_allowed(int dsi_mode,int camera_enabled){return dsi_mode && camera_enabled;}
+int dr_photo_shortcut(int dsi_mode,int held,int down,int l_mask,int r_mask){
+    return dsi_mode && (held & (l_mask|r_mask))==(l_mask|r_mask) &&
+           (down & (l_mask|r_mask))!=0;
+}
 const char *dr_storage_root(int dsi_mode){return dsi_mode?"sd:/":"fat:/";}
 int dr_storage_ready(const char *root){
     if(!root || !*root)return 0;
