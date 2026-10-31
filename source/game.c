@@ -288,7 +288,9 @@ static void start_sphere(Game *g) {
     g->session_type = (g->ext_selection==EXT_RETRIEVAL ||
                        g->ext_selection==EXT_DOWSING ||
                        (g->ext_selection==EXT_BASIC && (rnd(g)%4)==0)) ? 1:0;
-    g->session_species=choice_species(g);
+    /* Do not consume a Pokemon species roll for item-only research sessions.
+       A non-Pokemon result has no species to transfer or display. */
+    g->session_species=g->session_type ? -1 : choice_species(g);
     /* Prototype drop selection: broaden item variety as story research progresses.
        The 23 labels are original; these drop probabilities are NOT extracted
        from the original encounter/item tables. */
