@@ -36,7 +36,21 @@ def convert(layout):
         sy=parent_sy*pane["scale"][1]
         if not all(math.isfinite(v) for v in (x,y,z_angle,sx,sy)):
             raise ValueError(f'non-finite composed geometry in pane {pane["name"]}')
+        # Axis-aligned envelope of the rotated pane in DS pixel coordinates.
+        # Useful for inspection and broad-phase hit testing, not a replacement
+        # for origin/anchor-aware material geometry.
+        width=pane["size"][0]*sx
+        height=pane["size"][1]*sy
+        theta=math.radians(z_angle)
+        corners=[(x+u*math.cos(theta)-v*math.sin(theta),
+                  y+u*math.sin(theta)+v*math.cos(theta))
+                 for u,v in ((0,0),(width,0),(0,height),(width,height))]
+        bounds=[round(min(pt[0] for pt in corners)*scale_x,4),
+                round(min(pt[1] for pt in corners)*scale_y,4),
+                round(max(pt[0] for pt in corners)*scale_x,4),
+                round(max(pt[1] for pt in corners)*scale_y,4)]
         return {
+            "world_bounds_ds": bounds,
             "world_translation_ds": [round(x*scale_x,4),round(y*scale_y,4)],
             "world_rotation_z": round(z_angle,4),
             "world_scale": [round(sx,4),round(sy,4)],
