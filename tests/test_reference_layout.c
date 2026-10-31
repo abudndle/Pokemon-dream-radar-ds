@@ -72,6 +72,11 @@ int main(void) {
         assert(dr_support_at(x,y)==i);
     }
     {int x,y;dr_support_center(-1,&x,&y);assert(x==-1 && y==-1);}
+    /* Preserve the original eight-sided support-pad boundaries rather
+       than replacing them with a smaller four-point diamond. */
+    assert(dr_support_at(67+40,101+20)==0);
+    assert(dr_support_at(67+44,101+17)==0);
+    assert(dr_support_at(67+44,101+18)==-1);
     assert(dr_support_at(67,101)==0);
     assert(dr_support_at(190,101)==1);
     assert(dr_support_at(128,151)==2);
