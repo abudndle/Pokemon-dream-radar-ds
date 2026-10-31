@@ -1211,8 +1211,13 @@ running_dsi=isDSiMode();
             if(running_dsi && strcmp(storage_root,"sd:/")==0 &&
                snprintf(photo_dir,sizeof photo_dir,"%s/Photos",export_dir)<(int)sizeof photo_dir) {
                 struct stat st;
-                photo_storage_ready=mkdir(photo_dir,0777)==0 ||
-                    (stat(photo_dir,&st)==0 && S_ISDIR(st.st_mode));
+                /* mkdir() cannot create Photos if its parent is absent.
+                   Ensure both directories exist on a freshly formatted SD. */
+                int parent_ok=mkdir(export_dir,0777)==0 ||
+                    (stat(export_dir,&st)==0 && S_ISDIR(st.st_mode));
+                if(parent_ok)
+                    photo_storage_ready=mkdir(photo_dir,0777)==0 ||
+                        (stat(photo_dir,&st)==0 && S_ISDIR(st.st_mode));
             }
         }
     }
