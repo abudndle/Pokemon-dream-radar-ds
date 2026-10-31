@@ -1,6 +1,7 @@
 #include "game.h"
 #include <assert.h>
 #include <stdio.h>
+#include <stdint.h>
 
 int main(void) {
     Game g;
@@ -20,6 +21,16 @@ int main(void) {
     game_fire(&g);
     assert(g.cloud_hit==2 && g.screen==STATE_RESULTS);
     assert(g.save.searches==1);
+    game_new(&g,44);
+    game_begin_search(&g,EXT_BASIC);
+    g.save.searches=UINT32_MAX;
+    g.active_clouds=1;
+    g.cloud_hit=0;
+    g.clouds[0].alive=1;g.clouds[0].kind=0;
+    g.clouds[0].x=128;g.clouds[0].y=90;
+    g.aim_x=128;g.aim_y=90;
+    game_fire(&g);
+    assert(g.save.searches==UINT32_MAX && g.screen==STATE_RESULTS);
     /* A corrupt nearly-overflowed hit counter must saturate safely. */
     game_new(&g,321);
     game_begin_search(&g,EXT_BASIC);
