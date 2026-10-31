@@ -63,14 +63,13 @@ int dr_photo_read(const char *filename,uint16_t *dst,size_t count) {
     long actual=ftell(f);
     if(actual!=(long)(54+DR_PHOTO_W*DR_PHOTO_H*3))goto done;
     if(fseek(f,54,SEEK_SET)!=0)goto done;
-    unsigned char row[DR_PHOTO_W*3];
-    /* Validate every payload byte before modifying the destination. */
-    for(int y=0;y<DR_PHOTO_H;y++)
-        if(fread(row,1,sizeof row,f)!=sizeof row)goto done;
+    /* A complete read into a temporary image prevents short reads from
+       producing partially updated display pixels. Avoid large DS stack use. */
+    static unsigned char encoded[DR_PHOTO_W*DR_PHOTO_H*3];
+    if(fread(encoded,1,sizeof encoded,f)!=sizeof encoded)goto done;
     if(ferror(f))goto done;
-    if(fseek(f,54,SEEK_SET)!=0)goto done;
-    for(int y=DR_PHOTO_H-1;y>=0;y--) {
-        if(fread(row,1,sizeof row,f)!=sizeof row)goto done;
+    for(int y=0;y<DR_PHOTO_H;y++) {
+        const unsigned char *row=encoded+(DR_PHOTO_H-1-y)*DR_PHOTO_W*3;
         for(int x=0;x<DR_PHOTO_W;x++) {
             unsigned b=row[x*3], g=row[x*3+1], r=row[x*3+2];
             dst[y*DR_PHOTO_W+x]=(uint16_t)(0x8000 | (r>>3) | ((g>>3)<<5) | ((b>>3)<<10));
