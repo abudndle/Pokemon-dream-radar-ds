@@ -21,7 +21,9 @@ assert struct.unpack_from("<HHHHHH", data, 8 + 4 * 6) == (0, 1, 2, 0, 2, 3)
 for bad in ("f 1 2 3", "v nan 0 0\nf 1 1 1",
             "v 8 0 0\nv 0 0 0\nv 0 1 0\nf 1 2 3",
             "v 0 0 0\nv 1 0 0\nv 0 1 0\nf 1 2 2",
-            "v 0 0 0\nv 1 0 0\nv 0 1 0\nf 0 2 3"):
+            "v 0 0 0\nv 1 0 0\nv 0 1 0\nf 0 2 3",
+            "v 0 0 0\nv 1 0 0\nv 2 0 0\nf 1 2 3",
+            "v 0 0 0\nv 0.00001 0 0\nv 0 0.00001 0\nf 1 2 3"):
     try:
         convert(bad)
     except ValueError:
