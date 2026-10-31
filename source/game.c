@@ -479,6 +479,8 @@ static int item_available_slot(const Game *g, int item) {
 void game_capture(Game *g) {
     /* All capture entry points must enforce the active encounter timer. */
     if(!g || g->screen!=STATE_SPHERE || g->capture_timeout<=0)return;
+    /* Only defined Pokemon (0) and item (1) encounter types award rewards. */
+    if(g->session_type!=0 && g->session_type!=1)return;
     /* Simulator results never take a research slot. */
     if(g->session_type!=1 &&
        g->ext_selection>=EXT_SIM_TORNADUS && g->ext_selection<=EXT_SIM_LANDORUS) {
