@@ -503,7 +503,12 @@ void game_tick(Game *g) {
         if (g->freeze_frames>0) g->freeze_frames--;
         if (g->slow_frames>0) g->slow_frames--;
         if (!frozen_this_frame && (!slowed_this_frame || g->save.frames_played%3==0)) {
-            g->sphere_x+=g->sphere_vx;g->sphere_y+=g->sphere_vy;
+            /* Use wide intermediates: malformed velocities must never trigger
+               signed overflow before the viewport clamp. */
+            int64_t nx=(int64_t)g->sphere_x+g->sphere_vx;
+            int64_t ny=(int64_t)g->sphere_y+g->sphere_vy;
+            g->sphere_x=nx<20?20:nx>236?236:(int)nx;
+            g->sphere_y=ny<30?30:ny>164?164:(int)ny;
             /* Keep the target inside the actual DS capture viewport. Previously
                reversing velocity alone let it draw outside the touch area. */
             if (g->sphere_x<20) { g->sphere_x=20; if(g->sphere_vx<0) g->sphere_vx=-g->sphere_vx; }
