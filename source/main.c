@@ -284,6 +284,17 @@ static void draw_original_encounter_art(void) {
         draw_sprite(top,art,px-(int)sprites[art].w/2,py-(int)sprites[art].h/2);
     else draw_sprite(top,S_ORB,px-29,py-29);
 }
+static void draw_hostile_projectile(void) {
+    if(!game.projectile_active)return;
+    int x=game.projectile_x-game.aim_x+128;
+    int y=game.projectile_y-game.aim_y+96;
+    /* A small ring distinguishes incoming energy from the Pokémon sphere.
+       Actual 3DS attack effects/particles still need asset-backed animation. */
+    if(x<7 || x>248 || y<7 || y>184)return;
+    rect(top,x-5,y-5,11,11,0x801F);
+    border(top,x-6,y-6,13,13,WHITE);
+    rect(top,x-2,y-2,5,5,0xFC1F);
+}
 static void glyph(u16 *v, int x,int y,char c,u16 color) {
     int ch=(unsigned char)c;if(ch<32 || ch>=128)ch='?';
     for(int row=0;row<8;row++){
@@ -699,6 +710,7 @@ static void render(void) {
                  * A centered shot now matches game_fire() in both modes. */
                 draw_original_encounter_art();
             }
+            draw_hostile_projectile();
             progress_bar(9,4,181,game.capture_hp,240,GOLD);
             char tx[32];snprintf(tx,sizeof tx,"%d",game.capture_timeout/60);
             rect(top,199,2,55,18,0x8421);
