@@ -177,6 +177,20 @@ static void draw_sprite(u16 *v,int id,int x,int y) {
         }
     }
 }
+/* Source-authentic 3DS thumbnail fallback until real geometry has been
+   imported and optimized for the DS GPU. Keep both camera paths identical. */
+static void draw_original_encounter_art(void) {
+    int art=-1;
+    if(game.session_type==0 && game.session_species>=0 && game.session_species<26)
+        art=S_ORIGINAL_POKEMON_FIRST+game.session_species;
+    else if(game.session_type==1 && game.session_item>=0 && game.session_item<23)
+        art=S_ORIGINAL_ITEM_FIRST+game.session_item;
+    int px=game.sphere_x-game.aim_x+128;
+    int py=game.sphere_y-game.aim_y+96;
+    if(art>=0 && art<(int)(sizeof sprites/sizeof sprites[0]) && sprites[art].pixels)
+        draw_sprite(top,art,px-(int)sprites[art].w/2,py-(int)sprites[art].h/2);
+    else draw_sprite(top,S_ORB,px-29,py-29);
+}
 static void glyph(u16 *v, int x,int y,char c,u16 color) {
     int ch=(unsigned char)c;if(ch<32 || ch>=128)ch='?';
     for(int row=0;row<8;row++){
@@ -572,38 +586,14 @@ static void render(void) {
                 /* DS and camera-disabled DSi retain the same camera-free aiming
                  * perspective during the capture encounter. */
                 render_ds_search_sandbox(0);
-                /* Until genuine optimized 3D models are available,
-                   display the extracted species/item art rather than a
-                   generic placeholder target. */
-                int art=-1;
-                if(game.session_type==0 && game.session_species>=0 && game.session_species<26)
-                    art=S_ORIGINAL_POKEMON_FIRST+game.session_species;
-                else if(game.session_type==1 && game.session_item>=0 && game.session_item<23)
-                    art=S_ORIGINAL_ITEM_FIRST+game.session_item;
-                int px=game.sphere_x-game.aim_x+128;
-                int py=game.sphere_y-game.aim_y+96;
-                if(art>=0 && sprites[art].pixels)
-                    draw_sprite(top,art,px-(int)sprites[art].w/2,py-(int)sprites[art].h/2);
-                else draw_sprite(top,S_ORB,px-29,py-29);
+                draw_original_encounter_art();
                 /* Draw sight after the orb so the target cannot hide the crosshair. */
                 draw_sprite(top,S_RETICLE,112,80);
             } else {
                 render_camera_background();
                 /* Use the same world-to-view transform as cloud hunting.
                  * A centered shot now matches game_fire() in both modes. */
-                /* Until genuine optimized 3D models are available,
-                   display the extracted species/item art rather than a
-                   generic placeholder target. */
-                int art=-1;
-                if(game.session_type==0 && game.session_species>=0 && game.session_species<26)
-                    art=S_ORIGINAL_POKEMON_FIRST+game.session_species;
-                else if(game.session_type==1 && game.session_item>=0 && game.session_item<23)
-                    art=S_ORIGINAL_ITEM_FIRST+game.session_item;
-                int px=game.sphere_x-game.aim_x+128;
-                int py=game.sphere_y-game.aim_y+96;
-                if(art>=0 && sprites[art].pixels)
-                    draw_sprite(top,art,px-(int)sprites[art].w/2,py-(int)sprites[art].h/2);
-                else draw_sprite(top,S_ORB,px-29,py-29);
+                draw_original_encounter_art();
             }
             progress_bar(9,4,181,game.capture_hp,240,GOLD);
             char tx[32];snprintf(tx,sizeof tx,"%d",game.capture_timeout/60);
