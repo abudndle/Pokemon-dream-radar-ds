@@ -1,3 +1,39 @@
+## Verified original Dream Radar LZH8 -> DARC decoding
+
+**The original `.carc` files are Nintendo LZH8, not the low-endian LZ40
+scheme.** The same initial `0x40` byte identifies a different compression
+family with 9-bit literal/match Huffman symbols and 5-bit displacement-length
+Huffman symbols. The old LZ40 and coding-table notes below document historical
+investigations; they are superseded by this verified result. See
+[hcs64's public-domain LZH8 format documentation](https://github.com/hcs64/vgm_ripping/blob/master/decompression/lzh8_cmpdec/lzh8_dec.c).
+
+The portable Python tool `tools/decode_ncch_lzh8.py` was tested against the
+user-provided decrypted Pokémon Dream Radar NCCH: **all 177 of 177 CARCs decoded
+to valid `darc` containers with exactly matching declared DARC file sizes**
+(37,077,312 decoded bytes in total). The original models/textures inside
+those containers have **not** yet been interpreted or integrated into the
+Nintendo DS executable.
+
+To inventory **only filenames, compressed sizes and decoded sizes**, without
+extracting or uploading any original asset data:
+
+```sh
+python3 tools/decode_ncch_lzh8.py /private/game.ncch /private/lzh8_inventory.json
+```
+
+For your **own private/local extraction**, explicitly opt in to writing
+decompressed DARC containers:
+
+```sh
+python3 tools/decode_ncch_lzh8.py /private/game.ncch /private/lzh8_inventory.json \
+  --extract-dir /private/dream_radar_darc
+```
+
+Do not commit the original NCCH, private decoded DARC data, or extracted game
+graphics/models to the public GitHub repository. CI tests use a wholly
+synthetic Huffman-coded example and regression-test the overlapping
+backreference behavior that previously caused apparently truncated archives.
+
 ## CARC coding-table header investigation
 
 The original game's 177 CARC archives have a common `0x40` initial byte.
