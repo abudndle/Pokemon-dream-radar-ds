@@ -8,10 +8,12 @@ int dr_support_at(int x,int y) {
     if(x<0||x>255||y<0||y>191)return -1;
     for(int i=0;i<3;i++) {
         int sx,sy;dr_support_center(i,&sx,&sy);
-        /* Diamond-shaped support controls, now picked through the same
-           shared runtime geometry as other DS menus. */
-        const int quad[8]={sx,sy-39,sx+44,sy,sx,sy+39,sx-44,sy};
-        if(dr_quad_hit(quad,x,y))return i;
+        /* Use a shared quad as a broad-phase bound, then keep the original
+           eight-sided support hit region exactly (not a narrower diamond). */
+        const int quad[8]={sx-44,sy-39,sx+44,sy-39,sx+44,sy+39,sx-44,sy+39};
+        if(!dr_quad_hit(quad,x,y))continue;
+        int dx=x>sx?x-sx:sx-x,dy=y>sy?y-sy:sy-y;
+        if(2*dx+dy<=105)return i;
     }
     return -1;
 }
