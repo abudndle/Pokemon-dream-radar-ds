@@ -14,7 +14,7 @@ The source-of-truth checklist is [`feature_parity.json`](feature_parity.json), c
 | Pink/green/orange/blue Dream Orb cycle | partial | The four unlockable colors cycle in the radar HUD; hits record one batch color. Flying individual Orbs and split-chain timing remain unfinished. |
 | Color-influenced next-search Pokémon encounter selection | partial | Dominant color persists between scans and filters the original 15 normal species by documented color affinity. Exact weighted encounter rates remain unverified. |
 | Timed sphere chase and beam capture | partial | Timed movement, aim, HP and result handling work; original attack patterns differ. |
-| Original sphere projectile/penalty attacks | unimplemented | The original sphere's projectiles and hit-time penalties are not replicated. |
+| Original sphere projectile/penalty attacks | partial | DS/DSi sphere fights launch incoming energy balls that can be dodged or destroyed by shooting; hit penalties are bounded and provisional, and original per-species patterns/effects are missing. |
 | Beam, Energy and Visoscope upgrades | host tested | Five levels and Dream Orb costs tested; original animation/effects not exact. |
 | Vortex, Dragnet and Energy Recharge | host tested | Encounter-local effects and inventory enforcement tested; visuals not authentic. |
 | All 17 research/simulator/secret Extension menu entries | partial | Extension enums, gates and prices implemented; original encounter tables pending. |
