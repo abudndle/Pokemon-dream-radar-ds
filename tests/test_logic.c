@@ -17,6 +17,12 @@ int main(void) {
     Game g;game_new(&g,0xf00d);
     assert(g.save.upgrades[0]==1 && g.save.cloud_count==5);
     assert(!game_buy(NULL,0,0));
+    game_secret_key(NULL,0);
+    g.cheat_progress[0]=999;
+    g.cheat_progress[1]=-5;
+    game_secret_key(&g,12345);
+    assert(g.cheat_progress[0]==0 && g.cheat_progress[1]==0);
+
     g.save.orbs=1000;
     g.save.upgrades[0]=0;
     assert(!game_buy(&g,0,0) && g.save.orbs==1000);
