@@ -329,8 +329,9 @@ static void start_sphere(Game *g) {
 /* Support effects belong to gameplay state, never the renderer. A failed
    activation must not consume inventory or trigger a save. */
 int game_use_support(Game *g, int slot) {
-    if (!g || g->screen != STATE_SPHERE || slot < 0 || slot >= 3 ||
-        g->save.goods[slot] == 0 || g->save.goods[slot] > 9) return 0;
+    if (!g || g->screen != STATE_SPHERE || g->capture_timeout <= 0 ||
+        slot < 0 || slot >= 3 || g->save.goods[slot] == 0 ||
+        g->save.goods[slot] > 9) return 0;
     /* Do not consume another effect item while its full effect is active. */
     if (slot == 0) {
         if (g->freeze_frames >= 300) return 0;
