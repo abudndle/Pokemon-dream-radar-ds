@@ -20,6 +20,16 @@ int main(void) {
     game_fire(&g);
     assert(g.cloud_hit==2 && g.screen==STATE_RESULTS);
     assert(g.save.searches==1);
+    /* A corrupt nearly-overflowed hit counter must saturate safely. */
+    game_new(&g,321);
+    game_begin_search(&g,EXT_BASIC);
+    g.active_clouds=1;
+    g.cloud_hit=2147483647;
+    g.clouds[0].alive=1;g.clouds[0].kind=0;
+    g.clouds[0].x=128;g.clouds[0].y=90;
+    g.aim_x=128;g.aim_y=90;
+    game_fire(&g);
+    assert(g.cloud_hit==2147483647 && g.screen==STATE_RESULTS);
     /* No ghost rewards after the completed search. */
     uint32_t orbs=g.save.orbs;
     game_fire(&g);
