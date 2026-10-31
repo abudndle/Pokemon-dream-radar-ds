@@ -133,7 +133,8 @@ int game_save(Game *g, const char *file) {
 void game_regen_clouds(Game *g, uint32_t now) {
     if (!g) return;
     if (!g->save.last_cloud_time) {
-        /* Persist the initial anchor so a restart does not reset recharge. */
+        /* Persist the initial anchor so a restart does not reset recharge.
+           A zero clock reading cannot establish a usable anchor. */
         if (now) { g->save.last_cloud_time=now; g->requested_save=1; }
         return;
     }
