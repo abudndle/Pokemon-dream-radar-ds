@@ -64,6 +64,11 @@ int dr_photo_read(const char *filename,uint16_t *dst,size_t count) {
     if(actual!=(long)(54+DR_PHOTO_W*DR_PHOTO_H*3))goto done;
     if(fseek(f,54,SEEK_SET)!=0)goto done;
     unsigned char row[DR_PHOTO_W*3];
+    /* Preflight the complete pixel payload before writing into the display
+       buffer, so a mid-file read error cannot leave a half-decoded image. */
+    for(int y=0;y<DR_PHOTO_H;y++)
+        if(fread(row,1,sizeof row,f)!=sizeof row)goto done;
+    if(fseek(f,54,SEEK_SET)!=0)goto done;
     for(int y=DR_PHOTO_H-1;y>=0;y--) {
         if(fread(row,1,sizeof row,f)!=sizeof row)goto done;
         for(int x=0;x<DR_PHOTO_W;x++) {
