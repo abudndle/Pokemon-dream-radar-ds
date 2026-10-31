@@ -76,7 +76,8 @@ int main(void) {
        than replacing them with a smaller four-point diamond. */
     assert(dr_support_at(67+40,101+20)==0);
     assert(dr_support_at(67+44,101+17)==0);
-    assert(dr_support_at(67+44,101+18)==-1);
+    /* This point falls outside pad 0 but inside overlapping pad 2. */
+    assert(dr_support_at(67+44,101+18)==2);
     /* Every point in the original support region should remain selectable
        after the quadrilateral broad-phase integration. */
     for(int k=0;k<3;k++) {
