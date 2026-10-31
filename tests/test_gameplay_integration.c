@@ -7,7 +7,7 @@ int main(void) {
     Game g;
     game_new(&g, 12345);
     g.screen=STATE_RADAR;
-    g.ext_selection=EXT_RETRIEVAL;
+    g.ext_selection=EXT_DOWSING;
     g.active_clouds=1;
     g.cloud_hit=0;
     g.clouds[0].alive=1;
