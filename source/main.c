@@ -128,38 +128,50 @@ static const char *sprite_files[]={"logo.spr","cloud.spr","cloud_yellow.spr","re
     "item_16.spr","item_17.spr","item_18.spr","item_19.spr","item_20.spr","item_21.spr","item_22.spr","radar_cloud_white.spr","radar_cloud_pink.spr"};
 static const u16 WHITE=0xFFFF, AQUA=0xFEE0, CYAN=0xF7C0, PINK=0xFC1F, GOLD=0x83FF, DARK=0x8000, GRAY=0xBDEF;
 
-static void load_sprite(int id) {
-    char path[128]; snprintf(path,sizeof path,"nitro:/%s",sprite_files[id]);
-    FILE *f=fopen(path,"rb");if(!f)return;
-    Sprite *s=&sprites[id];
-    if(fread(&s->w,2,1,f)!=1 || fread(&s->h,2,1,f)!=1) {fclose(f);return;}
-    if(!s->w || !s->h || s->w>256 || s->h>192) {fclose(f);s->w=0;s->h=0;return;}
-    /* Validate the complete file before allocating. NitroFS sprites use a
-       four-byte geometry header followed by exactly w*h RGB555 pixels. */
-    size_t payload=(size_t)s->w*(size_t)s->h*2u;
-    if(fseek(f,0,SEEK_END)!=0 || ftell(f)!=(long)(4u+payload) ||
-       fseek(f,4,SEEK_SET)!=0) {
-        fclose(f);s->w=0;s->h=0;return;
+/* Read a complete validated RGB555 sprite before modifying its cache entry.
+ * Private removable-storage overrides fail closed to the NitroFS original. */
+static int load_sprite_from_path(int id,const char *path) {
+    FILE *f=fopen(path,"rb");
+    if(!f)return 0;
+    u16 w=0,h=0;
+    int valid=fread(&w,2,1,f)==1 && fread(&h,2,1,f)==1 &&
+              w>0 && h>0 && w<=256 && h<=192;
+    size_t payload=valid?(size_t)w*(size_t)h*2u:0;
+    if(valid && (fseek(f,0,SEEK_END)!=0 ||
+                 ftell(f)!=(long)(4u+payload) ||
+                 fseek(f,4,SEEK_SET)!=0))valid=0;
+    u16 *pixels=NULL;
+    if(valid) {
+        pixels=malloc(payload);
+        if(!pixels || fread(pixels,1,payload,f)!=payload)valid=0;
     }
-    s->pixels=malloc(payload);
-    if(!s->pixels || fread(s->pixels,1,payload,f)!=payload) {
-        free(s->pixels);s->pixels=NULL;s->w=0;s->h=0;
-    } else {
-        /* The original sprite converter uses zero for transparency and
-           bit 15 for visible RGB555 pixels. Reject other values and
-           entirely invisible files rather than silently showing garbage. */
-        int visible=0,valid=1;
-        size_t pixels=payload/2u;
-        for(size_t i=0;i<pixels;i++) {
-            u16 pixel=s->pixels[i];
+    if(fclose(f)!=0)valid=0;
+    if(valid) {
+        int visible=0;
+        for(size_t i=0;i<payload/2u;i++) {
+            u16 pixel=pixels[i];
             if(pixel & 0x8000u)visible=1;
             else if(pixel!=0){valid=0;break;}
         }
-        if(!visible || !valid) {
-            free(s->pixels);s->pixels=NULL;s->w=0;s->h=0;
-        }
+        if(!visible)valid=0;
     }
-    fclose(f);
+    if(!valid){free(pixels);return 0;}
+    Sprite *sprite=&sprites[id];
+    free(sprite->pixels);
+    sprite->w=w;sprite->h=h;sprite->pixels=pixels;
+    return 1;
+}
+static void load_sprite(int id) {
+    char path[128];
+    /* User-supplied converted BCLIM art is never bundled in the public ROM.
+       Only whitelisted sprite filenames are searched on mounted storage. */
+    if(have_storage && storage_root) {
+        int n=snprintf(path,sizeof path,"%sDreamRadarDSi/Sprites/%s",
+                       storage_root,sprite_files[id]);
+        if(n>0 && n<(int)sizeof path && load_sprite_from_path(id,path))return;
+    }
+    int n=snprintf(path,sizeof path,"nitro:/%s",sprite_files[id]);
+    if(n>0 && n<(int)sizeof path)load_sprite_from_path(id,path);
 }
 static void cache_backgrounds(void) {
     if(!have_romfs)return;
