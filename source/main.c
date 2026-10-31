@@ -54,6 +54,8 @@ static int have_storage, have_romfs, camera_busy, camera_frames, photo_index;
 static int running_dsi, camera_failed_this_run;
 static const char *storage_root;
 static char export_dir[64];
+static char photo_dir[96];
+static int photo_storage_ready;
 static int album_slot=-1, album_loaded;
 static u8 old_samples[32*24], now_samples[32*24];
 static int old_sample_valid;
@@ -811,17 +813,18 @@ static void update_camera(void) {
     }
 }
 static int save_photo(void) {
-    if(!have_storage || !game.camera_ok || camera_frames<1)return 0;
-    return dr_photo_save_new(EXPORT_DIR, &photo_index,
+    if(!photo_storage_ready || !running_dsi || !game.camera_ok || camera_frames<1)return 0;
+    return dr_photo_save_new(photo_dir, &photo_index,
                              camera_last_frame, PIXELS);
 }
 static void album_select(int direction) {
     int slot=-1;
     /* Direction 0 means rescan from the start; otherwise wrap from current. */
     int from=direction==0?-1:album_slot;
-    if(dr_photo_find(EXPORT_DIR,from,direction<0?-1:1,&slot)) {
+    if(photo_storage_ready &&
+       dr_photo_find(photo_dir,from,direction<0?-1:1,&slot)) {
         char path[128];
-        snprintf(path,sizeof path,"%s/photo_%03d.bmp",EXPORT_DIR,slot);
+        snprintf(path,sizeof path,"%s/photo_%03d.bmp",photo_dir,slot);
         if(dr_photo_read(path,camera_last_frame,PIXELS)) {
             album_slot=slot;album_loaded=1;return;
         }
@@ -1187,7 +1190,17 @@ running_dsi=isDSiMode();
             if(dr_storage_ready(alternate))storage_root=alternate;
         }
         have_storage=storage_root!=NULL;
-        if(have_storage)snprintf(export_dir,sizeof export_dir,"%sDreamRadarDSi",storage_root);
+        if(have_storage) {
+            snprintf(export_dir,sizeof export_dir,"%sDreamRadarDSi",storage_root);
+            /* Camera photos belong on the actual DSi SD card, in their own
+               folder; never save pictures to a retail-game cartridge. */
+            if(running_dsi && strcmp(storage_root,"sd:/")==0 &&
+               snprintf(photo_dir,sizeof photo_dir,"%s/Photos",export_dir)<(int)sizeof photo_dir) {
+                struct stat st;
+                photo_storage_ready=mkdir(photo_dir,0777)==0 ||
+                    (stat(photo_dir,&st)==0 && S_ISDIR(st.st_mode));
+            }
+        }
     }
     if(have_storage && argc>0 && argv && argv[0] &&
        strncmp(argv[0],storage_root,strlen(storage_root))==0){
