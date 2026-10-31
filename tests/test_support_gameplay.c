@@ -36,6 +36,35 @@ static void test_effect_reuse(void) {
 }
 int main(void) {
     test_effect_reuse();
+    /* Overlapping supports preserve all five seconds of Dragnet movement
+       slowdown, regardless of activation order. Encounter time still passes. */
+    for(int first=0;first<2;first++) {
+        Game overlap;game_new(&overlap,42);
+        overlap.screen=STATE_SPHERE;
+        overlap.capture_timeout=120*60;
+        overlap.sphere_x=128;overlap.sphere_y=96;
+        overlap.sphere_vx=1;overlap.sphere_vy=0;
+        overlap.save.goods[0]=1;overlap.save.goods[1]=1;
+        assert(game_use_support(&overlap,first));
+        assert(game_use_support(&overlap,1-first));
+        overlap.requested_save=0;
+        for(int i=0;i<300;i++) {
+            game_tick(&overlap);
+            assert(overlap.sphere_x==128 && overlap.sphere_y==96);
+            assert(overlap.slow_frames==300);
+        }
+        assert(overlap.freeze_frames==0 && overlap.capture_timeout==6900);
+        assert(!overlap.requested_save);
+        int moves=0;
+        for(int i=0;i<300;i++) {
+            int previous=overlap.sphere_x;
+            game_tick(&overlap);
+            if(overlap.sphere_x!=previous)moves++;
+        }
+        assert(moves==100);
+        assert(overlap.slow_frames==0 && overlap.capture_timeout==6600);
+        assert(overlap.save.goods[0]==0 && overlap.save.goods[1]==0);
+    }
     Game g; game_new(&g, 42);
     g.save.goods[0]=1; g.save.goods[1]=1; g.save.goods[2]=1;
     assert(!game_use_support(&g,0));

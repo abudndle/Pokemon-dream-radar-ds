@@ -684,9 +684,10 @@ static void render(void) {
                 draw_original_encounter_art();
             }
             progress_bar(9,4,181,game.capture_hp,240,GOLD);
-            char tx[32];snprintf(tx,sizeof tx,"%d",game.capture_timeout/60);
+            char tx[32];dr_capture_timer_label(&game,tx,sizeof tx);
             rect(top,199,2,55,18,0x8421);
-            print(top,213,7,WHITE,tx);
+            print(top,226-(int)strlen(tx)*3,7,
+                  game.capture_timeout<=10*60?PINK:WHITE,tx);
             if(running_dsi && game.camera_active && game.camera_ok)
                 draw_sprite(top,S_RETICLE,112,80);
         }

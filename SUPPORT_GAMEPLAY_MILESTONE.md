@@ -1,5 +1,18 @@
 # Support item gameplay consistency milestone
 
+## Overlapping effects and capture timer follow-up
+
+Dragnet's remaining slowdown frames are now held while Vortex freezes movement,
+including the final frozen frame. The HUD shows `HOLD` for that paused countdown;
+encounter time still decreases on every tick. Regression tests cover both charge
+activation orders, 300 frozen frames followed by 300 slowed frames, exactly 100
+slowed movement ticks, and unchanged charge quantities after activation.
+
+The capture HUD rounds partial seconds up instead of displaying zero while the
+encounter is still active, marks the last ten seconds in pink, and fits saturated
+timer values in the existing panel. These prototype rules preserve original art
+and do not establish fidelity to the original game's support timing.
+
 The capture UI now calls `game_use_support()` rather than mutating inventory and effect timers directly. The shared game logic validates the current encounter screen, inventory quantity, and item index; applies freeze/slow effects (300 frames) or a +25-second timer extension; decrements exactly one item only on successful use; and flags save persistence. The timer extension saturates safely rather than overflowing.
 
 A new host regression test validates invalid calls, empty quantities, effect timers, save flags, and timer overflow protection.

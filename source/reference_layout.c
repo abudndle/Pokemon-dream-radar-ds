@@ -8,9 +8,17 @@ void dr_support_label(const Game *g,int slot,char *text,size_t size) {
         /* Round up without overflowing; bound the label for damaged state. */
         int seconds=frames/60+(frames%60!=0);
         if(seconds>99)seconds=99;
-        snprintf(text,size,"ON %ds",seconds);
+        snprintf(text,size,"%s %ds",slot==1 && g->freeze_frames>0?"HOLD":"ON",seconds);
     } else snprintf(text,size,"%s",status==SUPPORT_READY?"READY":
                     status==SUPPORT_EMPTY?"EMPTY":"WAIT");
+}
+void dr_capture_timer_label(const Game *g,char *text,size_t size) {
+    if(!text || !size)return;
+    int frames=g && g->capture_timeout>0?g->capture_timeout:0;
+    int seconds=frames/60+(frames%60!=0);
+    /* Stay inside the 55-pixel timer panel even with a saturated timer. */
+    if(seconds>9999)snprintf(text,size,"9999s+");
+    else snprintf(text,size,"%ds",seconds);
 }
 void dr_support_center(int index,int *x,int *y) {
     static const int cx[3]={67,190,128},cy[3]={101,101,151};

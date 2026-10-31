@@ -631,7 +631,9 @@ void game_tick(Game *g) {
         int frozen_this_frame = g->freeze_frames > 0;
         int slowed_this_frame = g->slow_frames > 0;
         if (g->freeze_frames>0) g->freeze_frames--;
-        if (g->slow_frames>0) g->slow_frames--;
+        /* Freeze already prevents all movement. Preserve Dragnet's remaining
+           duration until the frozen frame ends instead of wasting it. */
+        if (g->slow_frames>0 && !frozen_this_frame) g->slow_frames--;
         if (!frozen_this_frame && (!slowed_this_frame || g->save.frames_played%3==0)) {
             /* Use wide intermediates: malformed velocities must never trigger
                signed overflow before the viewport clamp. */
