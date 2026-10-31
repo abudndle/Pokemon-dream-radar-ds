@@ -256,9 +256,11 @@ static void render_search_bottom(void) {
     if(game.screen==STATE_RADAR) {
         int white=0,pink=0;
         dr_radar_counts(&game,&white,&pink);
-        snprintf(text,sizeof text,"W:%d P:%d",white,pink);
         rect(bottom,98,4,103,16,0x8000);
-        print(bottom,108,8,PINK,text);
+        snprintf(text,sizeof text,"W:%d",white);
+        print(bottom,103,8,WHITE,text);
+        snprintf(text,sizeof text,"P:%d",pink);
+        print(bottom,151,8,PINK,text);
     }
     rect(bottom,207,4,45,16,0x8000);
     snprintf(text,sizeof text,"%lu",(unsigned long)game.save.orbs);
