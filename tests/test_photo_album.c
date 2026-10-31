@@ -25,6 +25,13 @@ int main(void) {
     int next=0, found=-1;
     assert(!dr_photo_find("",-1,1,&found));
     assert(!dr_photo_find(dir,-1,1,&found));
+    /* Starting the album with Previous must select the final numbered
+       slot, rather than skipping it because there is no current photo. */
+    char last_path[256];
+    snprintf(last_path,sizeof last_path,"%s/photo_%03d.bmp",dir,DR_PHOTO_MAX-1);
+    assert(dr_photo_write(last_path,src,DR_PHOTO_W*DR_PHOTO_H));
+    assert(dr_photo_find(dir,-1,-1,&found) && found==DR_PHOTO_MAX-1);
+    assert(unlink(last_path)==0);
     assert(dr_photo_save_new(dir,&next,src,DR_PHOTO_W*DR_PHOTO_H) && next==1);
     assert(dr_photo_find(dir,-1,1,&found) && found==0);
     /* Album discovery must reject a malformed pixel payload size even when
