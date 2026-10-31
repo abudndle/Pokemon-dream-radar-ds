@@ -68,6 +68,8 @@ typedef struct {
     int projectile_cooldown, projectile_lifetime, projectile_hits;
     int aim_x, aim_y, freeze_frames, slow_frames, active_clouds, cloud_hit;
     int session_orbs, session_caught, session_type, session_species, session_item;
+    /* Runtime-only: preserve unfinished radar entities across sphere results. */
+    int radar_resume_pending, search_counted;
     uint16_t session_color_counts[ORB_COLOR_COUNT];
     uint8_t search_orb_color; /* saved dominant color at search start */
     DreamOrb dream_orbs[MAX_DREAM_ORBS];
@@ -101,6 +103,9 @@ int game_active_dream_orbs(const Game *g);
 const char *game_orb_color_name(OrbColor color);
 /* End active radar/capture session safely when Back is pressed. */
 int game_leave_search(Game *g);
+/* Resume after an intermediate result or explicitly abandon remaining clouds. */
+int game_resume_radar(Game *g);
+int game_finish_pending_radar(Game *g);
 int game_buy(Game *g, int kind, int idx);
 void game_capture(Game *g);
 /* Full queue: choose one occupied slot, or decline; never auto-overwrite. */
