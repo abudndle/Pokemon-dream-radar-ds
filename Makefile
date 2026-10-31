@@ -37,6 +37,7 @@ burnet-tips:
 
 test-syntax:
 	$(HOSTCC) -std=gnu11 -Wall -Wextra -Werror -fsyntax-only -Isource -Itests/host_nds source/main.c
+	$(HOSTCC) -std=gnu11 -Wall -Wextra -Werror -DDR_DS_ONLY -fsyntax-only -Isource -Itests/host_nds source/main.c
 
 build-all:
 	sh scripts/build_both.sh
