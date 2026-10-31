@@ -15,6 +15,19 @@ int main(void){
     assert(m.vertices==3 && m.triangles==1);
     assert(m.vertex[1].x==4096 && m.vertex[2].y==4096);
     assert(m.triangle[0].c==2);
+    /* Repeated successful decodes replace existing allocations, while a
+       malformed replacement leaves the original model intact. */
+    DrMeshVertex *previous=m.vertex;
+    assert(dr_mesh_decode(triangle,sizeof triangle,&m));
+    assert(m.vertices==3 && m.triangles==1);
+    assert(m.vertex[1].x==4096 && m.triangle[0].c==2);
+    unsigned char invalid_replacement[sizeof triangle];
+    memcpy(invalid_replacement,triangle,sizeof triangle);
+    invalid_replacement[0]='X';
+    DrMeshVertex *retained=m.vertex;
+    assert(!dr_mesh_decode(invalid_replacement,sizeof invalid_replacement,&m));
+    assert(m.vertex==retained && m.vertex[1].x==4096);
+    (void)previous;
     int x=-1,y=-1;
     assert(dr_mesh_project_vertex(&m.vertex[0],128,96,32,&x,&y) && x==128 && y==96);
     assert(dr_mesh_project_vertex(&m.vertex[1],128,96,32,&x,&y) && x==160 && y==96);
