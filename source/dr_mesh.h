@@ -38,8 +38,10 @@ int dr_mesh_wireframe(const DrMesh *mesh,uint16_t *pixels,int width,int height,
  * nothing. Does not implement original 3DS skeletal or texture animation. */
 int dr_mesh_wireframe_yaw(const DrMesh *mesh,uint16_t *pixels,int width,int height,
                           int cx,int cy,int scale,uint16_t color,unsigned yaw_step);
-/* Flat-color software triangle fill for a caller-owned RGB555 framebuffer.
- * Bounded to DS screen size; no textures or depth sorting yet. */
+/* Flat-color software triangle fill, with per-pixel 16-bit depth testing,
+ * low-cost depth-based brightness, and clipping to the DS viewport.
+ * Uses independent reusable 96 KiB scratch, not a per-frame allocation.
+ * Does not replace the separate optional DRT1 texture renderer. */
 int dr_mesh_solid_yaw(const DrMesh *mesh,uint16_t *pixels,int width,int height,
                       int cx,int cy,int scale,uint16_t color,unsigned yaw_step);
 #endif
