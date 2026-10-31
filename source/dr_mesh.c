@@ -125,20 +125,40 @@ int dr_mesh_project_vertex_yaw(const DrMeshVertex *v,int cx,int cy,int scale,
     return 1;
 }
 
-/* Bounded integer Bresenham rasterizer; clipped through guarded writes. */
+/* Clip projected lines to the DS viewport before rasterizing. Extreme Q12
+ * vertices can otherwise require millions of invisible Bresenham steps. */
+static unsigned mesh_outcode(int x,int y,int w,int h) {
+    return (x<0?1u:0u)|(x>=w?2u:0u)|(y<0?4u:0u)|(y>=h?8u:0u);
+}
 static void mesh_line(uint16_t *pixels,int w,int h,int x0,int y0,int x1,int y1,uint16_t color) {
-    /* A corrupt-but-structurally-valid DRM1 mesh can project far outside the
-     * viewport at scale 256. Clip first so Bresenham never iterates millions
-     * of offscreen pixels or overflows its signed error accumulator. */
-    if((x0<0 && x1<0) || (x0>=w && x1>=w) ||
-       (y0<0 && y1<0) || (y0>=h && y1>=h))return;
-    /* Coordinates can exceed 16-bit but stay below 2 million pixels.
-     * Use 64-bit arithmetic for the line error and step deltas. */
+    for(unsigned n=0;n<8;n++) {
+        unsigned a=mesh_outcode(x0,y0,w,h),b=mesh_outcode(x1,y1,w,h);
+        if(!(a|b))break;
+        if(a&b)return;
+        unsigned o=a?a:b;
+        int64_t nx,ny;
+        if(o&4u) {
+            ny=0;
+            nx=(int64_t)x0+((int64_t)x1-x0)*(ny-y0)/((int64_t)y1-y0);
+        } else if(o&8u) {
+            ny=h-1;
+            nx=(int64_t)x0+((int64_t)x1-x0)*(ny-y0)/((int64_t)y1-y0);
+        } else if(o&1u) {
+            nx=0;
+            ny=(int64_t)y0+((int64_t)y1-y0)*(nx-x0)/((int64_t)x1-x0);
+        } else {
+            nx=w-1;
+            ny=(int64_t)y0+((int64_t)y1-y0)*(nx-x0)/((int64_t)x1-x0);
+        }
+        if(o==a){x0=(int)nx;y0=(int)ny;}
+        else {x1=(int)nx;y1=(int)ny;}
+        if(n==7)return;
+    }
     int64_t dx=llabs((int64_t)x1-x0),dy=llabs((int64_t)y1-y0);
     int sx=x0<x1?1:-1,sy=y0<y1?1:-1;
     int64_t err=dx-dy;
     for(;;) {
-        if(x0>=0 && x0<w && y0>=0 && y0<h)pixels[(size_t)y0*w+x0]=color;
+        pixels[(size_t)y0*w+x0]=color;
         if(x0==x1 && y0==y1)break;
         int64_t twice=2*err;
         if(twice>-dy){err-=dy;x0+=sx;}
