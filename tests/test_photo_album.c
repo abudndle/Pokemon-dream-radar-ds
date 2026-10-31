@@ -27,6 +27,24 @@ int main(void) {
     assert(!dr_photo_find(dir,-1,1,&found));
     assert(dr_photo_save_new(dir,&next,src,DR_PHOTO_W*DR_PHOTO_H) && next==1);
     assert(dr_photo_find(dir,-1,1,&found) && found==0);
+    /* Album discovery must reject a malformed pixel payload size even when
+       the BMP header otherwise looks correct. */
+    char probe[256];snprintf(probe,sizeof probe,"%s/photo_000.bmp",dir);
+    FILE *probe_file=fopen(probe,"r+b");assert(probe_file);
+    assert(fseek(probe_file,34,SEEK_SET)==0);
+    assert(fputc(0,probe_file)!=EOF);
+    assert(fclose(probe_file)==0);
+    assert(!dr_photo_find(dir,-1,1,&found));
+    probe_file=fopen(probe,"r+b");assert(probe_file);
+    assert(fseek(probe_file,34,SEEK_SET)==0);
+    unsigned char image_size[4]={
+        (unsigned char)((DR_PHOTO_W*DR_PHOTO_H*3)&255),
+        (unsigned char)(((DR_PHOTO_W*DR_PHOTO_H*3)>>8)&255),
+        (unsigned char)(((DR_PHOTO_W*DR_PHOTO_H*3)>>16)&255),
+        (unsigned char)(((DR_PHOTO_W*DR_PHOTO_H*3)>>24)&255)};
+    assert(fwrite(image_size,1,4,probe_file)==4);
+    assert(fclose(probe_file)==0);
+    assert(dr_photo_find(dir,-1,1,&found) && found==0);
     char path[256];snprintf(path,sizeof path,"%s/photo_000.bmp",dir);
     assert(dr_photo_read(path,dst,DR_PHOTO_W*DR_PHOTO_H));
     for(size_t i=0;i<DR_PHOTO_W*DR_PHOTO_H;i++) {
