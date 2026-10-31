@@ -32,7 +32,8 @@ int main(void) {
     char probe[256];snprintf(probe,sizeof probe,"%s/photo_000.bmp",dir);
     FILE *probe_file=fopen(probe,"r+b");assert(probe_file);
     assert(fseek(probe_file,34,SEEK_SET)==0);
-    assert(fputc(0,probe_file)!=EOF);
+    /* Payload size is 147456 (low byte zero); flip it to an invalid one. */
+    assert(fputc(1,probe_file)!=EOF);
     assert(fclose(probe_file)==0);
     assert(!dr_photo_find(dir,-1,1,&found));
     probe_file=fopen(probe,"r+b");assert(probe_file);
