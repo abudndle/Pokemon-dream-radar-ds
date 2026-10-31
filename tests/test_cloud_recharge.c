@@ -78,6 +78,17 @@ int main(void) {
     game_regen_clouds(&g,UINT32_MAX);
     assert(g.save.cloud_count==2);
     assert(g.save.last_cloud_time==UINT32_MAX-1u);
+    /* Partial recharge intervals survive successive clock polls. */
+    game_new(&g,22);
+    g.save.cloud_count=0;g.save.last_cloud_time=1000;
+    game_regen_clouds(&g,1200);
+    assert(g.save.cloud_count==0 && g.save.last_cloud_time==1000);
+    game_regen_clouds(&g,1300);
+    assert(g.save.cloud_count==1 && g.save.last_cloud_time==1300);
+    game_regen_clouds(&g,1599);
+    assert(g.save.cloud_count==1 && g.save.last_cloud_time==1300);
+    game_regen_clouds(&g,1600);
+    assert(g.save.cloud_count==2 && g.save.last_cloud_time==1600);
     puts("PASS: recharge intervals, huge clock jumps, caps, clock rollback");
     return 0;
 }
