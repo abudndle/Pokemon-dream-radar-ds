@@ -4,6 +4,7 @@
 #include <stdio.h>
 int main(void) {
     game_fire(NULL); /* Invalid caller must not crash. */
+    game_tick(NULL); /* Invalid frame state must not crash. */
     Game g;
     game_new(&g,29);
     g.screen=STATE_SPHERE;
