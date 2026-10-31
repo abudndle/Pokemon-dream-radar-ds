@@ -602,6 +602,9 @@ static uint32_t pending_signature(const Game *g) {
 }
 int game_release_archived_pending(Game *g) {
     if(!g || g->save.pending_count>MAX_CAUGHT)return 0;
+    /* An archive signature must not authorize clearing data whose layout
+       no longer matches the current private-save item format. */
+    if(g->save.reserved[8]!=ITEM_LAYOUT_MARKER)return 0;
     for(int i=0;i<g->save.pending_count;i++)
         if(g->save.pending[i]>25)return 0;
     for(int i=0;i<MAX_ITEMS;i++)
