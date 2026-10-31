@@ -148,6 +148,19 @@ int game_save(Game *g, const char *file) {
        This preserves live state and avoids creating an empty file if
        snapshot preparation ever changes or fails in future. */
     SaveData snapshot=g->save;
+    /* Do not truncate a valid save with a runtime record the loader would
+       reject. Check the gameplay-critical bounded fields before fopen(). */
+    if(snapshot.pending_count>MAX_CAUGHT || snapshot.cloud_count>MAX_CLOUDS ||
+       snapshot.story_phase>3 || (snapshot.legends_caught & ~31u) ||
+       snapshot.reserved[8]!=ITEM_LAYOUT_MARKER)return 0;
+    for(int i=0;i<3;i++)
+        if(snapshot.upgrades[i]<1 || snapshot.upgrades[i]>5 ||
+           snapshot.goods[i]>9)return 0;
+    for(int i=0;i<snapshot.pending_count;i++)
+        if(snapshot.pending[i]>25)return 0;
+    for(int i=0;i<MAX_ITEMS;i++)
+        if(snapshot.reserved[2+i]<1 ||
+           snapshot.reserved[2+i]>RESEARCH_ITEM_TYPES)return 0;
     snapshot.checksum=game_checksum(&snapshot);
     FILE *f=fopen(file,"wb"); if (!f) return 0;
     int okay = fwrite(&snapshot,1,sizeof snapshot,f)==sizeof snapshot;
