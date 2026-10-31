@@ -25,6 +25,7 @@
 #include "burnet_tips_generated.h"
 #include "dr_mesh.h"
 #include "dr_texture.h"
+#include "dr_animation.h"
 
 #define SW 256
 #define SH 192
@@ -233,11 +234,15 @@ static void draw_sprite(u16 *v,int id,int x,int y) {
    Cache one species per encounter and preserve authentic 2D art fallback. */
 static DrMesh encounter_mesh;
 static DrTexture encounter_texture;
+static DrAnimation encounter_animation;
+static uint32_t encounter_animation_start;
 static int encounter_mesh_species=-1;
 static int encounter_mesh_attempted;
 static int draw_encounter_mesh(int species,int x,int y) {
     if(species<0 || species>=26 || (!have_storage && !have_romfs))return 0;
     if(species!=encounter_mesh_species) {
+        dr_animation_free(&encounter_animation);
+        encounter_animation_start=game.save.frames_played;
         dr_texture_free(&encounter_texture);
         dr_mesh_free(&encounter_mesh);
         encounter_mesh_species=species;
@@ -259,6 +264,11 @@ static int draw_encounter_mesh(int species,int x,int y) {
                            storage_root,species);
                 if(n>0 && n<(int)sizeof path)
                     dr_texture_load_file(path,&encounter_mesh,&encounter_texture);
+                n=snprintf(path,sizeof path,
+                           "%sDreamRadarDSi/Models/pokemon_%02d.dra",
+                           storage_root,species);
+                if(n>0 && n<(int)sizeof path)
+                    dr_animation_load_file(path,&encounter_mesh,&encounter_animation);
             }
         }
         /* A missing or invalid storage mesh may fall back to a model explicitly
@@ -271,6 +281,9 @@ static int draw_encounter_mesh(int species,int x,int y) {
                 n=snprintf(path,sizeof path,"nitro:/pokemon_%02d.drt",species);
                 if(n>0 && n<(int)sizeof path)
                     dr_texture_load_file(path,&encounter_mesh,&encounter_texture);
+                n=snprintf(path,sizeof path,"nitro:/pokemon_%02d.dra",species);
+                if(n>0 && n<(int)sizeof path)
+                    dr_animation_load_file(path,&encounter_mesh,&encounter_animation);
             }
         }
     }
@@ -279,12 +292,20 @@ static int draw_encounter_mesh(int species,int x,int y) {
        item sprites retain their existing fallback behavior. A full turn
        takes 192 frames; no original skeletal animation is implied. */
     unsigned yaw_step=(unsigned)((game.save.frames_played/12u)&15u);
-    /* Filled preview is intentionally flat-colored until original materials
-       can be converted; item encounters continue to use their 2D sprites. */
+    /* Apply optional DRA1 vertex keys to a borrowed scratch mesh. No
+       allocation happens per frame and the original vertices remain intact.
+       The animation affects either the textured or solid drawing path. */
+    const DrMesh *frame_mesh=&encounter_mesh;
+    if(encounter_animation.delta) {
+        const DrMesh *animated=dr_animation_frame(
+            &encounter_animation,&encounter_mesh,
+            (uint32_t)(game.save.frames_played-encounter_animation_start));
+        if(animated)frame_mesh=animated;
+    }
     if(encounter_texture.texels &&
-       dr_texture_render_yaw(&encounter_mesh,&encounter_texture,top,
+       dr_texture_render_yaw(frame_mesh,&encounter_texture,top,
                              SW,SH,x,y,24,yaw_step))return 1;
-    return dr_mesh_solid_yaw(&encounter_mesh,top,SW,SH,x,y,24,CYAN,yaw_step);
+    return dr_mesh_solid_yaw(frame_mesh,top,SW,SH,x,y,24,CYAN,yaw_step);
 }
 /* Source-authentic 3DS thumbnail fallback until real geometry has been
    imported and optimized for the DS GPU. Keep both camera paths identical. */
