@@ -133,6 +133,14 @@ int main(void) {
     shoot_cloud(&g,0);
     capture(&g);
     assert(g.radar_resume_pending && g.save.searches==1);
+    /* A rejected attempt to launch a different Extension must not lose the
+       uncollected clouds from the existing outing. */
+    game_begin_search(&g,EXT_DIALGA);
+    assert(g.screen==STATE_RESULTS && g.radar_resume_pending);
+    assert(g.clouds[1].alive && g.save.searches==1);
+    game_begin_search(&g,EXT_BASIC); /* No clouds in the recharge pool. */
+    assert(g.screen==STATE_RESULTS && g.radar_resume_pending);
+    assert(g.clouds[1].alive);
     g.save.cloud_count=1;
     game_begin_search(&g,EXT_BASIC);
     assert(g.screen==STATE_RADAR && !g.radar_resume_pending);
