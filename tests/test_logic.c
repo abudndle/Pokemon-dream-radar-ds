@@ -146,6 +146,7 @@ int main(void) {
     assert(game_load(&migrated,"/tmp/dream_radar_legacy_test.sav"));
     assert(migrated.save.reserved[8]==ITEM_LAYOUT_MARKER);
     assert(migrated.requested_save==1);
+    assert(migrated.save.checksum==game_checksum(&migrated.save));
     remove("/tmp/dream_radar_legacy_test.sav");
     other.save.magic=0;
     assert(other.save.checksum != game_checksum(&other.save));
@@ -168,6 +169,7 @@ int main(void) {
     assert(loaded_bg.save.reserved[11]==0);
     assert(loaded_bg.save.reserved[9]==0 && loaded_bg.save.reserved[10]==0);
     assert(loaded_bg.requested_save==1);
+    assert(loaded_bg.save.checksum==game_checksum(&loaded_bg.save));
     /* Corrupt optional artwork preference must not destroy real progress. */
     assert(loaded_bg.save.magic==SAVE_MAGIC);
     assert(loaded_bg.save.random_seed==backgrounds.save.random_seed);
