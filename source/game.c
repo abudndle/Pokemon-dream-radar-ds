@@ -281,6 +281,8 @@ static void start_sphere(Game *g) {
     g->sphere_x=105;g->sphere_y=90;
     g->sphere_vx=1+(rnd(g)%3);g->sphere_vy=1+(rnd(g)%2);
     g->capture_hp=0;
+    /* Start every capture with a fresh movement and support state. */
+    g->capture_timeout=g->capture_timeout<1?1:g->capture_timeout;
     /* Temporary support effects cannot carry over from another encounter. */
     g->freeze_frames=0;
     g->slow_frames=0;
