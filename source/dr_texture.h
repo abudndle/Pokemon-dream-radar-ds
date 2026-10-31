@@ -18,7 +18,9 @@ int dr_texture_decode(const unsigned char *bytes,size_t size,
 int dr_texture_load_file(const char *path,const DrMesh *mesh,DrTexture *out);
 void dr_texture_free(DrTexture *texture);
 /* Affine nearest-neighbor texture-mapped triangle preview, RGB555 opaque.
- * Painter's order only: no depth buffer, lighting, or skeletal animation.
+ * Reusable 16-bit depth buffer rejects hidden fragments regardless of
+ * triangle order, with quantization of approximately 2 Q12 depth units.
+ * Single-threaded only; no lighting or skeletal animation.
  * The caller owns the 256x192-or-smaller framebuffer. */
 int dr_texture_render_yaw(const DrMesh *mesh,const DrTexture *texture,
                           uint16_t *pixels,int width,int height,

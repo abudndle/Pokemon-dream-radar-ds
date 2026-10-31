@@ -4,6 +4,10 @@
 #include <string.h>
 
 #define DRT_MAX_DIM 64u
+/* 96 KiB of fixed, reusable depth scratch at full DS resolution. Smaller
+ * viewports clear only their active region. No per-frame allocation and
+ * no stack pressure on DS ARM9. Single-threaded renderer only. */
+static uint16_t depth_buffer[256u*192u];
 static unsigned read16(const unsigned char *p) {
     return (unsigned)p[0] | ((unsigned)p[1]<<8);
 }
@@ -97,13 +101,17 @@ int dr_texture_render_yaw(const DrMesh *mesh,const DrTexture *texture,
         if(t.a>=mesh->vertices || t.b>=mesh->vertices || t.c>=mesh->vertices)
             return 0;
     }
+    memset(depth_buffer,0,(size_t)width*height*sizeof *depth_buffer);
     for(unsigned i=0;i<mesh->triangles;i++){
         DrMeshTriangle t=mesh->triangle[i];
         unsigned index[3]={t.a,t.b,t.c};
-        int x[3],y[3];
-        for(int j=0;j<3;j++)
+        int x[3],y[3],z[3];
+        for(int j=0;j<3;j++){
             if(!dr_mesh_project_vertex_yaw(&mesh->vertex[index[j]],cx,cy,scale,
-                                           yaw_step,&x[j],&y[j]))return 0;
+                                           yaw_step,&x[j],&y[j]) ||
+               !dr_mesh_depth_vertex_yaw(&mesh->vertex[index[j]],yaw_step,
+                                         &z[j]))return 0;
+        }
         int minx=x[0],maxx=x[0],miny=y[0],maxy=y[0];
         for(int j=1;j<3;j++){
             if(x[j]<minx)minx=x[j];
@@ -125,6 +133,14 @@ int dr_texture_render_yaw(const DrMesh *mesh,const DrTexture *texture,
             int64_t w2=edge(x[0],y[0],x[1],y[1],px,py);
             if(area>0?(w0<0 || w1<0 || w2<0):
                       (w0>0 || w1>0 || w2>0))continue;
+            /* Q12 z for an orthographic camera interpolates linearly.
+             * Signed depth range fits [-46340,46340]; half-unit quantization
+             * plus offset makes all drawable depths positive uint16 values.
+             * Depth test before expensive UV division saves covered texels. */
+            int64_t zq12=(w0*z[0]+w1*z[1]+w2*z[2])/area;
+            uint16_t depth=(uint16_t)(32769+zq12/2);
+            size_t offset=(size_t)py*width+px;
+            if(depth<=depth_buffer[offset])continue;
             int64_t u=(w0*a.u+w1*b.u+w2*c.u)/area;
             int64_t v=(w0*a.v+w1*b.v+w2*c.v)/area;
             if(u<0)u=0;
@@ -133,7 +149,8 @@ int dr_texture_render_yaw(const DrMesh *mesh,const DrTexture *texture,
             if(v>4096)v=4096;
             unsigned tx=(unsigned)((u*(texture->width-1)+2048)/4096);
             unsigned ty=(unsigned)((v*(texture->height-1)+2048)/4096);
-            pixels[(size_t)py*width+px]=texture->texels[ty*texture->width+tx];
+            pixels[offset]=texture->texels[ty*texture->width+tx];
+            depth_buffer[offset]=depth;
         }
     }
     return 1;
