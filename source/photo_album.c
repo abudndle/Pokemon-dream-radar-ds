@@ -56,7 +56,12 @@ int dr_photo_read(const char *filename,uint16_t *dst,size_t count) {
        le16(head+26)!=1 || le16(head+28)!=24 ||
        le32(head+30)!=0 ||
        le32(head+34)!=DR_PHOTO_W*DR_PHOTO_H*3)goto done;
-    /* Reject truncated/corrupt photos rather than displaying stale pixels. */
+    /* Check the real file length before touching the destination buffer.
+       A truncated or oversized photo must leave the current image intact. */
+    if(fseek(f,0,SEEK_END)!=0)goto done;
+    long actual=ftell(f);
+    if(actual!=(long)(54+DR_PHOTO_W*DR_PHOTO_H*3))goto done;
+    if(fseek(f,54,SEEK_SET)!=0)goto done;
     unsigned char row[DR_PHOTO_W*3];
     for(int y=DR_PHOTO_H-1;y>=0;y--) {
         if(fread(row,1,sizeof row,f)!=sizeof row)goto done;
