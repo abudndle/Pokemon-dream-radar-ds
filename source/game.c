@@ -389,7 +389,7 @@ void game_fire(Game *g) {
             g->save.total_orbs=add_orbs_saturating(g->save.total_orbs,(uint32_t)reward);
             g->requested_save=1;
             if (g->cloud_hit >= g->active_clouds) {
-                g->save.searches++;
+                if(g->save.searches<UINT32_MAX)g->save.searches++;
                 g->screen=STATE_RESULTS;
                 g->requested_save=1;
             }
