@@ -191,6 +191,7 @@ void game_set_cart(Game *g, CartGame cart) {
     game_set_cart_source(g,cart,CART_SOURCE_SLOT1);
 }
 int game_extension_price(int ext) {
+    if (ext<0 || ext>=EXT_COUNT) return -1;
     if (ext==EXT_RETRIEVAL || ext==EXT_DOWSING) return 100;
     if (ext >= EXT_SIM_TORNADUS && ext <= EXT_SIM_LANDORUS) return 400+(ext-EXT_SIM_TORNADUS)*200;
     return 0;
