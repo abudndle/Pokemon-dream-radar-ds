@@ -27,6 +27,7 @@
 #include "dr_texture.h"
 #include "dr_animation.h"
 #include "dr_parts.h"
+#include "dr_skin.h"
 
 #define SW 256
 #define SH 192
@@ -237,12 +238,14 @@ static DrMesh encounter_mesh;
 static DrTexture encounter_texture;
 static DrAnimation encounter_animation;
 static DrParts encounter_parts;
+static DrSkin encounter_skin;
 static uint32_t encounter_animation_start;
 static int encounter_mesh_species=-1;
 static int encounter_mesh_attempted;
 static int draw_encounter_mesh(int species,int x,int y) {
     if(species<0 || species>=26 || (!have_storage && !have_romfs))return 0;
     if(species!=encounter_mesh_species) {
+        dr_skin_free(&encounter_skin);
         dr_parts_free(&encounter_parts);
         dr_animation_free(&encounter_animation);
         encounter_animation_start=game.save.frames_played;
@@ -268,18 +271,25 @@ static int draw_encounter_mesh(int species,int x,int y) {
                 if(n>0 && n<(int)sizeof path)
                     dr_texture_load_file(path,&encounter_mesh,&encounter_texture);
                 n=snprintf(path,sizeof path,
-                           "%sDreamRadarDSi/Models/pokemon_%02d.drb",
+                           "%sDreamRadarDSi/Models/pokemon_%02d.drk",
                            storage_root,species);
                 if(n>0 && n<(int)sizeof path)
-                    dr_parts_load_file(path,&encounter_mesh,&encounter_parts);
-                /* Do not allocate redundant DRA1 keys when a DRB1
-                   animation already controls this encounter's model. */
-                if(!encounter_parts.owner) {
+                    dr_skin_load_file(path,&encounter_mesh,&encounter_skin);
+                /* A valid weighted skeleton is preferred. Avoid loading
+                   redundant fallback animations into scarce DS RAM. */
+                if(!encounter_skin.bone) {
                     n=snprintf(path,sizeof path,
-                               "%sDreamRadarDSi/Models/pokemon_%02d.dra",
+                               "%sDreamRadarDSi/Models/pokemon_%02d.drb",
                                storage_root,species);
                     if(n>0 && n<(int)sizeof path)
-                        dr_animation_load_file(path,&encounter_mesh,&encounter_animation);
+                        dr_parts_load_file(path,&encounter_mesh,&encounter_parts);
+                    if(!encounter_parts.owner) {
+                        n=snprintf(path,sizeof path,
+                                   "%sDreamRadarDSi/Models/pokemon_%02d.dra",
+                                   storage_root,species);
+                        if(n>0 && n<(int)sizeof path)
+                            dr_animation_load_file(path,&encounter_mesh,&encounter_animation);
+                    }
                 }
             }
         }
@@ -293,13 +303,18 @@ static int draw_encounter_mesh(int species,int x,int y) {
                 n=snprintf(path,sizeof path,"nitro:/pokemon_%02d.drt",species);
                 if(n>0 && n<(int)sizeof path)
                     dr_texture_load_file(path,&encounter_mesh,&encounter_texture);
-                n=snprintf(path,sizeof path,"nitro:/pokemon_%02d.drb",species);
+                n=snprintf(path,sizeof path,"nitro:/pokemon_%02d.drk",species);
                 if(n>0 && n<(int)sizeof path)
-                    dr_parts_load_file(path,&encounter_mesh,&encounter_parts);
-                if(!encounter_parts.owner) {
-                    n=snprintf(path,sizeof path,"nitro:/pokemon_%02d.dra",species);
+                    dr_skin_load_file(path,&encounter_mesh,&encounter_skin);
+                if(!encounter_skin.bone) {
+                    n=snprintf(path,sizeof path,"nitro:/pokemon_%02d.drb",species);
                     if(n>0 && n<(int)sizeof path)
-                        dr_animation_load_file(path,&encounter_mesh,&encounter_animation);
+                        dr_parts_load_file(path,&encounter_mesh,&encounter_parts);
+                    if(!encounter_parts.owner) {
+                        n=snprintf(path,sizeof path,"nitro:/pokemon_%02d.dra",species);
+                        if(n>0 && n<(int)sizeof path)
+                            dr_animation_load_file(path,&encounter_mesh,&encounter_animation);
+                    }
                 }
             }
         }
@@ -309,12 +324,16 @@ static int draw_encounter_mesh(int species,int x,int y) {
        item sprites retain their existing fallback behavior. A full turn
        takes 192 frames; no original skeletal animation is implied. */
     unsigned yaw_step=(unsigned)((game.save.frames_played/12u)&15u);
-    /* DRB1 rigid body-part motion takes priority over DRA1 per-vertex
-       animation when both are supplied. Neither path mutates the base mesh.
-       Missing/invalid sidecars leave the familiar static rotation intact. */
+    /* Playback preference: DRK1 weighted bone hierarchy, DRB1 rigid part
+       motion, DRA1 vertex keys, and finally plain model yaw. All animated
+       meshes borrow original triangles/UV indices and allocate no frame RAM. */
     const DrMesh *frame_mesh=&encounter_mesh;
     uint32_t motion_tick=(uint32_t)(game.save.frames_played-encounter_animation_start);
-    if(encounter_parts.owner) {
+    if(encounter_skin.bone) {
+        const DrMesh *animated=dr_skin_frame(&encounter_skin,&encounter_mesh,
+                                              motion_tick);
+        if(animated)frame_mesh=animated;
+    } else if(encounter_parts.owner) {
         const DrMesh *animated=dr_parts_frame(&encounter_parts,&encounter_mesh,
                                                motion_tick);
         if(animated)frame_mesh=animated;
