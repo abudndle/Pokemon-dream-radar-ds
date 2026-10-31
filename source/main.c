@@ -784,9 +784,12 @@ static void render(void) {
             snprintf(line,sizeof line,"PHOTO %03d",placeholder_preview_slot);
         else snprintf(line,sizeof line,"NO VALID PHOTO");
         print(bottom,10,105,CYAN,line);
-        print(bottom,10,126,WHITE,"LEFT/RIGHT: CHOOSE PHOTO");
-        print(bottom,10,139,WHITE,"A: USE SELECTED PHOTO");
-        print(bottom,10,152,WHITE,"SELECT: ORIGINAL BACKGROUND");
+        print(bottom,10,116,WHITE,game.save.camera_enabled ?
+              "CAMERA ON: LIVE VIEW HAS PRIORITY" :
+              "CAMERA OFF: PHOTO MODE ACTIVE");
+        print(bottom,10,128,WHITE,"LEFT/RIGHT: BROWSE   A: USE");
+        print(bottom,10,141,WHITE,"X: CAMERA ON/OFF");
+        print(bottom,10,154,WHITE,"SELECT: BUILT-IN BACKGROUND");
         print(bottom,10,177,GRAY,"B: BACK TO OPTIONS");
         break;
     }
@@ -1205,6 +1208,13 @@ static void handle_key(int keys,int down,touchPosition *touch) {
         return;
     }
     if(game.screen==STATE_PLACEHOLDER) {
+        if(down&KEY_X) {
+            game.save.camera_enabled=!game.save.camera_enabled;
+            game.requested_save=1;
+            snprintf(game.message,sizeof game.message,game.save.camera_enabled ?
+                     "DSi camera enabled." : "Camera off: using custom image if selected.");
+            game.messages=120;
+        }
         if(down&(KEY_LEFT|KEY_RIGHT)) {
             int slot=-1;
             int direction=(down&KEY_RIGHT)?1:-1;
