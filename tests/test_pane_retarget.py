@@ -12,6 +12,7 @@ with tempfile.TemporaryDirectory() as d:
     assert len(data["layouts"])==22
     for layout in data["layouts"]:
         assert layout["target_size"]==[256,192]
+        assert pathlib.Path(layout["source_path"]).name==layout["source"]
         w,h=layout["source_size"]
         assert layout["scale"]==[256/w,192/h]
         def verify(p):
@@ -19,6 +20,7 @@ with tempfile.TemporaryDirectory() as d:
             assert isinstance(p["origin"],int) and 0<=p["origin"]<=255
             assert isinstance(p["alpha"],int) and 0<=p["alpha"]<=255
             assert len(p["rotation"])==3 and len(p["scale"])==2
+            assert isinstance(p["translation_z"],(int,float))
             assert len(p["translation_ds"])==2
             assert len(p["size_ds"])==2
             for c in p["children"]:verify(c)
