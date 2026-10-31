@@ -140,12 +140,16 @@ void game_regen_clouds(Game *g, uint32_t now) {
     if (now < g->save.last_cloud_time) { // reset after clock adjustment; do not award clouds
         g->save.last_cloud_time=now;g->requested_save=1;return;
     }
+    /* A malformed upgrade value must not create an impossible reservoir. */
+    uint32_t upgrade=g->save.upgrades[2];
+    if(upgrade<1u)upgrade=1u;
+    if(upgrade>5u)upgrade=5u;
     uint32_t elapsed = now - g->save.last_cloud_time;
     uint32_t steps = elapsed / 300u;
     if (steps > 0) {
         /* Keep elapsed intervals unsigned: large clock jumps must not
            overflow a signed int or reduce the accumulated cloud count. */
-        uint32_t capacity = 5u*((uint32_t)g->save.upgrades[2]+1u);
+        uint32_t capacity = 5u*(upgrade+1u);
         if (capacity > MAX_CLOUDS) capacity = MAX_CLOUDS;
         uint32_t count = (uint32_t)g->save.cloud_count;
         if (count > capacity) count = capacity;
