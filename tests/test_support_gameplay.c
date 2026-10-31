@@ -8,6 +8,10 @@ int main(void) {
     assert(!game_use_support(&g,0));
     assert(g.save.goods[0]==1 && !g.requested_save);
     g.screen=STATE_SPHERE;
+    g.save.goods[0]=255;
+    assert(!game_use_support(&g,0));
+    assert(g.save.goods[0]==255 && g.freeze_frames==0 && !g.requested_save);
+    g.save.goods[0]=1;
     assert(!game_use_support(&g,-1));
     assert(!game_use_support(&g,3));
     assert(game_use_support(&g,0));
