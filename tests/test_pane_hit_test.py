@@ -20,6 +20,12 @@ assert not pane_hit({"effective_visible":True},20,20)
 assert not pane_hit({"effective_visible":True,"world_bounds_ds":[0,0,50,50]},20,20)
 assert not pane_hit({"effective_visible":True,"world_bounds_ds":[0,0,50,50],"world_corners_ds":[[0,0],[50,"bad"],[0,50],[50,50]]},20,20)
 assert not pane_hit(pane(square["world_corners_ds"],False),20,20)
+transparent=pane(square["world_corners_ds"])
+transparent["effective_alpha"]=0
+assert not pane_hit(transparent,20,20)
+transparent["effective_alpha"]=255
+assert pane_hit(transparent,20,20)
+
 # Diamond's bounding rectangle contains a large region outside its quad.
 diamond=pane([[100,70],[130,100],[70,100],[100,130]])
 assert pane_hit(diamond,100,100)
