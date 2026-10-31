@@ -53,6 +53,12 @@ int main(void) {
     g.aim_y=90;
     game_fire(&g);
     assert(g.clouds[0].alive && g.cloud_hit==0);
+    /* Both axes may contain extreme signed values in corrupt state.
+       Such clouds must be ignored rather than squared and selected. */
+    g.clouds[0].x=-2147483647;
+    g.clouds[0].y=2147483647;
+    game_fire(&g);
+    assert(g.clouds[0].alive && g.cloud_hit==0);
     puts("PASS: nearest overlapping cloud selected; search ends once");
     return 0;
 }
