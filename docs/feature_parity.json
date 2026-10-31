@@ -1,0 +1,338 @@
+{
+  "project": "Pokemon Dream Radar DS/DSi homebrew demake",
+  "scope": "Feature coverage audit; source presence and host tests do NOT establish original 3DS parity.",
+  "source_reference_urls": [
+    "https://www.pokemon.com/us/pokemon-video-games/pokemon-dream-radar/",
+    "https://www.nintendo.com/en-gb/Games/Nintendo-3DS-download-software/Pokemon-Dream-Radar-523679.html",
+    "https://bulbapedia.bulbagarden.net/wiki/Dream_Radar",
+    "https://www.smogon.com/ingame/guides/dream_radar"
+  ],
+  "status_meanings": {
+    "host_tested": "Current approximate gameplay logic has portable regression tests; original parity unverified.",
+    "partial": "Some DS behavior exists, but material original game behavior or presentation is missing.",
+    "investigation_only": "Private original format metadata has been mapped; runtime behavior missing.",
+    "unimplemented": "Original behavior is absent from the DS port.",
+    "hardware_limited": "Original hardware feature unavailable on DS/DSi without alternate design.",
+    "unverified": "No end-to-end validation yet."
+  },
+  "features": [
+    {
+      "id": "title_navigation",
+      "feature": "Title, intro and research lab navigation",
+      "status": "partial",
+      "gap": "Screens and D-pad/touch routing implemented; not frame-perfect.",
+      "evidence": [
+        "source/main.c"
+      ]
+    },
+    {
+      "id": "professor_burnet",
+      "feature": "Professor Burnet story and tutorials",
+      "status": "partial",
+      "gap": "Dialogue and tips exist; exact original scene sequencing not independently verified.",
+      "evidence": [
+        "source/main.c",
+        "source/story_dialogue.h"
+      ]
+    },
+    {
+      "id": "dream_clouds",
+      "feature": "Dream Cloud generation and shooting",
+      "status": "partial",
+      "gap": "Cloud hit detection and recharge work; original distribution and pacing not fully matched.",
+      "evidence": [
+        "source/game.c"
+      ]
+    },
+    {
+      "id": "aiming_controls",
+      "feature": "Aim/beam input and capture",
+      "status": "partial",
+      "gap": "Stylus/D-pad/A inputs work; original gyroscopic aiming is absent.",
+      "evidence": [
+        "source/main.c",
+        "source/game.c"
+      ]
+    },
+    {
+      "id": "orb_currency",
+      "feature": "Dream Orb currency and purchases",
+      "status": "host_tested",
+      "gap": "Overflow-safe counters and shop pricing tested; exact color-dependent logic missing.",
+      "evidence": [
+        "source/game.c"
+      ]
+    },
+    {
+      "id": "orb_colors",
+      "feature": "Pink/green/orange/blue Dream Orb cycle",
+      "status": "unimplemented",
+      "gap": "Original per-search color count and color-cycle UI are absent.",
+      "evidence": []
+    },
+    {
+      "id": "color_encounter_bias",
+      "feature": "Color-influenced next-search Pokémon encounter selection",
+      "status": "unimplemented",
+      "gap": "Current selection uses provisional encounter pools, not original per-color weighting.",
+      "evidence": []
+    },
+    {
+      "id": "sphere_capture",
+      "feature": "Timed sphere chase and beam capture",
+      "status": "partial",
+      "gap": "Timed movement, aim, HP and result handling work; original attack patterns differ.",
+      "evidence": [
+        "source/game.c"
+      ]
+    },
+    {
+      "id": "sphere_projectiles",
+      "feature": "Original sphere projectile/penalty attacks",
+      "status": "unimplemented",
+      "gap": "The original sphere's projectiles and hit-time penalties are not replicated.",
+      "evidence": []
+    },
+    {
+      "id": "three_equipment_upgrades",
+      "feature": "Beam, Energy and Visoscope upgrades",
+      "status": "host_tested",
+      "gap": "Five levels and Dream Orb costs tested; original animation/effects not exact.",
+      "evidence": [
+        "source/game.c"
+      ]
+    },
+    {
+      "id": "three_support_items",
+      "feature": "Vortex, Dragnet and Energy Recharge",
+      "status": "host_tested",
+      "gap": "Encounter-local effects and inventory enforcement tested; visuals not authentic.",
+      "evidence": [
+        "source/game.c"
+      ]
+    },
+    {
+      "id": "extensions",
+      "feature": "All 17 research/simulator/secret Extension menu entries",
+      "status": "partial",
+      "gap": "Extension enums, gates and prices implemented; original encounter tables pending.",
+      "evidence": [
+        "source/game.h",
+        "source/game.c"
+      ]
+    },
+    {
+      "id": "retrieval_dowsing",
+      "feature": "Retrieval favors Pokémon; Dowsing favors items",
+      "status": "host_tested",
+      "gap": "Opposing bias implemented and tested; numerical odds are provisional.",
+      "evidence": [
+        "source/game.c",
+        "tests/test_encounter_types.c"
+      ]
+    },
+    {
+      "id": "simulator_item_rewards",
+      "feature": "Simulator α/β/γ award their special item pools",
+      "status": "host_tested",
+      "gap": "Six-item original pool identities, storage and cancellation tested; odds unverified.",
+      "evidence": [
+        "source/game.c",
+        "tests/test_simulator_item_rewards.c"
+      ]
+    },
+    {
+      "id": "legendary_story",
+      "feature": "Therian Tornadus, Thundurus and Landorus story",
+      "status": "partial",
+      "gap": "Unlock phases and basic legendary capture work; effects/forms not fully reproduced.",
+      "evidence": [
+        "source/game.c"
+      ]
+    },
+    {
+      "id": "generation4_cartridges",
+      "feature": "Diamond/Pearl/Platinum/HeartGold/SoulSilver special bosses",
+      "status": "partial",
+      "gap": "DS cart game-code detection and legendary Extension gating exist; full transfer behavior absent.",
+      "evidence": [
+        "source/game.c",
+        "source/main.c"
+      ]
+    },
+    {
+      "id": "secret_extensions",
+      "feature": "Beldum, Slowpoke, Hoothoot secret codes",
+      "status": "partial",
+      "gap": "International button sequences accepted; regional variants and repeat-use parity need review.",
+      "evidence": [
+        "source/game.c"
+      ]
+    },
+    {
+      "id": "pokemon_roster",
+      "feature": "All original obtainable Pokémon and encounter probabilities",
+      "status": "partial",
+      "gap": "26 named species supported, but spawn tables and form presentation are provisional.",
+      "evidence": [
+        "source/game.c"
+      ]
+    },
+    {
+      "id": "item_roster",
+      "feature": "All original item names and drops",
+      "status": "partial",
+      "gap": "23 extracted English names supported, but drop tables are not proven original.",
+      "evidence": [
+        "source/item_catalog_generated.h",
+        "source/game.c"
+      ]
+    },
+    {
+      "id": "research_storage",
+      "feature": "Six Pokémon slots and six item stacks with replacement",
+      "status": "host_tested",
+      "gap": "Portable storage/replacement tested; original separate legendary priority remains missing.",
+      "evidence": [
+        "source/game.h",
+        "source/game.c"
+      ]
+    },
+    {
+      "id": "legendary_transfer_priority",
+      "feature": "Separate special legendary row and priority on transfer",
+      "status": "unimplemented",
+      "gap": "Homebrew queue uses six ordinary Pokémon slots instead of original transfer ordering.",
+      "evidence": []
+    },
+    {
+      "id": "private_saves",
+      "feature": "Durable homebrew save/restore and recovery",
+      "status": "host_tested",
+      "gap": "Private save version/checksum and recovery tests; never equate with retail save data.",
+      "evidence": [
+        "source/game.c",
+        "source/save_backend.c"
+      ]
+    },
+    {
+      "id": "nds_controls",
+      "feature": "Nintendo DS dual-screen and tactile/touch navigation",
+      "status": "partial",
+      "gap": "Main controls and hitboxes exist; exact original touch layout is not proven.",
+      "evidence": [
+        "source/main.c"
+      ]
+    },
+    {
+      "id": "dsi_camera",
+      "feature": "DSi outer camera live preview and optional album",
+      "status": "partial",
+      "gap": "DSi camera API and fallback present; real DSi gameplay boot testing still pending.",
+      "evidence": [
+        "source/main.c"
+      ]
+    },
+    {
+      "id": "original_gyro_motion",
+      "feature": "Original 3DS gyroscope aiming",
+      "status": "hardware_limited",
+      "gap": "DS/DSi has no built-in 3DS gyroscope; needs explicitly designed alternative.",
+      "evidence": []
+    },
+    {
+      "id": "original_stereo3d",
+      "feature": "Original stereoscopic 3DS rendering",
+      "status": "hardware_limited",
+      "gap": "Nintendo DS/DSi has no autostereoscopic 3D display; 2D adaptation only.",
+      "evidence": []
+    },
+    {
+      "id": "bclim_images",
+      "feature": "Original BCLIM graphics mapped to DS assets",
+      "status": "partial",
+      "gap": "Conversion and SD override exist; wholesale original UI integration is incomplete.",
+      "evidence": [
+        "tools/convert_bclim_spr.py",
+        "source/main.c"
+      ]
+    },
+    {
+      "id": "bclyt_layouts",
+      "feature": "Original BCLYT screen positions and pane hierarchy",
+      "status": "investigation_only",
+      "gap": "135 original layouts inventoried; runtime compositor retargeting not integrated.",
+      "evidence": [
+        "tools/map_original_ui_layouts.py"
+      ]
+    },
+    {
+      "id": "bclan_keyframes",
+      "feature": "Original BCLAN animation keyframes and playback",
+      "status": "investigation_only",
+      "gap": "Clip lengths and loop flags identified; actual keyframe decoding and rendering pending.",
+      "evidence": [
+        "tools/map_original_ui_layouts.py"
+      ]
+    },
+    {
+      "id": "original_3d_models",
+      "feature": "Original Pokémon 3D geometry and animations",
+      "status": "partial",
+      "gap": "Optional converted DRM1 wireframes work; authentic original rigs/textures not integrated.",
+      "evidence": [
+        "source/dr_mesh.c",
+        "source/main.c"
+      ]
+    },
+    {
+      "id": "original_sounds",
+      "feature": "Original music, sound effects and timing",
+      "status": "unimplemented",
+      "gap": "No verified original 3DS audio conversion and playback across scenes.",
+      "evidence": []
+    },
+    {
+      "id": "black2_white2_transfer",
+      "feature": "Real Black 2/White 2 Nintendo 3DS Link transfers",
+      "status": "unimplemented",
+      "gap": "Only a safe text archive is exported; no retail transfer, save injection or handshake.",
+      "evidence": [
+        "source/game.c",
+        "source/main.c"
+      ]
+    },
+    {
+      "id": "unova_link_receive",
+      "feature": "Unova Link receiving Pokémon/items into Black 2/White 2",
+      "status": "unimplemented",
+      "gap": "No compatible send/receive implementation or save-verified integration.",
+      "evidence": []
+    },
+    {
+      "id": "hidden_abilities",
+      "feature": "Original hidden-ability and badge-dependent levels",
+      "status": "unimplemented",
+      "gap": "Without genuine Pokémon transfer payloads these properties are not delivered.",
+      "evidence": []
+    },
+    {
+      "id": "original_localization",
+      "feature": "Original complete language selection and translated UI",
+      "status": "partial",
+      "gap": "Extracted localized assets exist; complete in-game per-language switching is absent.",
+      "evidence": [
+        "source/main.c"
+      ]
+    },
+    {
+      "id": "device_and_emulator_tests",
+      "feature": "Boot, input, performance, save tests on DS/DSi and emulator",
+      "status": "unverified",
+      "gap": "CI compiles ROMs and runs portable tests; reliable end-to-end gameplay test still pending.",
+      "evidence": [
+        "Makefile"
+      ]
+    }
+  ]
+}
