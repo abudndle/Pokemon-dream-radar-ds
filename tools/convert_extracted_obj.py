@@ -49,6 +49,14 @@ def convert(text, max_triangles=MAX_TRIANGLES):
                 tri = (indices[0], indices[k], indices[k + 1])
                 if len(set(tri)) != 3:
                     raise ValueError(f"Line {lineno}: degenerate index triangle")
+                a, b, c = (vertices[i] for i in tri)
+                ab = tuple(b[j] - a[j] for j in range(3))
+                ac = tuple(c[j] - a[j] for j in range(3))
+                cross = (ab[1]*ac[2]-ab[2]*ac[1],
+                         ab[2]*ac[0]-ab[0]*ac[2],
+                         ab[0]*ac[1]-ab[1]*ac[0])
+                if cross == (0, 0, 0):
+                    raise ValueError(f"Line {lineno}: zero-area quantized triangle")
                 faces.append(tri)
                 if len(faces) > max_triangles:
                     raise ValueError("Triangle budget exceeded")
