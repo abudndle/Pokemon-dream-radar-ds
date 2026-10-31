@@ -221,11 +221,15 @@ int dr_mesh_solid_yaw(const DrMesh *mesh,uint16_t *pixels,int width,int height,
                                            yaw_step,&x[j],&y[j]))return 0;
         int minx=x[0],maxx=x[0],miny=y[0],maxy=y[0];
         for(int j=1;j<3;j++){
-            if(x[j]<minx)minx=x[j];if(x[j]>maxx)maxx=x[j];
-            if(y[j]<miny)miny=y[j];if(y[j]>maxy)maxy=y[j];
+            if(x[j]<minx)minx=x[j];
+            if(x[j]>maxx)maxx=x[j];
+            if(y[j]<miny)miny=y[j];
+            if(y[j]>maxy)maxy=y[j];
         }
-        if(minx<0)minx=0;if(miny<0)miny=0;
-        if(maxx>=width)maxx=width-1;if(maxy>=height)maxy=height-1;
+        if(minx<0)minx=0;
+        if(miny<0)miny=0;
+        if(maxx>=width)maxx=width-1;
+        if(maxy>=height)maxy=height-1;
         int64_t area=mesh_edge(x[0],y[0],x[1],y[1],x[2],y[2]);
         if(!area || minx>maxx || miny>maxy)continue;
         for(int py=miny;py<=maxy;py++)for(int px=minx;px<=maxx;px++){
