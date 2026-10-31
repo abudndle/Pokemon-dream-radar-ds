@@ -20,16 +20,8 @@ jobs:
       - name: Compile both targets in BlocksDS image
         run: |
           docker run --rm -v "$PWD:/workspace" -w /workspace \
-            skylyrac/blocksds:slim-latest sh -eu -c '
-              for platform in ds dsi; do
-                # Rebuild ARM9 objects for each platform; DS and DSi use different defines/specs.
-                rm -rf build
-                make "PLATFORM=$platform" check-sdk
-                make "PLATFORM=$platform" -j2
-                rom="dream_radar_${platform}.nds"
-                test -s "$rom"
-              done
-            '
+            -e SKIP_HOST_TESTS=1 -e SKIP_ROM_CHECK=1 \
+            skylyrac/blocksds:slim-latest sh scripts/build_both.sh
       - name: Validate DS and DSi ROMs on Ubuntu
         run: |
           python3 scripts/check_nds.py dream_radar_ds.nds
