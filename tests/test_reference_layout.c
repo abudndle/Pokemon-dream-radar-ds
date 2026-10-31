@@ -85,6 +85,14 @@ int main(void) {
     assert(dr_transfer_button_at(246,157)==-1);
     assert(dr_transfer_button_at(119,189)==0);
     assert(dr_transfer_button_at(245,189)==1);
+    /* All twelve research transfer slots preserve edge and gap behavior. */
+    for(int i=0;i<12;i++) {
+        int x,y,w,h;
+        dr_transfer_slot_rect(i,&x,&y,&w,&h);
+        assert(dr_transfer_slot_at(x,y)==i);
+        assert(dr_transfer_slot_at(x+w-1,y+h-1)==i);
+        assert(dr_transfer_slot_at(x+w,y)==-1);
+    }
     assert(dr_transfer_button_at(27,171)==0);
     assert(dr_transfer_button_at(188,171)==1);
     assert(dr_transfer_button_at(125,20)==-1);
