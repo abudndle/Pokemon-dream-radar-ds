@@ -64,7 +64,7 @@ def convert(layout):
         # geometry, because a hidden in-bounds node must not receive input.
         flag_visible=bool(pane["flags"] & 1)
         effective_visible=visible and flag_visible and parent_visible
-        effective_alpha=round(parent_alpha*pane["alpha"]/255)
+        effective_alpha=(parent_alpha*pane["alpha"]+127)//255
         effective_visible=effective_visible and effective_alpha>0
         return {
             "flag_visible": flag_visible,
