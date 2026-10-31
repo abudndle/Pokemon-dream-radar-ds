@@ -1,3 +1,28 @@
+## Support effect feedback milestone
+
+The original support-item controls now show inventory, availability, and a live
+freeze/slow countdown. Active effects cannot consume another charge until they
+expire; tapping an unavailable control explains why. See
+`SUPPORT_GAMEPLAY_MILESTONE.md` for behavior and validation. The unified ROM
+build and container checks pass; emulator/hardware behavior remains unverified.
+
+## Capture timing and original layout validation
+
+Overlapping Vortex and Dragnet charges now preserve Dragnet's remaining duration
+while Vortex freezes the target. Its support countdown shows `HOLD` until movement
+can resume. Encounter time continues to pass normally. The capture timer rounds
+up partial seconds, highlights the last ten seconds, and bounds large labels to
+the existing panel. These are prototype usability rules, not verified original
+game timing.
+
+The original UI audit now decodes bundled CLYT files and compares their pane
+hierarchies and section counts with the extracted snapshot. Malformed files or
+snapshot mismatches fail the audit; missing sources remain reported separately.
+Only one of the 22 layout sources is bundled, and no BCLAN sources are bundled.
+Original artwork and extracted assets are unchanged. Host and syntax checks,
+BlocksDS compilation, and ROM structure validation passed locally; boot and
+interactive emulator/hardware behavior remain unverified.
+
 ## Gameplay integration: Pokémon capture and full storage
 
 ## Optional Pokémon models on SD / flashcart (development milestone)

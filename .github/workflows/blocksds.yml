@@ -1,6 +1,7 @@
 name: BlocksDS unified DS/DSi build
 on:
   workflow_dispatch:
+  pull_request:
   push:
     branches: [main]
 jobs:
@@ -40,7 +41,7 @@ jobs:
         run: |
           docker run --rm -v "$PWD:/workspace" -w /workspace \
             -e SKIP_HOST_TESTS=1 -e SKIP_ROM_CHECK=1 \
-            skylyrac/blocksds:slim-latest sh scripts/build_both.sh
+            skylyrac/blocksds@sha256:779f6193d1030c62e60d1f0f39c3e32cf4045c0bd224a45c0ceadf9d9ab01a51 sh scripts/build_both.sh
       - name: Validate unified ROM on Ubuntu
         run: |
           python3 scripts/check_nds.py dream_radar.nds

@@ -4,6 +4,9 @@
 /* DS-scaled touch geometry from the player's original Dream Radar captures. */
 void dr_support_center(int index, int *x, int *y); /* Same coordinates for rendering and touch */
 int dr_support_at(int x, int y); /* 0=blue, 1=green, 2=orange, -1=none */
+/* Compact HUD status fits within the original support hexagons. */
+void dr_support_label(const Game *g,int slot,char *text,size_t size);
+void dr_capture_timer_label(const Game *g,char *text,size_t size);
 int dr_transfer_button_at(int x, int y); /* 0=Archive, 1=Back, -1=none */
 void dr_transfer_slot_rect(int index,int *x,int *y,int *w,int *h);
 int dr_transfer_slot_at(int x, int y); /* Pokemon 0..5, items 6..11, -1=none */

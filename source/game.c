@@ -373,17 +373,33 @@ static void start_sphere(Game *g) {
 }
 /* Support effects belong to gameplay state, never the renderer. A failed
    activation must not consume inventory or trigger a save. */
+SupportStatus game_support_status(const Game *g, int slot) {
+    if (!g || slot < 0 || slot >= 3 || g->screen != STATE_SPHERE ||
+        g->capture_timeout <= 0) return SUPPORT_UNAVAILABLE;
+    /* Show ongoing effects even after the last charge has been spent. */
+    if ((slot == 0 && g->freeze_frames > 0) ||
+        (slot == 1 && g->slow_frames > 0)) return SUPPORT_ACTIVE;
+    if (g->save.goods[slot] == 0) return SUPPORT_EMPTY;
+    if (g->save.goods[slot] > 9 ||
+        (slot == 2 && g->capture_timeout == INT_MAX)) return SUPPORT_UNAVAILABLE;
+    return SUPPORT_READY;
+}
 int game_use_support(Game *g, int slot) {
-    if (!g || g->screen != STATE_SPHERE || g->capture_timeout <= 0 ||
-        slot < 0 || slot >= 3 || g->save.goods[slot] == 0 ||
-        g->save.goods[slot] > 9) return 0;
-    /* Do not consume another effect item while its full effect is active. */
+    if (!g || slot < 0 || slot >= 3) return 0;
+    SupportStatus status = game_support_status(g,slot);
+    if (status != SUPPORT_READY) {
+        if (status == SUPPORT_ACTIVE) msg(g,"This support effect is still active.");
+        else if (status == SUPPORT_EMPTY) msg(g,"No charges left. Restock in the Development Lab.");
+        else msg(g,"Support unavailable. Use it during an active encounter.");
+        return 0;
+    }
+    /* Preserve every remaining effect frame; never spend a charge refreshing. */
     if (slot == 0) {
-        if (g->freeze_frames >= 300) return 0;
         g->freeze_frames = 300;
+        msg(g,"Vortex Charge: target frozen for 5 seconds.");
     } else if (slot == 1) {
-        if (g->slow_frames >= 300) return 0;
         g->slow_frames = 300;
+        msg(g,"Dragnet Charge: target slowed for 5 seconds.");
     } else {
         /* Never spend an Energy Recharge if its timer cannot increase.
            Saturate the addition without overflowing signed arithmetic. */
@@ -391,6 +407,7 @@ int game_use_support(Game *g, int slot) {
         if (g->capture_timeout > 2147483647 - 1500)
             g->capture_timeout = 2147483647;
         else g->capture_timeout += 1500;
+        msg(g,"Energy Recharge: encounter time extended.");
     }
     g->save.goods[slot]--;
     g->requested_save = 1;
@@ -614,7 +631,9 @@ void game_tick(Game *g) {
         int frozen_this_frame = g->freeze_frames > 0;
         int slowed_this_frame = g->slow_frames > 0;
         if (g->freeze_frames>0) g->freeze_frames--;
-        if (g->slow_frames>0) g->slow_frames--;
+        /* Freeze already prevents all movement. Preserve Dragnet's remaining
+           duration until the frozen frame ends instead of wasting it. */
+        if (g->slow_frames>0 && !frozen_this_frame) g->slow_frames--;
         if (!frozen_this_frame && (!slowed_this_frame || g->save.frames_played%3==0)) {
             /* Use wide intermediates: malformed velocities must never trigger
                signed overflow before the viewport clamp. */

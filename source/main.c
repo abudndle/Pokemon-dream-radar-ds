@@ -406,6 +406,13 @@ static void render_search_bottom(void) {
         snprintf(text,sizeof text,"%d",game.save.goods[i]);
         rect(bottom,sx-10,sy-7,20,14,0x8842);
         print(bottom,sx-7,sy-5,WHITE,text);
+        SupportStatus status=game_support_status(&game,i);
+        dr_support_label(&game,i,text,sizeof text);
+        /* Keep extracted artwork and touch geometry intact. Only the live
+           label/count overlay changes, including after the final charge. */
+        rect(bottom,sx-21,sy+9,42,10,0x8842);
+        print(bottom,sx-(int)strlen(text)*3,sy+10,
+              status==SUPPORT_ACTIVE?GOLD:status==SUPPORT_READY?WHITE:GRAY,text);
     }
     /* Original bottom-screen art only. D-pad aims and A fires; no new joystick. */
     /* Keep the original Back hotspot at the bottom right. */
@@ -677,9 +684,10 @@ static void render(void) {
                 draw_original_encounter_art();
             }
             progress_bar(9,4,181,game.capture_hp,240,GOLD);
-            char tx[32];snprintf(tx,sizeof tx,"%d",game.capture_timeout/60);
+            char tx[32];dr_capture_timer_label(&game,tx,sizeof tx);
             rect(top,199,2,55,18,0x8421);
-            print(top,213,7,WHITE,tx);
+            print(top,226-(int)strlen(tx)*3,7,
+                  game.capture_timeout<=10*60?PINK:WHITE,tx);
             if(running_dsi && game.camera_active && game.camera_ok)
                 draw_sprite(top,S_RETICLE,112,80);
         }
@@ -1133,7 +1141,8 @@ static void handle_key(int keys,int down,touchPosition *touch) {
         /* A fires at clouds or at revealed encounter targets. Touch is reserved
            for the original support-item and Back controls. */
         if((keys&KEY_A) && (game.save.frames_played%5==0))game_fire(&game);
-        if((down&KEY_TOUCH) && game.screen==STATE_SPHERE && touch->py>=58 && !back_touch) {
+        if((down&KEY_TOUCH) && (game.screen==STATE_RADAR || game.screen==STATE_SPHERE) &&
+           touch->py>=58 && !back_touch) {
             int best=dr_support_at(touch->px,touch->py);
             if(best>=0) game_use_support(&game,best);
         }
