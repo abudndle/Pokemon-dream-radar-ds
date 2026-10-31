@@ -8,12 +8,12 @@ The source-of-truth checklist is [`feature_parity.json`](feature_parity.json), c
 |---|---|---|
 | Title, intro and research lab navigation | partial | Screens and D-pad/touch routing implemented; not frame-perfect. |
 | Professor Burnet story and tutorials | partial | Dialogue and tips exist; exact original scene sequencing not independently verified. |
-| Dream Cloud generation and shooting | partial | Cloud hit detection and recharge work; original distribution and pacing not fully matched. |
+| Dream Cloud generation and shooting | partial | Clouds and collectible Orbs remain after an intermediate sphere encounter; A resumes the same scan, B abandons remaining targets. Original distribution and pacing are not fully matched. |
 | Aim/beam input and capture | partial | Stylus/D-pad/A inputs work; original gyroscopic aiming is absent. |
 | Dream Orb currency and purchases | host tested | Overflow-safe counters and shop pricing tested; exact color-dependent logic missing. |
 | Pink/green/orange/blue Dream Orb cycle | partial | Four colors cycle per moving orb. Cloud hits spawn shootable 3–5-orb clusters; larger groups can split into short-lived chains (max 20 collected), and missed orbs expire. Original spawn rates/3D movement remain provisional. |
 | Color-influenced next-search Pokémon encounter selection | partial | Color is counted on individual orb collection, dominant color persists between scans, and the 15 ordinary species are filtered by documented affinity. Exact weighted encounter rates remain unverified. |
-| Timed sphere chase and beam capture | partial | Timed movement, aim, HP and result handling work; original attack patterns differ. |
+| Timed sphere chase and beam capture | partial | Encounter results now preserve incomplete radar searches, including timeout and full-storage replacement; the research search is counted once. Original attacks and capture timing remain provisional. |
 | Original sphere projectile/penalty attacks | partial | DS/DSi sphere fights launch incoming energy balls that can be dodged or destroyed by shooting; hit penalties are bounded and provisional, and original per-species patterns/effects are missing. |
 | Beam, Energy and Visoscope upgrades | host tested | Five levels and Dream Orb costs tested; original animation/effects not exact. |
 | Vortex, Dragnet and Energy Recharge | host tested | Encounter-local effects and inventory enforcement tested; visuals not authentic. |
