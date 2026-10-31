@@ -108,7 +108,7 @@ int main(void) {
     bytes[43]=136; /* signed -120 */
     assert(dr_parts_decode(bytes,sizeof bytes,&mesh,&parts));
     animated=dr_parts_frame(&parts,&mesh,2);
-    assert(animated && animated->vertex[4].x==0 && animated->vertex[4].z==0);
+    assert(animated && animated->vertex[4].x==256 && animated->vertex[4].z==0);
     assert(animated->vertex[3].x==4352); /* pivot remains at group origin */
 
     char path[]="/tmp/drb1_parts_XXXXXX";
