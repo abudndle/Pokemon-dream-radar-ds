@@ -39,6 +39,8 @@ int main(void) {
             assert(dx*dx+dy*dy>=20*20);
         }
     }
+    for(int i=g.active_clouds;i<MAX_CLOUDS;i++)
+        assert(!g.clouds[i].alive && g.clouds[i].x==0 && g.clouds[i].y==0);
     puts("PASS: nearest overlapping cloud selected; search ends once");
     return 0;
 }
