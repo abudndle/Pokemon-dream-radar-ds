@@ -251,7 +251,11 @@ static int draw_encounter_mesh(int species,int x,int y) {
         }
     }
     if(!encounter_mesh.vertex)return 0;
-    return dr_mesh_wireframe(&encounter_mesh,top,SW,SH,x,y,24,CYAN);
+    /* Rotate only converted optional DRM1 geometry. Original 2D artwork and
+       item sprites retain their existing fallback behavior. A full turn
+       takes 192 frames; no original skeletal animation is implied. */
+    unsigned yaw_step=(unsigned)((game.save.frames_played/12u)&15u);
+    return dr_mesh_wireframe_yaw(&encounter_mesh,top,SW,SH,x,y,24,CYAN,yaw_step);
 }
 /* Source-authentic 3DS thumbnail fallback until real geometry has been
    imported and optimized for the DS GPU. Keep both camera paths identical. */
