@@ -127,6 +127,7 @@ int main(void) {
     g.projectile_extra[0].ttl=20;
     g.aim_x=101;g.aim_y=100;
     g.capture_timeout=1000;
+    g.projectile_cooldown=40; /* Do not launch a new volley in this fixture. */
     g.freeze_frames=3;
     for(int i=0;i<3;i++)game_tick(&g);
     assert(g.projectile_extra[0].x==100 && g.projectile_hits==0);
