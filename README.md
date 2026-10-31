@@ -21,9 +21,9 @@ replaced by D-pad/stylus controls on DS hardware.
 
 The DS port now tracks four original Dream Orb colors: **pink**, **green**,
 **orange**, and **blue**. Green unlocks after Tornadus, orange after
-Thundurus, and blue after Landorus. While scanning, the color changes every
-45 frames; waiting before shooting a non-Pokémon cloud lets you collect
-a different color. The search HUD shows `LAST` (the saved color driving
+Thundurus, and blue after Landorus. Floating Dream Orbs change color
+on a 45-frame cycle with individual phase offsets; waiting before shooting
+a particular orb lets you collect its displayed color. The search HUD shows `LAST` (the saved color driving
 the current scan) and `LIVE` (the base color cycle). Each floating orb
 has its own phase offset; its displayed color is what is collected.
 
