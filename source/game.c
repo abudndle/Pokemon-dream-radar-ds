@@ -120,11 +120,12 @@ int game_load(Game *g, const char *file) {
 }
 int game_save(Game *g, const char *file) {
     if (!g || !file || !*file) return 0;
-    /* Do not mutate in-memory save data when the destination cannot open. */
-    FILE *f=fopen(file,"wb"); if (!f) return 0;
-    /* Serialize a snapshot: even a short write must not change live state. */
+    /* Prepare an immutable snapshot before opening the destination.
+       This preserves live state and avoids creating an empty file if
+       snapshot preparation ever changes or fails in future. */
     SaveData snapshot=g->save;
     snapshot.checksum=game_checksum(&snapshot);
+    FILE *f=fopen(file,"wb"); if (!f) return 0;
     int okay = fwrite(&snapshot,1,sizeof snapshot,f)==sizeof snapshot;
     if (fclose(f)) okay=0;
     return okay;
