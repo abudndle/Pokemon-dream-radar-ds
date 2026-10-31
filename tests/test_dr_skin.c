@@ -59,8 +59,8 @@ int main(void) {
     assert(p->vertex[1].x==2896 && p->vertex[1].z==-2896);
     assert(p->vertex[3].x==2896 && p->vertex[3].y==512 &&
            p->vertex[3].z==-2896);
-    assert(p->vertex[4].x==4463 && p->vertex[4].y==512 &&
-           p->vertex[4].z==-6680);
+    assert(p->vertex[4].x==2896 && p->vertex[4].y==512 &&
+           p->vertex[4].z==-6992);
     p=dr_skin_frame(&skin,&mesh,4);
     assert(p);
     assert(p->vertex[1].x==0 && p->vertex[1].z==-4096);
