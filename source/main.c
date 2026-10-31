@@ -1218,12 +1218,21 @@ static void handle_key(int keys,int down,touchPosition *touch) {
         if(down&(KEY_LEFT|KEY_RIGHT)) {
             int slot=-1;
             int direction=(down&KEY_RIGHT)?1:-1;
-            if(photo_storage_ready &&
-               dr_photo_find(photo_dir,placeholder_preview_slot,direction,&slot) &&
-               preview_custom_background(slot)) {
-                /* Preview is separate; A must explicitly activate the image. */
+            int found=0;
+            int cursor=placeholder_preview_slot;
+            int first=-1;
+            /* The album index checks BMP headers. The full decoder can
+               still reject a truncated or unreadable file, so skip it. */
+            while(photo_storage_ready && dr_photo_find(photo_dir,cursor,direction,&slot)) {
+                if(slot==first)break;
+                if(first<0)first=slot;
+                if(preview_custom_background(slot)){found=1;break;}
+                cursor=slot;
             }
-            else {snprintf(game.message,sizeof game.message,"No readable 256x192 BMP photos found.");game.messages=120;}
+            if(!found) {
+                snprintf(game.message,sizeof game.message,"No readable 256x192 BMP photos found.");
+                game.messages=120;
+            }
         }
         if(down&KEY_A) {
             if(placeholder_preview_slot>=0 && load_custom_background(placeholder_preview_slot)) {
