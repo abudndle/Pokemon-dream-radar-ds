@@ -144,6 +144,8 @@ void game_regen_clouds(Game *g, uint32_t now) {
     uint32_t upgrade=g->save.upgrades[2];
     if(upgrade<1u)upgrade=1u;
     if(upgrade>5u)upgrade=5u;
+    /* The DS clock is second-granularity. Preserve the partial interval
+       until it completes rather than rounding early. */
     uint32_t elapsed = now - g->save.last_cloud_time;
     uint32_t steps = elapsed / 300u;
     if (steps > 0) {
