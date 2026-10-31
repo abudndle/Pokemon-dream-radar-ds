@@ -12,11 +12,15 @@ def pane_hit(pane, x, y):
         return False
     if not pane.get("effective_visible", False):
         return False
-    bounds=pane["world_bounds_ds"]
+    bounds=pane.get("world_bounds_ds")
+    if not isinstance(bounds,(list,tuple)) or len(bounds)!=4 or any(not isinstance(v,(int,float)) or not math.isfinite(v) for v in bounds):
+        return False
     if x < bounds[0] or x > bounds[2] or y < bounds[1] or y > bounds[3]:
         return False
-    corners=pane["world_corners_ds"]
-    if len(corners)!=4 or any(len(p)!=2 or not all(math.isfinite(v) for v in p) for p in corners):
+    corners=pane.get("world_corners_ds")
+    if not isinstance(corners,(list,tuple)):
+        return False
+    if len(corners)!=4 or any(not isinstance(p,(list,tuple)) or len(p)!=2 or not all(isinstance(v,(int,float)) and math.isfinite(v) for v in p) for p in corners):
         return False
     # Export ordering is TL,TR,BL,BR. Traverse the perimeter clockwise.
     quad=[corners[i] for i in (0,1,3,2)]
