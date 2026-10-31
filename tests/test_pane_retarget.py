@@ -1,4 +1,7 @@
 import json
+import copy
+import math
+import sys
 import pathlib
 import subprocess
 import tempfile
@@ -29,4 +32,20 @@ with tempfile.TemporaryDirectory() as d:
     assert title["source_size"]==[400.0,240.0]
     assert title["scale"]==[0.64,0.8]
     assert title["panes"][0]["size_ds"]==[256,192]
+# Malformed or non-finite geometry must fail instead of generating broken UI.
+sys.path.insert(0,str(root/"tools"))
+from retarget_panes import convert
+original=json.loads(source.read_text())["layouts"][0]
+for field,value in (("size",0),("translation",math.inf),("scale",math.nan)):
+    broken=copy.deepcopy(original)
+    if field=="size":
+        broken["panes"][0]["size"][0]=value
+    else:
+        broken["panes"][0][field][0]=value
+    try:
+        convert(broken)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("invalid original geometry was accepted: "+field)
 print("PASS: 22 original UI pane hierarchies retargeted to DS viewport")
