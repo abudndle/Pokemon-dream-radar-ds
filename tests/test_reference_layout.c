@@ -67,6 +67,16 @@ int main(void) {
             assert(dr_lab_hit(x,y,count)==expected_lab);
         }
     }
+    /* Every DS pixel must select the correct transfer footer control,
+       including the inactive gap between Archive and Back. */
+    for(int y=0;y<192;y++)for(int x=0;x<256;x++) {
+        int expected=-1;
+        if(y>=157 && y<190) {
+            if(x>=10 && x<120)expected=0;
+            else if(x>=138 && x<246)expected=1;
+        }
+        assert(dr_transfer_button_at(x,y)==expected);
+    }
     /* Original title layout: visual rectangles and touch targets must agree. */
     for(int i=0;i<4;i++) {
         const DrPaneRect *r=&dr_title_panes[i];
