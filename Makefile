@@ -3,18 +3,10 @@
 BLOCKSDS ?= /opt/wonderful/thirdparty/blocksds/core
 WONDERFUL_TOOLCHAIN ?= /opt/wonderful
 HOSTCC ?= gcc
-# PLATFORM=dsi: DSi features (camera optional) | PLATFORM=ds: no camera code.
-PLATFORM ?= dsi
-ifeq ($(PLATFORM),ds)
-NAME := dream_radar_ds
-GAME_TITLE := Dream Radar DS
-SPECS := $(BLOCKSDS)/sys/crts/ds_arm9.specs
-DEFINES += -DDR_DS_ONLY
-else
-NAME := dream_radar_dsi
-GAME_TITLE := Dream Radar DSi
+# One DSi-enhanced ROM: runtime isDSiMode() selects DS fallback or DSi features.
+NAME := dream_radar
+GAME_TITLE := Dream Radar
 SPECS := $(BLOCKSDS)/sys/crts/dsi_arm9.specs
-endif
 GAME_SUBTITLE := Unofficial homebrew demake
 GAME_AUTHOR := Built with BlocksDS
 GAME_ICON := icon.png
@@ -45,7 +37,6 @@ burnet-tips:
 
 test-syntax:
 	$(HOSTCC) -std=gnu11 -Wall -Wextra -Werror -fsyntax-only -Isource -Itests/host_nds source/main.c
-	$(HOSTCC) -std=gnu11 -Wall -Wextra -Werror -DDR_DS_ONLY -fsyntax-only -Isource -Itests/host_nds source/main.c
 
 build-all:
 	sh scripts/build_both.sh
