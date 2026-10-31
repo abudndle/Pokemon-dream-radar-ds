@@ -1,7 +1,7 @@
 from PIL import Image, ImageDraw, ImageFont, ImageEnhance, ImageFilter
 from pathlib import Path
 from functools import lru_cache
-import sys, struct, math
+import sys, struct, math, re
 root=Path(__file__).resolve().parents[1]
 refs=root/'reference';nt=root/'nitrofs';pv=root/'preview'
 def to555(im,path):
@@ -38,9 +38,14 @@ for y in range(0,192,12):d.line((0,y,256,y),fill=(30,112,135,20),width=1)
 d.rounded_rectangle((6,7,249,40),radius=3,fill=(27,52,80,230),outline=(85,156,224,235),width=2)
 d.rounded_rectangle((9,10,245,37),radius=3,fill=(35,75,118,200),outline=(134,218,255,140))
 d.rounded_rectangle((13,12,239,32),radius=4,fill=(39,103,161,155))
-for yy in [45,76,107,138]:
- d.rounded_rectangle((14,yy,243,yy+26),radius=3,fill=(21,83,111,210),outline=(67,196,234,225),width=2)
- d.line((19,yy+2,240,yy+2),fill=(165,238,255,70),width=2)
+# Share exactly the same title geometry as the renderer and touch hitboxes.
+title_header=(root/'source/title_panes_generated.h').read_text()
+pane_block=title_header.split('dr_title_panes[4] = {',1)[1].split('};',1)[0]
+title_rects=[tuple(map(int,parts)) for parts in re.findall(r'\\{(\\d+),(\\d+),(\\d+),(\\d+)\\}',pane_block)]
+assert len(title_rects)==4, 'expected 4 extracted title pane rectangles'
+for xx,yy,ww,hh in title_rects:
+ d.rounded_rectangle((xx,yy,xx+ww-1,yy+hh-1),radius=3,fill=(21,83,111,210),outline=(67,196,234,225),width=2)
+ d.line((xx+5,yy+2,xx+ww-5,yy+2),fill=(165,238,255,70),width=2)
 # menu button labels dynamic in program: leave text free
 # footer from screenshot
 d.rectangle((0,176,256,192),fill=(4,14,27,230))
