@@ -1,5 +1,6 @@
 #include "game.h"
 #include <assert.h>
+#include <stdint.h>
 #include <stdio.h>
 int main(void) {
     game_fire(NULL); /* Invalid caller must not crash. */
@@ -34,6 +35,11 @@ int main(void) {
     g.sphere_x=128;g.sphere_y=90;
     game_fire(&g);
     assert(g.capture_hp==0);
+    g.save.frames_played=UINT32_MAX-1u;
+    game_tick(&g);
+    assert(g.save.frames_played==UINT32_MAX);
+    game_tick(&g);
+    assert(g.save.frames_played==UINT32_MAX);
     puts("PASS: expired capture cannot be completed by a late shot");
     return 0;
 }
