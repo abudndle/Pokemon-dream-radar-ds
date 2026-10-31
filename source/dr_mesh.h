@@ -12,6 +12,8 @@ typedef struct {
     DrMeshVertex *vertex;
     DrMeshTriangle *triangle;
 } DrMesh;
+/* `out` must start zero-initialized or hold a previously decoded mesh.
+ * On success the previous mesh is freed and replaced; failure leaves it intact. */
 int dr_mesh_decode(const unsigned char *bytes,size_t size,DrMesh *out);
 /* Read a standalone DRM1 mesh from an exact filesystem path. Only a complete
  * validated file is accepted; failure preserves the previous mesh unchanged.
