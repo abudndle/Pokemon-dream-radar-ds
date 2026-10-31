@@ -35,10 +35,28 @@ def inventory(root: Path):
 
 def compare_inventories(expected, actual):
     """Compare only input model identities; never mistake them for decoded art."""
-    before = {entry["path"]: (entry["bytes"], entry["sha256"])
-              for entry in expected["files"]}
-    after = {entry["path"]: (entry["bytes"], entry["sha256"])
-             for entry in actual["files"]}
+    def identities(report):
+        if not isinstance(report, dict) or not isinstance(report.get("files"), list):
+            raise ValueError("Invalid model inventory: missing files list")
+        rows = {}
+        for entry in report["files"]:
+            if not isinstance(entry, dict):
+                raise ValueError("Invalid model inventory entry")
+            path = entry.get("path")
+            size = entry.get("bytes")
+            digest = entry.get("sha256")
+            if (not isinstance(path, str) or not path or path.startswith("/") or
+                "\\\\" in path or ".." in path.split("/") or
+                not isinstance(size, int) or isinstance(size, bool) or size < 0 or
+                not isinstance(digest, str) or len(digest) != 64 or
+                any(c not in "0123456789abcdef" for c in digest)):
+                raise ValueError("Invalid model inventory entry")
+            if path in rows:
+                raise ValueError(f"Duplicate model inventory path: {path}")
+            rows[path] = (size, digest)
+        return rows
+    before = identities(expected)
+    after = identities(actual)
     return {"added": sorted(after.keys() - before.keys()),
             "removed": sorted(before.keys() - after.keys()),
             "changed": sorted(path for path in before.keys() & after.keys()
