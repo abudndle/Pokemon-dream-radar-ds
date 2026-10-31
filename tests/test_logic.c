@@ -16,6 +16,7 @@ static void complete_sphere(Game *g, int extension) {
 int main(void) {
     Game g;game_new(&g,0xf00d);
     assert(g.save.upgrades[0]==1 && g.save.cloud_count==5);
+    assert(game_item_slot_kind(NULL,0)==-1);
     game_capture(NULL);
     assert(!game_replace_pending(NULL,0));
     assert(!game_cancel_pending_replace(NULL));
