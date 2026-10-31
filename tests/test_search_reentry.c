@@ -40,6 +40,9 @@ int main(void) {
     g.session_caught=5;g.session_item=9;g.session_species=18;g.session_type=1;
     g.capture_hp=200;
     g.save.searches=12;
+    /* This fixture manually constructs a separate outing without the normal
+       game_begin_search() reset; emulate its fresh search-counting state. */
+    g.search_counted=0;
     assert(game_leave_search(&g));
     assert(g.save.searches==13 && g.capture_timeout==0);
     assert(g.freeze_frames==0 && g.slow_frames==0);
