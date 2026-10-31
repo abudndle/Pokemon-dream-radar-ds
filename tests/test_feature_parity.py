@@ -18,9 +18,10 @@ for entry in features:
 
 by_id={entry["id"]:entry for entry in features}
 for key in ("black2_white2_transfer","unova_link_receive","hidden_abilities",
-            "sphere_projectiles","legendary_transfer_priority"):
+            "legendary_transfer_priority"):
     assert by_id[key]["status"]=="unimplemented"
 assert by_id["orb_colors"]["status"]=="partial"
+assert by_id["sphere_projectiles"]["status"]=="partial"
 assert by_id["color_encounter_bias"]["status"]=="partial"
 assert by_id["original_gyro_motion"]["status"]=="hardware_limited"
 assert by_id["original_stereo3d"]["status"]=="hardware_limited"
