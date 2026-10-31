@@ -28,13 +28,15 @@ const char *dr_storage_root(int dsi_mode){return dsi_mode?"sd:/":"fat:/";}
 int dr_storage_ready(const char *root){
     if(!root || !*root)return 0;
     char dir[128],probe[160];struct stat st;
-    if(snprintf(dir,sizeof dir,"%sDreamRadarDSi",root)>=(int)sizeof dir)return 0;
+    int dir_len=snprintf(dir,sizeof dir,"%sDreamRadarDSi",root);
+    if(dir_len<0 || dir_len>=(int)sizeof dir)return 0;
     if(mkdir(dir,0777)!=0) {
         /* Only an existing directory is acceptable. Do not silently
            proceed after permission, device, or other mkdir errors. */
         if(errno!=EEXIST || stat(dir,&st)!=0 || !S_ISDIR(st.st_mode))return 0;
     }
-    if(snprintf(probe,sizeof probe,"%s/.write_test.tmp",dir)>=(int)sizeof probe)return 0;
+    int probe_len=snprintf(probe,sizeof probe,"%s/.write_test.tmp",dir);
+    if(probe_len<0 || probe_len>=(int)sizeof probe)return 0;
     /* Never overwrite a pre-existing file, even one with this internal name. */
     if(stat(probe,&st)==0)return 0;
     /* EACCES and other lookup failures are not proof that the name is free. */
