@@ -50,6 +50,14 @@ int main(void) {
     assert(g.save.frames_played==UINT32_MAX);
     game_tick(&g);
     assert(g.save.frames_played==UINT32_MAX);
+    /* Escaping at maximum persisted search count must not wrap progress. */
+    game_new(&g,92);
+    g.screen=STATE_SPHERE;
+    g.capture_timeout=1;
+    g.save.searches=UINT32_MAX;
+    game_tick(&g);
+    assert(g.screen==STATE_RESULTS);
+    assert(g.save.searches==UINT32_MAX);
     puts("PASS: expired capture cannot be completed by a late shot");
     return 0;
 }
