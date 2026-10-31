@@ -29,3 +29,19 @@ def pane_hit(pane, x, y):
     if abs(area)<1e-8:
         return False
     return all(v>=-1e-6 for v in signs) or all(v<=1e-6 for v in signs)
+
+def pane_at(layout, x, y):
+    """Return the topmost visible pane hit, or None.
+
+    This is a provisional source-order picker. Child panes are drawn after
+    parents, and later siblings are presumed above earlier siblings.
+    """
+    def visit(panes):
+        for pane in reversed(panes):
+            child=visit(pane.get("children",[]))
+            if child is not None:
+                return child
+            if pane_hit(pane,x,y):
+                return pane
+        return None
+    return visit(layout["panes"])
