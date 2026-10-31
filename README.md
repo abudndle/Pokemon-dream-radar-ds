@@ -1,5 +1,31 @@
 ## Gameplay integration: Pokémon capture and full storage
 
+## Optional Pokémon models on SD / flashcart (development milestone)
+
+The rotating `DRM1` encounter renderer can now read **user-provided, converted**
+meshes directly from removable storage, without rebuilding the ROM. Place
+`pokemon_00.drm` through `pokemon_25.drm` (where available) in:
+
+- **DSi internal SD:** `sd:/DreamRadarDSi/Models/`
+- **DS or DS Lite flashcart / DLDI FAT storage:** `fat:/DreamRadarDSi/Models/`
+
+The program selects the available filesystem using the same storage mounting
+logic as its own save system. The directory and files are **read-only to the
+game**; create them yourself on your card. For a lawfully held OBJ export:
+
+```sh
+python3 tools/convert_extracted_obj.py /private/export/pokemon_00.obj pokemon_00.drm
+```
+
+Copy the resulting `.drm` into the appropriate `Models` directory. The loader
+checks magic, vertex/triangle bounds and exact file length before decoding.
+An invalid or missing custom model falls back to an optional NitroFS model,
+then to the original 2D encounter sprite; the file is tried once per species
+until another species is encountered. No original Pokémon 3D models or
+animations are included, and these are **untextured, CPU-rendered, rotating
+wireframes**, not an authentic 3DS model/animation recreation.
+
+
 The end-to-end host gameplay regression now covers both research-item captures and normal Pokémon captures using the real shot/capture state transitions. It additionally checks that a full six-Pokémon queue opens a replacement choice, that choosing a slot replaces only that slot, and that canceling the choice retains all stored Pokémon and grants no capture. These tests run under `make test-host` and do **not** imply confirmed original 3DS gameplay parity or a verified ROM build.
 
 ## Radar-to-capture gameplay integration coverage
