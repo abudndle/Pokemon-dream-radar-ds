@@ -150,6 +150,21 @@ int main(void) {
     other.save.magic=0;
     assert(other.save.checksum != game_checksum(&other.save));
     assert(game_export(&g,"/tmp/dream_radar_logic_export.txt"));
+    /* Persisted DSi image choices are bounded to photo_000..photo_999. */
+    Game backgrounds;game_new(&backgrounds,0x7ab);
+    backgrounds.save.reserved[11]=0xB6;
+    backgrounds.save.reserved[9]=999u & 255u;
+    backgrounds.save.reserved[10]=999u >> 8;
+    assert(game_save(&backgrounds,"/tmp/dr_bg_slot_test.sav"));
+    Game loaded_bg;game_new(&loaded_bg,55);
+    assert(game_load(&loaded_bg,"/tmp/dr_bg_slot_test.sav"));
+    assert(loaded_bg.save.reserved[9]==(999u & 255u));
+    backgrounds.save.reserved[9]=1000u & 255u;
+    backgrounds.save.reserved[10]=1000u >> 8;
+    assert(game_save(&backgrounds,"/tmp/dr_bg_slot_test.sav"));
+    game_new(&loaded_bg,55);
+    assert(!game_load(&loaded_bg,"/tmp/dr_bg_slot_test.sav"));
+    remove("/tmp/dr_bg_slot_test.sav");
     puts("PASS: single active game, source replacement, IDs, legends, upgrades, save, export");
     return 0;
 }
