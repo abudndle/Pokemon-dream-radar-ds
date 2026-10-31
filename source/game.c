@@ -1,0 +1,518 @@
+/* Portable game rules; compiled in BlocksDS and host-unit tests. */
+#include "game.h"
+#include "item_catalog_generated.h"
+#include <string.h>
+#include <stdio.h>
+#include <limits.h>
+
+static uint32_t rnd(Game *g) {
+    uint32_t x = g->save.random_seed;
+    if (!x) x = 0xc013ac9u;
+    x ^= x << 13; x ^= x >> 17; x ^= x << 5;
+    return (g->save.random_seed = x);
+}
+static int minimum(int a, int b) { return a < b ? a : b; }
+static uint32_t add_orbs_saturating(uint32_t value, uint32_t amount) {
+    return value > UINT32_MAX - amount ? UINT32_MAX : value + amount;
+}
+static void invalidate_archive(Game *g) {
+    g->pending_export_signature=0;
+    g->archive_confirm=0;
+}
+static void msg(Game *g, const char *s) {
+    snprintf(g->message, sizeof(g->message), "%s", s);
+    g->messages = 180;
+}
+static const char *cart_names[] = {
+    "Diamond", "Pearl", "Platinum", "HeartGold", "SoulSilver",
+    "Black", "White", "Black 2", "White 2", "Unknown"
+};
+static const char *ext_names[EXT_COUNT] = {
+    "Basic Extension", "Eureka Alpha", "Eureka Beta", "Eureka Gamma",
+    "Temporal Extension", "Spatial Extension", "Renegade Extension",
+    "Rainbow Extension", "Diving Extension", "Special Extension A",
+    "Special Extension B", "Special Extension C",
+    "Retrieval Extension", "Dowsing Extension", "Simulator Alpha",
+    "Simulator Beta", "Simulator Gamma"
+};
+// Species list used for the small playable selection, not a full encounter-table reproduction.
+static const char *species_names[] = {
+    "Munna", "Swablu", "Drifloon", "Riolu", "Sigilyph", "Igglybuff",
+    "Shuckle", "Staryu", "Porygon", "Ralts", "Bronzor", "Togepi",
+    "Smoochum", "Spiritomb", "Rotom", "Tornadus", "Thundurus", "Landorus",
+    "Dialga", "Palkia", "Giratina", "Ho-Oh", "Lugia", "Beldum", "Slowpoke", "Hoothoot"
+};
+const char *game_item_name(int item) {
+    return item >= 0 && item < RESEARCH_ITEM_TYPES ? original_item_names[item] : "Unknown item";
+}
+const char *game_species_name(int id) {
+    return id >= 0 && id < (int)(sizeof species_names/sizeof *species_names) ? species_names[id] : "Unknown";
+}
+const char *game_cart_name(CartGame g) { return (g >= 0 && g <= GAME_UNKNOWN) ? cart_names[g] : "Unknown"; }
+const char *game_extension_name(int e) { return (e >= 0 && e < EXT_COUNT) ? ext_names[e] : "Unknown extension"; }
+
+CartGame game_identify_cart(const char *id) {
+    // First three bytes match the NDS game-code prefix. Last is region.
+    if (!id || !id[0] || !id[1] || !id[2]) return GAME_UNKNOWN;
+    const char *prefixes[] = {"ADA", "APA", "CPU", "IPK", "IPG", "IRB", "IRA", "IRE", "IRD"};
+    for (int i=0; i<9; i++) if (id[0]==prefixes[i][0] && id[1]==prefixes[i][1] && id[2]==prefixes[i][2]) return (CartGame)i;
+    return GAME_UNKNOWN;
+}
+uint32_t game_checksum(const SaveData *p) {
+    const uint8_t *b = (const uint8_t *)p;
+    uint32_t h = 2166136261u;
+    const size_t end = offsetof(SaveData, checksum);
+    for (size_t i = 0; i < sizeof *p; i++) {
+        if (i >= end && i < end+sizeof p->checksum) continue;
+        h = (h ^ b[i]) * 16777619u;
+    }
+    return h;
+}
+void game_new(Game *g, uint32_t seed) {
+    memset(g, 0, sizeof *g);
+    g->save.magic = SAVE_MAGIC; g->save.version = SAVE_VERSION;
+    g->save.random_seed = seed ? seed : 0x12345678u;
+    g->save.reserved[8]=ITEM_LAYOUT_MARKER;
+    for(int i=0;i<MAX_ITEMS;i++)g->save.reserved[2+i]=(uint8_t)(i+1);
+    g->replaced_slot=-1;
+    for (int i = 0; i < 3; i++) g->save.upgrades[i] = 1;
+    g->save.cloud_count = 5;
+    g->save.camera_enabled = 1;
+    g->save.optical_aim = 0;
+    g->screen = STATE_TITLE;
+    g->cart = GAME_UNKNOWN;
+    g->cart_source = CART_SOURCE_NONE;
+    g->aim_x = 128; g->aim_y = 96;
+}
+int game_load(Game *g, const char *file) {
+    FILE *f = fopen(file,"rb"); if (!f) return 0;
+    SaveData s;
+    int ok = fread(&s,1,sizeof s,f)==sizeof s;
+    /* An oversized or concatenated file is not a valid private save. */
+    if(ok && fgetc(f)!=EOF)ok=0;
+    if(fclose(f)!=0)ok=0;
+    if (!ok || s.magic != SAVE_MAGIC || s.version != SAVE_VERSION || s.checksum != game_checksum(&s)) return 0;
+    if (s.cloud_count>MAX_CLOUDS || s.pending_count>MAX_CAUGHT ||
+        s.story_phase>3 || (s.legends_caught & ~31u) ||
+        s.intro_seen>1 || s.optical_aim>1 || s.camera_enabled>1 ||
+        s.reserved[0]>3 || s.reserved[1]>7) return 0;
+    for (int i=0;i<3;i++) if (s.upgrades[i]<1 || s.upgrades[i]>5 || s.goods[i]>9) return 0;
+    for (int i=0;i<MAX_CAUGHT;i++) if (i<s.pending_count && s.pending[i]>25) return 0;
+    /* Older v3 homebrew saves indexed item stacks by item ID. Reconstruct
+       type metadata in unused bytes without changing save size/version. */
+    if(s.reserved[8]!=ITEM_LAYOUT_MARKER) {
+        s.reserved[8]=ITEM_LAYOUT_MARKER;
+        for(int i=0;i<MAX_ITEMS;i++)s.reserved[2+i]=(uint8_t)(i+1);
+        g->requested_save=1;
+    } else {
+        for(int i=0;i<MAX_ITEMS;i++) {
+            if(s.reserved[2+i]<1 || s.reserved[2+i]>RESEARCH_ITEM_TYPES)return 0;
+        }
+    }
+    g->save = s;
+    /* The three secret research extensions persist in unused reserved bytes,
+       preserving version 3 save compatibility with previous milestone builds. */
+    g->special_unlocked = s.reserved[1];
+    return 1;
+}
+int game_save(Game *g, const char *file) {
+    g->save.checksum = game_checksum(&g->save);
+    FILE *f=fopen(file,"wb"); if (!f) return 0;
+    int okay = fwrite(&g->save,1,sizeof g->save,f)==sizeof g->save;
+    if (fclose(f)) okay=0;
+    return okay;
+}
+void game_regen_clouds(Game *g, uint32_t now) {
+    if (!g->save.last_cloud_time) { g->save.last_cloud_time=now;return; }
+    if (now < g->save.last_cloud_time) { // reset after clock adjustment; do not award clouds
+        g->save.last_cloud_time=now;g->requested_save=1;return;
+    }
+    uint32_t elapsed = now - g->save.last_cloud_time;
+    int add = (int)(elapsed / 300u);
+    if (add > 0) {
+        g->save.cloud_count=(uint8_t)minimum(5*(g->save.upgrades[2]+1),g->save.cloud_count+add);
+        g->save.last_cloud_time+=add*300u;
+        g->requested_save=1;
+    }
+}
+const char *game_cart_source_name(CartSource source) {
+    switch (source) {
+        case CART_SOURCE_SLOT1: return "Slot-1 cartridge";
+        case CART_SOURCE_TWILIGHT_SD: return "TWiLight SD save";
+        default: return "No active game";
+    }
+}
+void game_set_cart_source(Game *g, CartGame cart, CartSource source) {
+    /* A new selection completely REPLACES the previous active game.
+       Never aggregate game identities to unlock multiple legends. */
+    if (cart < GAME_DIAMOND || cart >= GAME_UNKNOWN || source == CART_SOURCE_NONE ||
+        (source != CART_SOURCE_SLOT1 && source != CART_SOURCE_TWILIGHT_SD)) {
+        g->cart = GAME_UNKNOWN;
+        g->cart_source = CART_SOURCE_NONE;
+    } else {
+        g->cart = cart;
+        g->cart_source = source;
+    }
+    g->cart_read_attempted=1;
+}
+void game_set_cart(Game *g, CartGame cart) {
+    game_set_cart_source(g,cart,CART_SOURCE_SLOT1);
+}
+int game_extension_price(int ext) {
+    if (ext==EXT_RETRIEVAL || ext==EXT_DOWSING) return 100;
+    if (ext >= EXT_SIM_TORNADUS && ext <= EXT_SIM_LANDORUS) return 400+(ext-EXT_SIM_TORNADUS)*200;
+    return 0;
+}
+int game_extension_unlocked(Game *g, int ext) {
+    if (ext == EXT_BASIC) return 1;
+    if (ext >= EXT_TORNADUS && ext <= EXT_LANDORUS) {
+        const uint32_t thresholds[]={400,1500,3000};
+        int phase=ext-EXT_TORNADUS;
+        return g->save.story_phase==phase && g->save.total_orbs>=thresholds[phase];
+    }
+    if (ext==EXT_RETRIEVAL) return g->save.total_orbs>=200;
+    if (ext==EXT_DOWSING) return g->save.story_phase>=1;
+    if (ext>=EXT_SIM_TORNADUS && ext<=EXT_SIM_LANDORUS) return g->save.story_phase>=3;
+    if (ext>=EXT_BELDUM && ext<=EXT_HOOTHOOT)
+        return (g->special_unlocked & (1<<(ext-EXT_BELDUM)))!=0;
+    if (ext >= EXT_DIALGA && ext <= EXT_LUGIA) {
+        if (g->save.story_phase < 3) return 0;
+        if (g->save.legends_caught & (1 << (ext - EXT_DIALGA))) return 0;
+        return g->cart == (CartGame)(ext - EXT_DIALGA);
+    }
+    return 0;
+}
+void game_secret_key(Game *g, int key) {
+    // International secret codes; key values are DS KEY_* bitmasks supplied by caller.
+    const int codes[3][8]={{6,5,7,4,3,9,8,0}, {6,7,5,4,2,9,8,0}, {9,8,2,3,4,5,2,3}};
+    const int sizes[3]={7,7,8};
+    for (int i=0;i<3;i++) {
+        int j=g->cheat_progress[i];
+        if (key==codes[i][j]) j++;
+        else j=(key==codes[i][0])?1:0;
+        if (j==sizes[i]) {
+            g->special_unlocked |= 1<<i;
+            g->save.reserved[1]=(uint8_t)g->special_unlocked;
+            g->requested_save=1;
+            msg(g,"Special research extension permanently unlocked!");j=0;
+        }
+        g->cheat_progress[i]=j;
+    }
+}
+void game_begin_search(Game *g, int ext) {
+    if (ext<0 || ext>=EXT_COUNT || !game_extension_unlocked(g,ext)) { msg(g,"This Extension is locked.");return; }
+    /* All three cloud-based research modes need at least one cloud.
+       Never charge a paid extension when there is nothing to scan. */
+    if (!g->save.cloud_count &&
+        (ext==EXT_BASIC || ext==EXT_RETRIEVAL || ext==EXT_DOWSING)) {
+        msg(g,"No Dream Clouds yet. Wait for them to return.");
+        return;
+    }
+    /* Full storage now offers an explicit, cancelable replacement choice AFTER
+       capture. No one-time encounter flag changes before acceptance. */
+    int price=game_extension_price(ext);
+    if (g->save.orbs < (uint32_t)price) {msg(g,"Not enough Dream Orbs for this search."); return;}
+    g->save.orbs-=price;
+    g->requested_save=1;
+    g->ext_selection=ext;
+    g->screen=STATE_RADAR;
+    g->capture_hp=0;g->cloud_hit=0;
+    g->session_orbs=0; g->session_caught=-1;g->session_item=-1;
+    g->replace_kind=REPLACE_NONE;g->replace_confirm=0;g->replaced_slot=-1;
+    g->session_type=0;g->freeze_frames=0;g->slow_frames=0;
+    g->aim_x=128;g->aim_y=90;
+    g->active_clouds = (ext==EXT_BASIC || ext==EXT_RETRIEVAL || ext==EXT_DOWSING)
+                     ? minimum(MAX_CLOUDS,g->save.cloud_count) : 1;
+    if (ext==EXT_BASIC || ext==EXT_RETRIEVAL || ext==EXT_DOWSING) {
+        g->save.cloud_count=0;g->requested_save=1;
+    }
+    for (int i=0;i<MAX_CLOUDS;i++) {
+        Cloud *c = &g->clouds[i];
+        c->x=24+(rnd(g)%207);c->y=24+(rnd(g)%129);
+        c->alive=(i<g->active_clouds);c->cooldown=0;
+        c->kind=((i%5)==0 || ext!=EXT_BASIC)?1:0;
+    }
+}
+static int choice_species(Game *g) {
+    int ext = g->ext_selection;
+    if (ext >= EXT_TORNADUS && ext <= EXT_LANDORUS) return 15+(ext - EXT_TORNADUS);
+    if (ext >= EXT_SIM_TORNADUS && ext <= EXT_SIM_LANDORUS) return 15+(ext-EXT_SIM_TORNADUS);
+    if (ext >= EXT_DIALGA && ext <= EXT_LUGIA) return 18+(ext-EXT_DIALGA);
+    if (ext >= EXT_BELDUM && ext <= EXT_HOOTHOOT) return 23+(ext-EXT_BELDUM);
+    static const int pools[4][6] = {{0,1,2,3,4,0}, {5,6,1,2,4,3}, {7,8,9,10,3,4}, {11,12,13,14,4,8}};
+    return pools[minimum(3,g->save.story_phase)][rnd(g)%6];
+}
+static void start_sphere(Game *g) {
+    g->screen=STATE_SPHERE;
+    g->capture_timeout= (g->save.story_phase==0 && g->save.searches==0) ? 9999 * 60 : (90+g->save.upgrades[1]*30)*60;
+    g->sphere_x=105;g->sphere_y=90;
+    g->sphere_vx=1+(rnd(g)%3);g->sphere_vy=1+(rnd(g)%2);
+    g->capture_hp=0;
+    g->session_type = (g->ext_selection==EXT_DOWSING ||
+            (g->ext_selection==EXT_BASIC && (rnd(g)%4)==0)) ? 1:0;
+    g->session_species=choice_species(g);
+    /* Prototype drop selection: broaden item variety as story research progresses.
+       The 23 labels are original; these drop probabilities are NOT extracted
+       from the original encounter/item tables. */
+    static const int item_pool_sizes[4]={6,11,17,23};
+    int phase=g->save.story_phase>3?3:g->save.story_phase;
+    g->session_item=(int)(rnd(g)%(uint32_t)item_pool_sizes[phase]);
+}
+/* Support effects belong to gameplay state, never the renderer. A failed
+   activation must not consume inventory or trigger a save. */
+int game_use_support(Game *g, int slot) {
+    if (!g || g->screen != STATE_SPHERE || slot < 0 || slot >= 3 ||
+        g->save.goods[slot] == 0) return 0;
+    if (slot == 0) g->freeze_frames = 300;
+    else if (slot == 1) g->slow_frames = 300;
+    else {
+        /* Never spend an Energy Recharge if its timer cannot increase.
+           Saturate the addition without overflowing signed arithmetic. */
+        if (g->capture_timeout >= 2147483647) return 0;
+        if (g->capture_timeout > 2147483647 - 1500)
+            g->capture_timeout = 2147483647;
+        else g->capture_timeout += 1500;
+    }
+    g->save.goods[slot]--;
+    g->requested_save = 1;
+    return 1;
+}
+void game_fire(Game *g) {
+    if (g->screen==STATE_RADAR) {
+        for (int i=0;i<g->active_clouds;i++) {
+            Cloud *c=&g->clouds[i];
+            int dx=c->x-g->aim_x,dy=c->y-g->aim_y;
+            if (c->alive && dx*dx+dy*dy<19*19) {
+                c->alive=0;g->cloud_hit++;
+                if (c->kind && (g->ext_selection!=EXT_BASIC || (rnd(g)%3)==0)) {
+                    start_sphere(g);return;
+                }
+                int reward = 3+(rnd(g)%5);
+                g->session_orbs=g->session_orbs>INT_MAX-reward ? INT_MAX : g->session_orbs+reward;
+                g->save.orbs=add_orbs_saturating(g->save.orbs,(uint32_t)reward);
+                g->save.total_orbs=add_orbs_saturating(g->save.total_orbs,(uint32_t)reward);
+                g->requested_save=1;
+                if (g->cloud_hit >= g->active_clouds) {
+                    g->save.searches++;
+                    g->screen=STATE_RESULTS;
+                    g->requested_save=1;
+                }
+                return;
+            }
+        }
+    } else if (g->screen==STATE_SPHERE) {
+        int dx=g->sphere_x-g->aim_x, dy=g->sphere_y-g->aim_y;
+        if (dx*dx+dy*dy<22*22) {
+            g->capture_hp += g->save.upgrades[0]*(g->freeze_frames ? 5 : 3);
+            if (g->capture_hp>=240) game_capture(g);
+        }
+    }
+}
+/* Item IDs and quantities are separate. Previously the item ID was the
+   array index; version-3 saves are migrated in game_load(). */
+int game_item_slot_kind(const Game *g, int slot) {
+    if(slot<0 || slot>=MAX_ITEMS || !g->save.pending_items[slot])return -1;
+    int type=(int)g->save.reserved[2+slot]-1;
+    return (type>=0 && type<RESEARCH_ITEM_TYPES) ? type : -1;
+}
+static void accept_pokemon(Game *g, int species) {
+    if(species>=15 && species<=17 && g->save.story_phase == species-15)
+        g->save.story_phase++;
+    if(species>=18 && species<=22)
+        g->save.legends_caught |= (uint8_t)(1u<<(species-18));
+    g->save.caught_count++;
+    g->session_caught=species;
+}
+static void conclude_capture(Game *g) {
+    g->save.searches++;
+    g->requested_save=1;
+    g->screen=STATE_RESULTS;
+    g->replace_kind=REPLACE_NONE;
+    g->replace_confirm=0;
+}
+/* A missing or full type stack can use a genuinely empty stack slot. */
+static int item_available_slot(const Game *g, int item) {
+    for(int i=0;i<MAX_ITEMS;i++)
+        if(game_item_slot_kind(g,i)==item &&
+           g->save.pending_items[i]<MAX_ITEM_STACK)return i;
+    for(int i=0;i<MAX_ITEMS;i++)if(!g->save.pending_items[i])return i;
+    return -1;
+}
+void game_capture(Game *g) {
+    if(g->screen!=STATE_SPHERE)return;
+    /* Simulator results never take a research slot. */
+    if(g->session_type!=1 &&
+       g->ext_selection>=EXT_SIM_TORNADUS && g->ext_selection<=EXT_SIM_LANDORUS) {
+        g->session_caught=-3;
+        conclude_capture(g);
+        return;
+    }
+    if(g->session_type==1) {
+        int item=g->session_item;
+        if(item<0 || item>=RESEARCH_ITEM_TYPES) {
+            g->session_caught=-4;
+            conclude_capture(g);
+            return;
+        }
+        int slot=item_available_slot(g,item);
+        if(slot>=0) {
+            invalidate_archive(g);
+            g->save.reserved[2+slot]=(uint8_t)(item+1);
+            g->save.pending_items[slot]++;
+            g->session_caught=-2;
+            conclude_capture(g);
+            return;
+        }
+        g->replace_kind=REPLACE_ITEM;
+        g->replace_value=item;
+    } else {
+        int species=g->session_species;
+        if(species<0 || species>25) {
+            g->session_caught=-4;
+            conclude_capture(g);
+            return;
+        }
+        if(g->save.pending_count<MAX_CAUGHT) {
+            invalidate_archive(g);
+            g->save.pending[g->save.pending_count++]=(uint8_t)species;
+            accept_pokemon(g,species);
+            conclude_capture(g);
+            return;
+        }
+        g->replace_kind=REPLACE_POKEMON;
+        g->replace_value=species;
+    }
+    /* Full: pause safely for a deliberate slot choice. No data changes yet. */
+    g->replace_selected=0;
+    g->replace_confirm=0;
+    g->screen=STATE_REPLACE;
+    msg(g,"Storage full: choose a slot to replace, or press B to keep it.");
+}
+int game_replace_pending(Game *g, int slot) {
+    if(g->screen!=STATE_REPLACE)return 0;
+    if(g->replace_kind==REPLACE_POKEMON) {
+        if(slot<0 || slot>=g->save.pending_count ||
+           g->replace_value<0 || g->replace_value>25)return 0;
+        invalidate_archive(g);
+        g->save.pending[slot]=(uint8_t)g->replace_value;
+        accept_pokemon(g,g->replace_value);
+    } else if(g->replace_kind==REPLACE_ITEM) {
+        if(slot<0 || slot>=MAX_ITEMS || !g->save.pending_items[slot] ||
+           g->replace_value<0 || g->replace_value>=RESEARCH_ITEM_TYPES)return 0;
+        invalidate_archive(g);
+        g->save.reserved[2+slot]=(uint8_t)(g->replace_value+1);
+        g->save.pending_items[slot]=1;
+        g->session_caught=-2;
+    } else return 0;
+    g->replaced_slot=slot;
+    conclude_capture(g);
+    msg(g,"Research slot replaced. Previous contents discarded.");
+    return 1;
+}
+int game_cancel_pending_replace(Game *g) {
+    if(g->screen!=STATE_REPLACE || g->replace_kind==REPLACE_NONE)return 0;
+    g->session_caught=-4;
+    g->replaced_slot=-1;
+    conclude_capture(g);
+    msg(g,"Replacement canceled; stored Pokemon and items kept.");
+    return 1;
+}
+void game_tick(Game *g) {
+    g->save.frames_played++;
+    if (g->messages>0)g->messages--;
+    if (g->screen==STATE_SPHERE) {
+        /* Apply effects to the entire current frame before decrementing.
+           Otherwise the last frozen frame moves one tick too early. */
+        int frozen_this_frame = g->freeze_frames > 0;
+        int slowed_this_frame = g->slow_frames > 0;
+        if (g->freeze_frames>0) g->freeze_frames--;
+        if (g->slow_frames>0) g->slow_frames--;
+        if (!frozen_this_frame && (!slowed_this_frame || g->save.frames_played%3==0)) {
+            g->sphere_x+=g->sphere_vx;g->sphere_y+=g->sphere_vy;
+            /* Keep the target inside the actual DS capture viewport. Previously
+               reversing velocity alone let it draw outside the touch area. */
+            if (g->sphere_x<20) { g->sphere_x=20; if(g->sphere_vx<0) g->sphere_vx=-g->sphere_vx; }
+            if (g->sphere_x>236) { g->sphere_x=236; if(g->sphere_vx>0) g->sphere_vx=-g->sphere_vx; }
+            if (g->sphere_y<30) { g->sphere_y=30; if(g->sphere_vy<0) g->sphere_vy=-g->sphere_vy; }
+            if (g->sphere_y>164) { g->sphere_y=164; if(g->sphere_vy>0) g->sphere_vy=-g->sphere_vy; }
+        }
+        if (g->capture_timeout>0) g->capture_timeout--;
+        if (!g->capture_timeout) {
+            g->screen=STATE_RESULTS;g->session_caught=-1;
+            g->save.searches++;g->requested_save=1;
+            msg(g,"The Pokemon escaped!");
+        }
+    }
+}
+int game_buy(Game *g, int kind, int idx) {
+    static const int costs[]={0,100,500,1000,1500};
+    if (kind==0) {
+        if (idx<0 || idx>=3) return 0;
+        int level=g->save.upgrades[idx];
+        if (level>=5) {msg(g,"Already at maximum level.");return 0;}
+        int cost=costs[level];
+        if (g->save.orbs<(uint32_t)cost) {msg(g,"Not enough Dream Orbs.");return 0;}
+        g->save.orbs-=cost;g->save.upgrades[idx]++;g->requested_save=1;
+        msg(g,"Equipment upgraded!");return 1;
+    }
+    if (kind==1) {
+        if (idx<0 || idx>=3)return 0;
+        int cost=(idx==0) ? 100 : 50;
+        if (g->save.orbs<(uint32_t)cost) {msg(g,"Not enough Dream Orbs.");return 0;}
+        if (g->save.goods[idx]>=9) {msg(g,"Cannot carry more.");return 0;}
+        g->save.orbs-=cost;g->save.goods[idx]++;g->requested_save=1;
+        msg(g,"Support item purchased!");return 1;
+    }
+    return 0;
+}
+static uint32_t pending_signature(const Game *g) {
+    uint32_t h=2166136261u;
+    h=(h ^ g->save.pending_count)*16777619u;
+    for(int i=0;i<g->save.pending_count && i<MAX_CAUGHT;i++)
+        h=(h ^ g->save.pending[i])*16777619u;
+    for(int i=0;i<MAX_ITEMS;i++) {
+        h=(h ^ g->save.pending_items[i])*16777619u;
+        h=(h ^ (g->save.pending_items[i] ? g->save.reserved[2+i] : 0))*16777619u;
+    }
+    return h ? h : 1;
+}
+int game_release_archived_pending(Game *g) {
+    if(!g->pending_export_signature ||
+       g->pending_export_signature!=pending_signature(g))return 0;
+    int have_pending=g->save.pending_count>0;
+    for(int i=0;i<MAX_ITEMS;i++)if(g->save.pending_items[i])have_pending=1;
+    if(!have_pending)return 0;
+    invalidate_archive(g);
+    g->save.pending_count=0;
+    memset(g->save.pending,0,sizeof g->save.pending);
+    memset(g->save.pending_items,0,sizeof g->save.pending_items);
+    g->requested_save=1;
+    return 1;
+}
+int game_export(Game *g, const char *path) {
+    /* This is a private TEXT archive, not an official Unova Link transfer.
+       Stage the export beside the destination so a failed write or rename
+       cannot destroy the previous complete archive. */
+    if (!g || !path || !*path) return 0;
+    g->pending_export_signature=0;
+    size_t n=strlen(path);
+    if (n > 480) return 0;
+    char temporary[512];
+    snprintf(temporary,sizeof temporary,"%s.tmp",path);
+    FILE *f=fopen(temporary,"wb"); if (!f) return 0;
+    int ok=1;
+    if (fprintf(f,"DREAM_RADAR_DSI_PENDING_V1\nSource: unofficial demake\nTarget: Black 2 / White 2\n")<0) ok=0;
+    if (fprintf(f,"WARNING: not compatible with Unova Link; do not inject into a cartridge save.\n")<0) ok=0;
+    if (fprintf(f,"Orbs: %lu\n",(unsigned long)g->save.orbs)<0) ok=0;
+    for (int i=0;i<g->save.pending_count && ok;i++)
+        if (fprintf(f,"Pokemon %d: %s\n",i+1,game_species_name(g->save.pending[i]))<0) ok=0;
+    for (int i=0;i<MAX_ITEMS && ok;i++) if(g->save.pending_items[i])
+        if (fprintf(f,"Item slot %d: %s x%d\n",i+1,
+                    game_item_name(game_item_slot_kind(g,i)),g->save.pending_items[i])<0) ok=0;
+    if (fflush(f)!=0) ok=0;
+    if (fclose(f)!=0) ok=0;
+    if (!ok) { remove(temporary); return 0; }
+    if (rename(temporary,path)!=0) { remove(temporary); return 0; }
+    g->pending_export_signature=pending_signature(g);
+    return 1;
+}
