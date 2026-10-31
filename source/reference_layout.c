@@ -110,3 +110,8 @@ void dr_radar_counts(const Game *g,int *white,int *pink) {
     if(white)*white=w;
     if(pink)*pink=p;
 }
+
+const char *dr_research_save_status(int storage_ready,int save_pending) {
+    if(!storage_ready)return "NO SAVE MEDIA - progress in RAM";
+    return save_pending?"Saving research...":"Research progress saved.";
+}
