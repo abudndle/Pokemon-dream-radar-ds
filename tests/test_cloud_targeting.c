@@ -41,6 +41,18 @@ int main(void) {
     }
     for(int i=g.active_clouds;i<MAX_CLOUDS;i++)
         assert(!g.clouds[i].alive && g.clouds[i].x==0 && g.clouds[i].y==0 && g.clouds[i].kind==0);
+    /* Out-of-range cloud coordinates must not produce a false target hit. */
+    game_new(&g,99);
+    game_begin_search(&g,EXT_BASIC);
+    g.active_clouds=1;
+    g.clouds[0].alive=1;
+    g.clouds[0].kind=0;
+    g.clouds[0].x=2147483647;
+    g.clouds[0].y=-2147483647;
+    g.aim_x=128;
+    g.aim_y=90;
+    game_fire(&g);
+    assert(g.clouds[0].alive && g.cloud_hit==0);
     puts("PASS: nearest overlapping cloud selected; search ends once");
     return 0;
 }
