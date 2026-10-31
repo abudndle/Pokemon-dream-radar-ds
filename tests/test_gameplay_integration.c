@@ -148,6 +148,21 @@ int main(void) {
         assert(g.save.pending_items[i]==MAX_ITEM_STACK);
         assert(game_item_slot_kind(&g,i)==i);
     }
-    puts("PASS: Pokémon/item captures, storage replacement, cancellation and results");
+    /* Corrupt queue lengths must not permit an out-of-bounds replacement. */
+    game_new(&g,78901);
+    g.screen=STATE_REPLACE;
+    g.replace_kind=REPLACE_POKEMON;
+    g.replace_value=7;
+    g.save.pending_count=MAX_CAUGHT+1;
+    for(int i=0;i<MAX_CAUGHT;i++)g.save.pending[i]=(uint8_t)i;
+    assert(!game_replace_pending(&g,MAX_CAUGHT));
+    assert(!game_replace_pending(&g,0));
+    assert(g.screen==STATE_REPLACE && g.save.caught_count==0);
+    for(int i=0;i<MAX_CAUGHT;i++)assert(g.save.pending[i]==i);
+    g.save.pending_count=MAX_CAUGHT;
+    assert(!game_replace_pending(&g,MAX_CAUGHT));
+    assert(game_replace_pending(&g,5));
+    assert(g.screen==STATE_RESULTS && g.save.pending[5]==7);
+    puts("PASS: Pokémon/item captures, bounded storage replacement and results");
     return 0;
 }
