@@ -23,6 +23,15 @@ int main(void) {
     assert(snprintf(rom,sizeof rom,"%s/DreamRadarDSi.nds",root) < (int)sizeof rom);
     SaveBackend backend;
     assert(save_backend_init(&backend,root,rom));
+    Game null_case;game_new(&null_case,3);
+    assert(!save_backend_load(NULL,&null_case));
+    assert(!save_backend_load(&backend,NULL));
+    /* Recovery flags describe the current load, not a previous attempt. */
+    backend.migrated_legacy=1;
+    backend.recovered_backup=1;
+    assert(!save_backend_load(&backend,&null_case));
+    assert(!backend.migrated_legacy && !backend.recovered_backup);
+
     assert(!save_backend_init(NULL,root,rom));
     /* A path whose prefix only resembles the storage root must not be
        treated as a ROM located inside that root. */
