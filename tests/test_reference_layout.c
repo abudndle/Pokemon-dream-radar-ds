@@ -2,6 +2,7 @@
 #include "title_panes_generated.h"
 #include <assert.h>
 #include <stdio.h>
+#include <string.h>
 int main(void) {
     const int quad[8]={100,70,130,100,100,130,70,100};
     assert(dr_quad_hit(quad,100,100));
@@ -224,6 +225,10 @@ int main(void) {
     g.active_clouds=-10;
     dr_radar_counts(&g,&w,&p);
     assert(!w && !p && !dr_remaining_clouds(&g));
+    assert(strcmp(dr_research_save_status(0,0),"NO SAVE MEDIA - progress in RAM")==0);
+    assert(strcmp(dr_research_save_status(0,1),"NO SAVE MEDIA - progress in RAM")==0);
+    assert(strcmp(dr_research_save_status(1,1),"Saving research...")==0);
+    assert(strcmp(dr_research_save_status(1,0),"Research progress saved.")==0);
     puts("PASS: screenshot-aligned support hitboxes, six-by-two archive tray and live radar counts");
     return 0;
 }
