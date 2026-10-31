@@ -120,8 +120,9 @@ int game_load(Game *g, const char *file) {
 }
 int game_save(Game *g, const char *file) {
     if (!g || !file || !*file) return 0;
-    g->save.checksum = game_checksum(&g->save);
+    /* Do not mutate in-memory save data when the destination cannot open. */
     FILE *f=fopen(file,"wb"); if (!f) return 0;
+    g->save.checksum = game_checksum(&g->save);
     int okay = fwrite(&g->save,1,sizeof g->save,f)==sizeof g->save;
     if (fclose(f)) okay=0;
     return okay;
