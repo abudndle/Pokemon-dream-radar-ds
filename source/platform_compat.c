@@ -11,17 +11,17 @@ int dr_lab_action(int dsi_mode,int selection){
     if(selection<0 || selection>=dr_lab_count(dsi_mode))return -1;
     return selection;
 }
-int dr_settings_count(int dsi_mode){return dsi_mode?4:2;}
+int dr_settings_count(int dsi_mode){return dsi_mode?5:2;}
 int dr_settings_hit(int x,int y,int dsi_mode){
     int count=dr_settings_count(dsi_mode);
     if(x<10 || x>=246 || y<16)return -1;
-    int row=(y-16)/35;
-    if(row>=count || y>=16+35*row+22)return -1;
+    int row=(y-16)/28;
+    if(row>=count || y>=16+28*row+22)return -1;
     return row;
 }
 int dr_settings_action(int dsi_mode,int selection){
     if(selection<0 || selection>=dr_settings_count(dsi_mode))return -1;
-    return dsi_mode?selection:selection+2;
+    return dsi_mode?(selection==4?DR_SETTING_PLACEHOLDER:selection):selection+2;
 }
 int dr_camera_allowed(int dsi_mode,int camera_enabled){return dsi_mode && camera_enabled;}
 int dr_photo_shortcut(int dsi_mode,int held,int down,int l_mask,int r_mask){
