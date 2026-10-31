@@ -32,8 +32,20 @@ static int photo_path(char *out,size_t cap,const char *folder,int slot) {
 }
 static int existing_photo(const char *folder,int slot) {
     char path[256];struct stat st;
-    return photo_path(path,sizeof path,folder,slot) &&
-           stat(path,&st)==0 && S_ISREG(st.st_mode);
+    if(!photo_path(path,sizeof path,folder,slot) ||
+       stat(path,&st)!=0 || !S_ISREG(st.st_mode) ||
+       st.st_size!=(off_t)(54+DR_PHOTO_W*DR_PHOTO_H*3))return 0;
+    /* Do not list truncated or malformed files as viewable photographs. */
+    FILE *f=fopen(path,"rb");
+    if(!f)return 0;
+    unsigned char head[54];
+    int ok=fread(head,1,sizeof head,f)==sizeof head;
+    if(fclose(f)!=0)ok=0;
+    return ok && head[0]=='B' && head[1]=='M' &&
+           le32(head+2)==54+DR_PHOTO_W*DR_PHOTO_H*3 &&
+           le32(head+10)==54 && le32(head+14)==40 &&
+           le32(head+18)==DR_PHOTO_W && le32(head+22)==DR_PHOTO_H &&
+           le16(head+26)==1 && le16(head+28)==24 && le32(head+30)==0;
 }
 int dr_photo_find(const char *folder,int from,int direction,int *slot_out) {
     if(!folder || !*folder || !slot_out || (direction!=1 && direction!=-1))return 0;
