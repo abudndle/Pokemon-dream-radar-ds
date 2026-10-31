@@ -3,6 +3,14 @@
 #include <assert.h>
 #include <stdio.h>
 int main(void) {
+    const int quad[8]={100,70,130,100,100,130,70,100};
+    assert(dr_quad_hit(quad,100,100));
+    assert(!dr_quad_hit(quad,71,71));
+    assert(!dr_quad_hit(quad,129,129));
+    assert(!dr_quad_hit(quad,-1,100));
+    assert(!dr_quad_hit(NULL,100,100));
+    const int flat[8]={20,20,20,20,20,20,20,20};
+    assert(!dr_quad_hit(flat,20,20));
     for(int count=6;count<=7;count++) {
         for(int i=0;i<count;i++) {
             int y=dr_lab_row_top(i);
