@@ -12,7 +12,7 @@ spec.loader.exec_module(module)
 class TestDRK1Packer(unittest.TestCase):
     def setUp(self):
         self.mesh = (b"DRM1" + struct.pack("<HH", 6, 2) +
-                     b"\\0" * 36 + struct.pack("<HHH", 0, 1, 2) +
+                     b"\0" * 36 + struct.pack("<HHH", 0, 1, 2) +
                      struct.pack("<HHH", 3, 4, 5))
         self.bones = [
             {"pivot": [0, 0, 0], "parent": -1},
@@ -28,7 +28,7 @@ class TestDRK1Packer(unittest.TestCase):
     def test_binary_layout_matches_runtime(self):
         result = module.pack(self.mesh, self.bones, self.influences, self.frames, 4)
         self.assertEqual(len(result), 60)
-        self.assertEqual(result[:10], b"DRK1\\x06\\x00\\x02\\x02\\x04\\x00")
+        self.assertEqual(result[:10], b"DRK1\x06\x00\x02\x02\x04\x00")
         self.assertEqual(result[16:18], bytes([255, 0]))
         self.assertEqual(result[18:26], struct.pack("<hhhBB", 4096, 0, 0, 0, 0))
         self.assertEqual(result[41:44], bytes([0, 1, 128]))
