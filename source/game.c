@@ -601,6 +601,12 @@ static uint32_t pending_signature(const Game *g) {
 }
 int game_release_archived_pending(Game *g) {
     if(!g || g->save.pending_count>MAX_CAUGHT)return 0;
+    for(int i=0;i<g->save.pending_count;i++)
+        if(g->save.pending[i]>25)return 0;
+    for(int i=0;i<MAX_ITEMS;i++)
+        if(g->save.pending_items[i] &&
+           (g->save.reserved[2+i]<1 ||
+            g->save.reserved[2+i]>RESEARCH_ITEM_TYPES))return 0;
     if(!g->pending_export_signature ||
        g->pending_export_signature!=pending_signature(g))return 0;
     int have_pending=g->save.pending_count>0;
