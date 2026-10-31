@@ -14,6 +14,7 @@ static void complete_sphere(Game *g, int extension) {
     assert(g->screen==STATE_RESULTS);
 }
 int main(void) {
+    game_new(NULL,0xf00d); /* Invalid destination must not crash. */
     Game g;game_new(&g,0xf00d);
     assert(g.save.upgrades[0]==1 && g.save.cloud_count==5);
     assert(game_item_slot_kind(NULL,0)==-1);
