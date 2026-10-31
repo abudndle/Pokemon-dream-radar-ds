@@ -444,6 +444,23 @@ static void render_search_bottom(void) {
     /* Original bottom-screen art only. D-pad aims and A fires; no new joystick. */
     /* Keep the original Back hotspot at the bottom right. */
 }
+static void draw_floating_dream_orbs(void) {
+    static const u16 colors[ORB_COLOR_COUNT]={
+        0xC1DF, /* pink */ 0x83E0, /* green */
+        0x829F, /* orange */ 0xFC00 /* blue */
+    };
+    for(int i=0;i<MAX_DREAM_ORBS;i++) {
+        const DreamOrb *orb=&game.dream_orbs[i];
+        if(!orb->alive)continue;
+        int sx=orb->x-game.aim_x+128;
+        int sy=orb->y-game.aim_y+96;
+        if(sx<7 || sx>=249 || sy<7 || sy>=185)continue;
+        OrbColor color=game_dream_orb_color(&game,i);
+        if(color<0 || color>=ORB_COLOR_COUNT)color=ORB_PINK;
+        rect(top,sx-4,sy-4,9,9,colors[color]);
+        border(top,sx-5,sy-5,11,11,WHITE);
+    }
+}
 /* Camera-free virtual view using the existing fallback artwork on DS/DS Lite. */
 static void render_ds_search_sandbox(int show_clouds) {
     if(custom_background_loaded && (!running_dsi || !game.camera_active || !game.camera_ok))
@@ -471,10 +488,12 @@ static void render_ds_search_sandbox(int show_clouds) {
                         sx-16,sy-16+dr_cloud_bob(game.save.frames_played,i));
     }
     if(show_clouds) {
+        draw_floating_dream_orbs();
         draw_sprite(top,S_RETICLE,112,80);
-        char line[32];
-        snprintf(line,sizeof line,"CLOUDS %d/%d",dr_remaining_clouds(&game),game.active_clouds);
-        rect(top,2,2,121,17,0x8421);
+        char line[40];
+        snprintf(line,sizeof line,"CLOUDS %d  ORBS %d",
+                 dr_remaining_clouds(&game),game_active_dream_orbs(&game));
+        rect(top,2,2,158,17,0x8421);
         print(top,6,6,WHITE,line);
     }
 }
@@ -495,10 +514,12 @@ static void render_radar_top(void) {
             draw_sprite(top,c->kind ? S_CLOUD_PINK : S_CLOUD_WHITE,
                         sx-16,sy-16+dr_cloud_bob(game.save.frames_played,i));
     }
+    draw_floating_dream_orbs();
     draw_sprite(top,S_RETICLE,112,80);
-    char line[32];
-    snprintf(line,sizeof line,"CLOUDS %d/%d",dr_remaining_clouds(&game),game.active_clouds);
-    rect(top,2,2,121,17,0x8421);
+    char line[40];
+    snprintf(line,sizeof line,"CLOUDS %d  ORBS %d",
+             dr_remaining_clouds(&game),game_active_dream_orbs(&game));
+    rect(top,2,2,158,17,0x8421);
     print(top,6,6,WHITE,line);
 }
 static void render_transfer_bottom(void) {
