@@ -117,6 +117,22 @@ int main(void) {
     assert(game_load(&again,path));
     assert(again.save.pending_items[4]==7 && game_item_slot_kind(&again,4)==4);
     unlink(path);
+
+    /* Lifetime records saturate instead of wrapping at the save format limit.
+       Check both a free slot and an explicit full-storage replacement. */
+    Game saturated;game_new(&saturated,99);
+    saturated.save.caught_count=UINT32_MAX;
+    fake_capture(&saturated,0,0);
+    assert(saturated.screen==STATE_RESULTS);
+    assert(saturated.save.pending_count==1 && saturated.save.pending[0]==0);
+    assert(saturated.save.caught_count==UINT32_MAX);
+    saturated.save.pending_count=MAX_CAUGHT;
+    for(int i=0;i<MAX_CAUGHT;i++)saturated.save.pending[i]=(uint8_t)(i+1);
+    fake_capture(&saturated,0,2);
+    assert(saturated.screen==STATE_REPLACE);
+    assert(game_replace_pending(&saturated,0));
+    assert(saturated.save.pending[0]==2);
+    assert(saturated.save.caught_count==UINT32_MAX);
     puts("PASS: full Pokemon/item replacement, cancellation, one-time legends, migration, archive safety");
     return 0;
 }
