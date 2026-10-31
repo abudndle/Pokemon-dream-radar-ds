@@ -28,7 +28,14 @@ int main(void) {
         g.save.story_phase=3;
         g.save.orbs=4000;
         trigger(&g,EXT_SIM_TORNADUS);
-        assert(g.session_type==0 && g.session_species==15 && g.session_item==-1);
+        /* The Therian remains the visible encounter, but simulators award
+           an item rather than an additional transferable legendary. */
+        assert(g.session_type==0 && g.session_species==15);
+        static const int alpha_items[]={4,17,15,16,7,20};
+        int found=0;
+        for(unsigned j=0;j<sizeof alpha_items/sizeof alpha_items[0];j++)
+            if(g.session_item==alpha_items[j])found=1;
+        assert(found);
 
         game_new(&g,seed);
         g.save.total_orbs=4000;
