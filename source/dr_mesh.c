@@ -193,3 +193,52 @@ int dr_mesh_wireframe(const DrMesh *mesh,uint16_t *pixels,int width,int height,
                       int cx,int cy,int scale,uint16_t color) {
     return dr_mesh_wireframe_yaw(mesh,pixels,width,height,cx,cy,scale,color,0);
 }
+
+/* Flat-shaded preview of validated DRM1 triangles. Integer-only fill; each
+ * triangle is clipped by its bounding box to the DS viewport. This is not
+ * texture mapping, z-buffering, or original 3DS material rendering. */
+static int64_t mesh_edge(int ax,int ay,int bx,int by,int px,int py) {
+    return ((int64_t)px-ax)*(by-ay)-((int64_t)py-ay)*(bx-ax);
+}
+int dr_mesh_solid_yaw(const DrMesh *mesh,uint16_t *pixels,int width,int height,
+                      int cx,int cy,int scale,uint16_t color,unsigned yaw_step) {
+    if(!mesh || !pixels || !mesh->vertex || !mesh->triangle ||
+       !mesh->vertices || !mesh->triangles || mesh->triangles>DR_MESH_MAX_TRIANGLES ||
+       width<1 || width>256 || height<1 || height>192 ||
+       cx<0 || cx>=width || cy<0 || cy>=height ||
+       scale<1 || scale>256 || yaw_step>=16)return 0;
+    /* Validate every triangle before touching the framebuffer. */
+    for(unsigned i=0;i<mesh->triangles;i++) {
+        DrMeshTriangle t=mesh->triangle[i];
+        if(t.a>=mesh->vertices || t.b>=mesh->vertices || t.c>=mesh->vertices)return 0;
+    }
+    for(unsigned i=0;i<mesh->triangles;i++) {
+        DrMeshTriangle t=mesh->triangle[i];
+        unsigned ids[3]={t.a,t.b,t.c};
+        int x[3],y[3];
+        for(int j=0;j<3;j++)
+            if(!dr_mesh_project_vertex_yaw(&mesh->vertex[ids[j]],cx,cy,scale,
+                                           yaw_step,&x[j],&y[j]))return 0;
+        int minx=x[0],maxx=x[0],miny=y[0],maxy=y[0];
+        for(int j=1;j<3;j++){
+            if(x[j]<minx)minx=x[j];
+            if(x[j]>maxx)maxx=x[j];
+            if(y[j]<miny)miny=y[j];
+            if(y[j]>maxy)maxy=y[j];
+        }
+        if(minx<0)minx=0;
+        if(miny<0)miny=0;
+        if(maxx>=width)maxx=width-1;
+        if(maxy>=height)maxy=height-1;
+        int64_t area=mesh_edge(x[0],y[0],x[1],y[1],x[2],y[2]);
+        if(!area || minx>maxx || miny>maxy)continue;
+        for(int py=miny;py<=maxy;py++)for(int px=minx;px<=maxx;px++){
+            int64_t a=mesh_edge(x[0],y[0],x[1],y[1],px,py);
+            int64_t b=mesh_edge(x[1],y[1],x[2],y[2],px,py);
+            int64_t d=mesh_edge(x[2],y[2],x[0],y[0],px,py);
+            if(area>0?(a>=0 && b>=0 && d>=0):(a<=0 && b<=0 && d<=0))
+                pixels[(size_t)py*width+px]=color;
+        }
+    }
+    return 1;
+}

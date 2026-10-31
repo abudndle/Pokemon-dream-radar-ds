@@ -266,7 +266,9 @@ static int draw_encounter_mesh(int species,int x,int y) {
        item sprites retain their existing fallback behavior. A full turn
        takes 192 frames; no original skeletal animation is implied. */
     unsigned yaw_step=(unsigned)((game.save.frames_played/12u)&15u);
-    return dr_mesh_wireframe_yaw(&encounter_mesh,top,SW,SH,x,y,24,CYAN,yaw_step);
+    /* Filled preview is intentionally flat-colored until original materials
+       can be converted; item encounters continue to use their 2D sprites. */
+    return dr_mesh_solid_yaw(&encounter_mesh,top,SW,SH,x,y,24,CYAN,yaw_step);
 }
 /* Source-authentic 3DS thumbnail fallback until real geometry has been
    imported and optimized for the DS GPU. Keep both camera paths identical. */
