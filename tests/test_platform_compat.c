@@ -10,23 +10,24 @@ int main(void) {
     assert(dr_lab_count(0)==6 && dr_lab_count(1)==7);
     for(int i=0;i<6;i++)assert(dr_lab_action(0,i)==i);
     assert(dr_lab_action(0,6)==-1 && dr_lab_action(1,6)==6);
-    assert(dr_settings_count(0)==2 && dr_settings_count(1)==4);
+    assert(dr_settings_count(0)==2 && dr_settings_count(1)==5);
     for(int dsi=0;dsi<=1;dsi++) {
         for(int i=0;i<dr_settings_count(dsi);i++) {
-            int y=16+35*i;
+            int y=16+28*i;
             assert(dr_settings_hit(10,y,dsi)==i);
             assert(dr_settings_hit(245,y+21,dsi)==i);
             assert(dr_settings_hit(128,y+22,dsi)==-1);
         }
         assert(dr_settings_hit(9,16,dsi)==-1);
         assert(dr_settings_hit(246,16,dsi)==-1);
-        assert(dr_settings_hit(128,16+35*dr_settings_count(dsi),dsi)==-1);
+        assert(dr_settings_hit(128,16+28*dr_settings_count(dsi),dsi)==-1);
     }
     assert(dr_settings_action(0,0)==DR_SETTING_CART);
     assert(dr_settings_action(0,1)==DR_SETTING_SD);
     assert(dr_settings_action(0,2)==-1);
     assert(dr_settings_action(1,0)==DR_SETTING_CAMERA);
     assert(dr_settings_action(1,1)==DR_SETTING_OPTICAL);
+    assert(dr_settings_action(1,4)==DR_SETTING_PLACEHOLDER);
     assert(!dr_camera_allowed(0,1) && !dr_camera_allowed(0,0));
     assert(!dr_camera_allowed(1,0) && dr_camera_allowed(1,1));
     /* L+R is DSi-only and fires once on the second press, not while held. */
