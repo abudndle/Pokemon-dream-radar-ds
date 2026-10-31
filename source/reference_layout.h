@@ -14,6 +14,8 @@ int dr_lab_hit(int x,int y,int count);
 int dr_shop_row_top(int index);
 int dr_shop_hit(int x, int y);
 int dr_quad_hit(const int xy[8],int x,int y); /* Runtime convex touch area */
+/* Results feedback never promises a save unless the write completed. */
+const char *dr_research_save_status(int storage_ready,int save_pending);
 int dr_remaining_clouds(const Game *g);
 void dr_radar_counts(const Game *g, int *white, int *pink);
 #endif
