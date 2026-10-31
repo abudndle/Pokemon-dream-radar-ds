@@ -3,10 +3,8 @@
  * This is a homebrew prototype, NOT a 1:1 port. No retail save writes.
  */
 #include <nds.h>
-#ifndef DR_DS_ONLY
 #include <nds/arm9/camera.h>
 #include <nds/ndma.h>
-#endif
 #include <fat.h>
 #include <filesystem.h>
 #include <stdio.h>
@@ -259,8 +257,7 @@ static void render_search_bottom(void) {
     /* Original bottom-screen art only. D-pad aims and A fires; no new joystick. */
     /* Keep the original Back hotspot at the bottom right. */
 }
-/* DS-only camera-free virtual view using the existing fallback artwork. */
-#ifdef DR_DS_ONLY
+/* Camera-free virtual view using the existing fallback artwork on DS/DS Lite. */
 static void render_ds_search_sandbox(void) {
     load_bg("game_top.raw",top,0x8844);
     const int pan_x=(game.aim_x-128)/5;
@@ -289,12 +286,8 @@ static void render_ds_search_sandbox(void) {
     rect(top,2,2,121,17,0x8421);
     print(top,6,6,WHITE,line);
 }
-#endif
 static void render_radar_top(void) {
-#ifdef DR_DS_ONLY
-    render_ds_search_sandbox();
-    return;
-#endif
+    if(!running_dsi) {render_ds_search_sandbox();return;}
     load_bg("radar_overview.raw",top,0x8844);
     char line[40];int white=0,pink=0;
     dr_radar_counts(&game,&white,&pink);
@@ -713,7 +706,6 @@ static void render(void) {
     memcpy(top_vram,top,sizeof top);
     memcpy(bottom_vram,bottom,sizeof bottom);
 }
-#ifndef DR_DS_ONLY
 static u8 sample_luma(u16 p) {
     int r=p&31,g=(p>>5)&31,b=(p>>10)&31;
     return (u8)((r*3+g*6+b)/10);
@@ -786,14 +778,6 @@ static void update_camera(void) {
         }
     }
 }
-#else
-/* DS and DS Lite have no cameras. The game loop must never touch TWL camera APIs. */
-static void camera_off(void) {
-    game.camera_ok=0;game.camera_active=0;camera_busy=0;
-}
-static void camera_on(void) {camera_off();}
-static void update_camera(void) {}
-#endif
 static int save_photo(void) {
     if(!have_storage || !game.camera_ok || camera_frames<1)return 0;
     return dr_photo_save_new(EXPORT_DIR, &photo_index,
@@ -1151,11 +1135,7 @@ int main(int argc, char **argv) {
     top_vram=(u16*)bgGetGfxPtr(top_layer);bottom_vram=(u16*)bgGetGfxPtr(bottom_layer);
     bgSetPriority(top_layer,0);bgSetPriority(bottom_layer,0);
     lcdMainOnTop();
-#ifdef DR_DS_ONLY
-    running_dsi=0;
-#else
-    running_dsi=isDSiMode();
-#endif
+running_dsi=isDSiMode();
     /* Initialise the launcher filesystem before mounting NitroFS.  When
        launched from TWiLight Menu++ the ROM's NitroFS may be backed by SD;
        mounting it first can fail even when the bundled art is present. */
