@@ -92,7 +92,8 @@ int main(void) {
                 for(int prev=0;prev<k;prev++) {
                     int px,py;dr_support_center(prev,&px,&py);
                     int ax=x-px,ay=y-py;
-                    if(ax<0)ax=-ax;if(ay<0)ay=-ay;
+                    if(ax<0)ax=-ax;
+                    if(ay<0)ay=-ay;
                     if(ax<=44 && ay<=39 && 2*ax+ay<=105) {expected=prev;break;}
                 }
                 assert(dr_support_at(x,y)==expected);
