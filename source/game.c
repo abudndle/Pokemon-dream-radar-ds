@@ -130,10 +130,18 @@ void game_regen_clouds(Game *g, uint32_t now) {
         g->save.last_cloud_time=now;g->requested_save=1;return;
     }
     uint32_t elapsed = now - g->save.last_cloud_time;
-    int add = (int)(elapsed / 300u);
-    if (add > 0) {
-        g->save.cloud_count=(uint8_t)minimum(5*(g->save.upgrades[2]+1),g->save.cloud_count+add);
-        g->save.last_cloud_time+=add*300u;
+    uint32_t steps = elapsed / 300u;
+    if (steps > 0) {
+        /* Keep elapsed intervals unsigned: large clock jumps must not
+           overflow a signed int or reduce the accumulated cloud count. */
+        uint32_t capacity = 5u*((uint32_t)g->save.upgrades[2]+1u);
+        if (capacity > MAX_CLOUDS) capacity = MAX_CLOUDS;
+        uint32_t count = (uint32_t)g->save.cloud_count;
+        if (count > capacity) count = capacity;
+        if (steps >= capacity-count) count = capacity;
+        else count += steps;
+        g->save.cloud_count=(uint8_t)count;
+        g->save.last_cloud_time+=steps*300u;
         g->requested_save=1;
     }
 }
