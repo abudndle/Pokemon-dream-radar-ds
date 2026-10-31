@@ -1,3 +1,14 @@
+## Full original gameplay feature coverage
+
+**This is still an unfinished DS/DSi demake, not a 1:1 original-game port.**
+The [original feature-parity checklist](docs/FEATURE_PARITY.md) tracks
+36 gameplay, UI, animation, device, save/transfer, and validation areas
+with explicit gaps; [machine-readable coverage](docs/feature_parity.json)
+is checked by CI so we cannot quietly claim full retail equivalence.
+Recent gameplay fixes distinguish Retrieval vs Dowsing item odds and
+restore Simulator Alpha/Beta/Gamma item prizes. Those odds remain
+provisional until fully verified from the original game.
+
 ## Original BCLIM image conversion and removable-storage sprite overrides
 
 The DS port now supports a **private** BCLIM-to-DS RGB555 sprite converter.
