@@ -1,3 +1,14 @@
+## CARC coding-table header investigation
+
+The original game's 177 CARC archives have a common `0x40` initial byte.
+Standard low-endian LZ40 decoding was unsuccessful. The read-only
+`tools/audit_ncch_carc.py` report now also records byte 4 as a **possible
+coding-table length** and calculates a bounded, two-byte-per-entry candidate
+table size. For example `40 a8 81 01 cf 00 00 00` gives a candidate
+207-count field / 416-byte table, **not a validated Huffman or LZ decoder**.
+These observations are diagnostics only; no asset data is extracted, and
+the model/texture encoding is not yet resolved.
+
 ## Standard LZ40 compatibility probe (private)
 
 The original Dream Radar `.carc` files share a `0x40` header, but a header alone
