@@ -20,6 +20,10 @@ int main(void) {
     game_fire(&g);
     assert(g.cloud_hit==2 && g.screen==STATE_RESULTS);
     assert(g.save.searches==1);
+    /* No ghost rewards after the completed search. */
+    uint32_t orbs=g.save.orbs;
+    game_fire(&g);
+    assert(g.save.orbs==orbs && g.save.searches==1);
     /* Initial cloud placement should avoid visually stacked targets in
        ordinary searches while keeping all positions inside the play area. */
     game_new(&g,123);
@@ -35,10 +39,6 @@ int main(void) {
             assert(dx*dx+dy*dy>=20*20);
         }
     }
-    /* No ghost rewards after the completed search. */
-    uint32_t orbs=g.save.orbs;
-    game_fire(&g);
-    assert(g.save.orbs==orbs && g.save.searches==1);
     puts("PASS: nearest overlapping cloud selected; search ends once");
     return 0;
 }
