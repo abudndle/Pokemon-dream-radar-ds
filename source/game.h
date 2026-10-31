@@ -4,6 +4,8 @@
 #include <stddef.h>
 #define MAX_CAUGHT 6
 #define MAX_CLOUDS 30
+#define MAX_DREAM_ORBS 24
+#define DREAM_ORB_CHAIN_LIMIT 20
 #define MAX_ITEMS 6  /* Six pending item STACK slots. */
 #define RESEARCH_ITEM_TYPES 23 /* Original English Item.msbt ITEM_00..ITEM_22. */
 #define MAX_ITEM_STACK 255
@@ -48,6 +50,11 @@ typedef struct {
 typedef struct {
     int x, y, alive, kind, cooldown;
 } Cloud;
+typedef struct {
+    int x,y,vx,vy,ttl;
+    uint8_t alive;
+    uint8_t color_phase; /* per-orb offset during color cycling */
+} DreamOrb;
 
 typedef struct {
     SaveData save;
@@ -63,6 +70,10 @@ typedef struct {
     int session_orbs, session_caught, session_type, session_species, session_item;
     uint16_t session_color_counts[ORB_COLOR_COUNT];
     uint8_t search_orb_color; /* saved dominant color at search start */
+    DreamOrb dream_orbs[MAX_DREAM_ORBS];
+    uint8_t orb_chain_stage,orb_chain_valid;
+    uint8_t orb_group_collected,orb_group_target;
+    uint8_t orb_total_collected;
     int camera_ok, camera_active, camera_tracking, camera_error;
     int messages, requested_save, cart_read_attempted, special_unlocked, cheat_progress[3];
     uint32_t pending_export_signature; /* Runtime proof of a successfully written text archive. */
@@ -85,6 +96,8 @@ int game_use_support(Game *g, int slot);
 void game_tick(Game *g);
 OrbColor game_orb_color(const Game *g);
 OrbColor game_orb_live_color(const Game *g);
+OrbColor game_dream_orb_color(const Game *g,int slot);
+int game_active_dream_orbs(const Game *g);
 const char *game_orb_color_name(OrbColor color);
 /* End active radar/capture session safely when Back is pressed. */
 int game_leave_search(Game *g);
