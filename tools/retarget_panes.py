@@ -63,11 +63,13 @@ def convert(layout):
         # Pane flags can mark a node hidden; preserve that separately from
         # geometry, because a hidden in-bounds node must not receive input.
         flag_visible=bool(pane["flags"] & 1)
-        effective_visible=visible and flag_visible and parent_visible
+        hierarchy_visible=flag_visible and parent_visible
+        effective_visible=visible and hierarchy_visible
         effective_alpha=(parent_alpha*pane["alpha"]+127)//255
         effective_visible=effective_visible and effective_alpha>0
         return {
             "flag_visible": flag_visible,
+            "hierarchy_visible": hierarchy_visible,
             "effective_alpha": effective_alpha,
             "effective_visible": effective_visible,
             "viewport_coverage": coverage,
@@ -94,7 +96,7 @@ def convert(layout):
                 round(pane["size"][0]*scale_x, 4),
                 round(pane["size"][1]*scale_y, 4)
             ],
-            "children": [walk(child,x,y,z_angle,sx,sy, effective_visible, effective_alpha) for child in pane["children"]]
+            "children": [walk(child,x,y,z_angle,sx,sy, hierarchy_visible, effective_alpha) for child in pane["children"]]
         }
     return {
         "source": Path(layout["file"]).name,
