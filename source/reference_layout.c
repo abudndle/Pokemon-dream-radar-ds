@@ -56,6 +56,22 @@ int dr_shop_hit(int x,int y) {
     int index=(y-26)/24;
     return index<6 && y<dr_shop_row_top(index)+22?index:-1;
 }
+/* Shared C-side convex quadrilateral picking for actual DS touchscreen menus.
+   Vertex order is perimeter order; accepts either winding direction. */
+int dr_quad_hit(const int xy[8],int x,int y) {
+    if(!xy || x<0 || x>=256 || y<0 || y>=192)return 0;
+    int positive=0,negative=0;
+    int64_t twice_area=0;
+    for(int i=0;i<4;i++) {
+        int j=(i+1)%4;
+        int64_t ax=xy[2*i],ay=xy[2*i+1],bx=xy[2*j],by=xy[2*j+1];
+        int64_t cross=(bx-ax)*((int64_t)y-ay)-(by-ay)*((int64_t)x-ax);
+        if(cross>0)positive=1;
+        if(cross<0)negative=1;
+        twice_area+=ax*by-bx*ay;
+    }
+    return twice_area!=0 && !(positive && negative);
+}
 int dr_remaining_clouds(const Game *g) {
     if(!g)return 0;
     int left=0;
