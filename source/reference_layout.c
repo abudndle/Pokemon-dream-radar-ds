@@ -74,6 +74,10 @@ int dr_shop_hit(int x,int y) {
    Vertex order is perimeter order; accepts either winding direction. */
 int dr_quad_hit(const int xy[8],int x,int y) {
     if(!xy || x<0 || x>=256 || y<0 || y>=192)return 0;
+    /* Reject malformed coordinates before any cross-product arithmetic:
+       even the 64-bit intermediates can overflow for arbitrary int vertices. */
+    for(int i=0;i<8;i++)
+        if(xy[i]<0 || xy[i]>(i%2?191:255))return 0;
     int positive=0,negative=0;
     int64_t twice_area=0;
     for(int i=0;i<4;i++) {
