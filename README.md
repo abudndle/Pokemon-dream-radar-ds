@@ -1,3 +1,7 @@
+## Gameplay integration: Pokémon capture and full storage
+
+The end-to-end host gameplay regression now covers both research-item captures and normal Pokémon captures using the real shot/capture state transitions. It additionally checks that a full six-Pokémon queue opens a replacement choice, that choosing a slot replaces only that slot, and that canceling the choice retains all stored Pokémon and grants no capture. These tests run under `make test-host` and do **not** imply confirmed original 3DS gameplay parity or a verified ROM build.
+
 ## Radar-to-capture gameplay integration coverage
 
 The host suite now includes `tests/test_gameplay_integration.c`, which exercises a complete scripted gameplay sequence: aim at a radar cloud, enter an item-focused encounter, activate a freeze support item, fire the capture beam, receive a research item in queued storage, and arrive at the results screen. The test also checks search progression, consumed inventory, effect cleanup, and the save request flag. This **adds gameplay regression coverage**, not new original 3DS mechanics; its execution on GitHub Actions and gameplay behavior in a real DS/DSi ROM still require verification.
