@@ -133,8 +133,12 @@ def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('bclim', type=Path, help='privately extracted original texture')
     p.add_argument('sprite', type=Path, help='destination DS sprite')
+    p.add_argument('--max-width', type=int, default=256,
+                   help='maximum DS sprite width, 1..256')
+    p.add_argument('--max-height', type=int, default=192,
+                   help='maximum DS sprite height, 1..192')
     args = p.parse_args()
-    spr = to_ds_spr(args.bclim.read_bytes())
+    spr = to_ds_spr(args.bclim.read_bytes(), args.max_width, args.max_height)
     args.sprite.parent.mkdir(parents=True, exist_ok=True)
     args.sprite.write_bytes(spr)
     w, h = struct.unpack_from('<HH', spr)
