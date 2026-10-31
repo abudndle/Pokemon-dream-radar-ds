@@ -109,6 +109,7 @@ test-host:
 	python3 tests/test_ncch_lzh8.py
 	python3 tests/test_darc_inventory.py
 	python3 tests/test_bclim_spr_converter.py
+	python3 tests/test_original_ui_layouts.py
 	python3 tests/test_original_pane_geometry.py
 	python3 tests/test_pane_retarget.py
 	python3 tests/test_pane_hit_test.py
