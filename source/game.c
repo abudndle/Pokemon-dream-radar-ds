@@ -242,7 +242,18 @@ void game_begin_search(Game *g, int ext) {
     }
     for (int i=0;i<MAX_CLOUDS;i++) {
         Cloud *c = &g->clouds[i];
-        c->x=24+(rnd(g)%207);c->y=24+(rnd(g)%129);
+        /* Spread active clouds across the radar instead of stacking hit
+           targets at nearly identical screen positions. Keep retries bounded
+           even when the screen is crowded with 30 clouds. */
+        for (int attempt=0;attempt<32;attempt++) {
+            c->x=24+(rnd(g)%207);c->y=24+(rnd(g)%129);
+            int overlaps=0;
+            for (int j=0;j<i && j<g->active_clouds;j++) {
+                int dx=c->x-g->clouds[j].x,dy=c->y-g->clouds[j].y;
+                if(dx*dx+dy*dy<20*20) { overlaps=1;break; }
+            }
+            if(!overlaps)break;
+        }
         c->alive=(i<g->active_clouds);c->cooldown=0;
         c->kind=((i%5)==0 || ext!=EXT_BASIC)?1:0;
     }
