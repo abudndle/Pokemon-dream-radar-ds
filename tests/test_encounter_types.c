@@ -30,13 +30,13 @@ int main(void) {
         g.save.orbs=4000;
         g.save.story_phase=1;
         trigger(&g,EXT_RETRIEVAL);
-        assert(g.session_type==1);
+        assert(g.session_type==1 && g.session_species==-1);
         game_new(&g,seed);
         g.save.total_orbs=4000;
         g.save.orbs=4000;
         g.save.story_phase=1; /* Dowsing unlocks after the first Eureka stage. */
         trigger(&g,EXT_DOWSING);
-        assert(g.session_type==1);
+        assert(g.session_type==1 && g.session_species==-1);
     }
     puts("PASS: legendary, simulation, and dowsing encounter type policy");
     return 0;
