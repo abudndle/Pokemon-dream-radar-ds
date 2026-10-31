@@ -112,6 +112,8 @@ test-host:
 	./build/test_mesh_extremes
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/dr_mesh.c tests/test_mesh_solid.c -o build/test_mesh_solid
 	./build/test_mesh_solid
+	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/dr_mesh.c tests/test_mesh_solid_depth.c -o build/test_mesh_solid_depth
+	./build/test_mesh_solid_depth
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/dr_mesh.c source/dr_texture.c tests/test_mesh_texture.c -o build/test_mesh_texture
 	./build/test_mesh_texture
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/dr_mesh.c source/dr_texture.c tests/test_mesh_depth.c -o build/test_mesh_depth
