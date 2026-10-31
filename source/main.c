@@ -132,9 +132,18 @@ static void load_sprite(int id) {
     FILE *f=fopen(path,"rb");if(!f)return;
     Sprite *s=&sprites[id];
     if(fread(&s->w,2,1,f)!=1 || fread(&s->h,2,1,f)!=1) {fclose(f);return;}
-    if(!s->w || !s->h || s->w>256 || s->h>192) {fclose(f);s->w=0;return;}
-    s->pixels=malloc(s->w*s->h*2);
-    if(s->pixels && fread(s->pixels,2,s->w*s->h,f)!=(size_t)(s->w*s->h)) {free(s->pixels);s->pixels=NULL;}
+    if(!s->w || !s->h || s->w>256 || s->h>192) {fclose(f);s->w=0;s->h=0;return;}
+    /* Validate the complete file before allocating. NitroFS sprites use a
+       four-byte geometry header followed by exactly w*h RGB555 pixels. */
+    size_t payload=(size_t)s->w*(size_t)s->h*2u;
+    if(fseek(f,0,SEEK_END)!=0 || ftell(f)!=(long)(4u+payload) ||
+       fseek(f,4,SEEK_SET)!=0) {
+        fclose(f);s->w=0;s->h=0;return;
+    }
+    s->pixels=malloc(payload);
+    if(!s->pixels || fread(s->pixels,1,payload,f)!=payload) {
+        free(s->pixels);s->pixels=NULL;s->w=0;s->h=0;
+    }
     fclose(f);
 }
 static void cache_backgrounds(void) {
