@@ -40,6 +40,18 @@ int main(void) {
     assert(game_item_slot_kind(&loaded,0)==7);
     assert(loaded.save.searches==searches);
     assert(loaded.save.reserved[8]==ITEM_LAYOUT_MARKER);
+    /* Invalid runtime state cannot truncate previously valid progress. */
+    Game invalid=g;
+    invalid.save.pending_count=MAX_CAUGHT+1;
+    assert(!game_save(&invalid,path));
+    invalid=g;
+    invalid.save.pending_items[0]=1;
+    invalid.save.reserved[2]=0;
+    assert(!game_save(&invalid,path));
+    game_new(&loaded,98765);
+    assert(game_load(&loaded,path));
+    assert(loaded.save.pending_count==1 && loaded.save.pending[0]==15);
+    assert(game_item_slot_kind(&loaded,0)==7);
     /* Corrupt the stored Pokémon ID without updating its checksum.
        A second load must reject it and leave a fresh game unchanged. */
     FILE *corrupt=fopen(path,"r+b");
