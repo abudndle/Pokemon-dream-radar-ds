@@ -9,6 +9,9 @@
 #define MAX_ITEM_STACK 255
 /* reserved[2..7] carry type+1 for occupied item slots; reserved[8] marks layout. */
 #define ITEM_LAYOUT_MARKER 0xA7u
+#define ORB_COLOR_LAYOUT_MARKER 0xD4u
+/* reserved[12]=dominant color from last completed search;
+ * reserved[13]=marker; session tallies are runtime-only. */
 #define SAVE_MAGIC 0x44525244u
 #define SAVE_VERSION 3u
 
@@ -26,6 +29,7 @@ typedef enum { STATE_TITLE, STATE_INTRO, STATE_LAB, STATE_SHOP, STATE_EXTENSIONS
                STATE_TRANSFER, STATE_SETTINGS, STATE_SD_SAVES, STATE_DIALOGUE,
                STATE_REPLACE, STATE_STORAGE, STATE_TIPS, STATE_ALBUM, STATE_CREDITS, STATE_PLACEHOLDER } GameScreen;
 typedef enum { REPLACE_NONE, REPLACE_POKEMON, REPLACE_ITEM } ReplaceKind;
+typedef enum { ORB_PINK, ORB_GREEN, ORB_ORANGE, ORB_BLUE, ORB_COLOR_COUNT } OrbColor;
 
 typedef struct {
     uint32_t magic, version;
@@ -53,6 +57,8 @@ typedef struct {
     int capture_hp, capture_timeout, sphere_x, sphere_y, sphere_vx, sphere_vy;
     int aim_x, aim_y, freeze_frames, slow_frames, active_clouds, cloud_hit;
     int session_orbs, session_caught, session_type, session_species, session_item;
+    uint16_t session_color_counts[ORB_COLOR_COUNT];
+    uint8_t search_orb_color; /* saved dominant color at search start */
     int camera_ok, camera_active, camera_tracking, camera_error;
     int messages, requested_save, cart_read_attempted, special_unlocked, cheat_progress[3];
     uint32_t pending_export_signature; /* Runtime proof of a successfully written text archive. */
@@ -73,6 +79,9 @@ void game_begin_search(Game *g, int extension);
 void game_fire(Game *g);
 int game_use_support(Game *g, int slot);
 void game_tick(Game *g);
+OrbColor game_orb_color(const Game *g);
+OrbColor game_orb_live_color(const Game *g);
+const char *game_orb_color_name(OrbColor color);
 /* End active radar/capture session safely when Back is pressed. */
 int game_leave_search(Game *g);
 int game_buy(Game *g, int kind, int idx);
