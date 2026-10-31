@@ -440,7 +440,7 @@ static void render(void) {
         top_title("RESEARCH LAB");
         draw_sprite(top,S_BURNET,89,38);
         coins(159);
-        { char t[70];snprintf(t,sizeof t,"Dream Clouds: %d / %d",game.save.cloud_count,5*game.save.upgrades[2]);
+        { char t[70];snprintf(t,sizeof t,"Dream Clouds: %d / %d",game.save.cloud_count,5*(game.save.upgrades[2]+1));
           print(top,11,176,CYAN,t); }
         { char t[68];snprintf(t,sizeof t,"GAME: %s [%s]",game_cart_name(game.cart),
             game.cart_source==CART_SOURCE_SLOT1?"CART":game.cart_source==CART_SOURCE_TWILIGHT_SD?"SD":"NONE");
