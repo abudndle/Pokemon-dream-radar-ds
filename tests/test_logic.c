@@ -163,7 +163,18 @@ int main(void) {
     backgrounds.save.reserved[10]=1000u >> 8;
     assert(game_save(&backgrounds,"/tmp/dr_bg_slot_test.sav"));
     game_new(&loaded_bg,55);
-    assert(!game_load(&loaded_bg,"/tmp/dr_bg_slot_test.sav"));
+    loaded_bg.requested_save=0;
+    assert(game_load(&loaded_bg,"/tmp/dr_bg_slot_test.sav"));
+    assert(loaded_bg.save.reserved[11]==0);
+    assert(loaded_bg.save.reserved[9]==0 && loaded_bg.save.reserved[10]==0);
+    assert(loaded_bg.requested_save==1);
+    /* Corrupt optional artwork preference must not destroy real progress. */
+    assert(loaded_bg.save.magic==SAVE_MAGIC);
+    assert(loaded_bg.save.random_seed==backgrounds.save.random_seed);
+    assert(game_save(&loaded_bg,"/tmp/dr_bg_slot_test.sav"));
+    Game reloaded_bg;game_new(&reloaded_bg,56);
+    assert(game_load(&reloaded_bg,"/tmp/dr_bg_slot_test.sav"));
+    assert(reloaded_bg.save.reserved[11]==0);
     remove("/tmp/dr_bg_slot_test.sav");
     puts("PASS: single active game, source replacement, IDs, legends, upgrades, save, export");
     return 0;
