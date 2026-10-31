@@ -6,6 +6,8 @@ int main(void) {
     game_begin_search(NULL, EXT_BASIC);
     Game g;
     game_new(&g,123);
+    assert(g.session_caught==-1 && g.session_item==-1 && g.session_species==-1);
+    assert(g.session_type==0 && g.capture_hp==0);
     game_begin_search(&g,EXT_BASIC);
     assert(g.screen==STATE_RADAR);
     unsigned count=g.save.cloud_count;
