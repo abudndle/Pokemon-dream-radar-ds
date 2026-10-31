@@ -20,11 +20,11 @@ static void collect_cloud_color(Game *g,int color) {
     g->clouds[0].y=90;
     g->aim_x=105;g->aim_y=90;
     g->save.frames_played=(uint32_t)(color*45+3);
-    assert(game_orb_live_color(g)==color);
+    assert(game_orb_live_color(g)==(OrbColor)color);
     game_fire(g);
     assert(g->screen==STATE_RESULTS && g->session_orbs>=3);
     assert(g->session_color_counts[color]==g->session_orbs);
-    assert(game_orb_color(g)==color);
+    assert(game_orb_color(g)==(OrbColor)color);
 }
 
 int main(void) {
@@ -40,7 +40,7 @@ int main(void) {
         g.save.story_phase=(uint8_t)phase;
         for(int color=0;color<=phase;color++) {
             g.save.frames_played=(uint32_t)(color*45+3);
-            assert(game_orb_live_color(&g)==color);
+            assert(game_orb_live_color(&g)==(OrbColor)color);
         }
         g.save.frames_played=(uint32_t)((phase+1)*45+3);
         assert(game_orb_live_color(&g)==ORB_PINK);
@@ -68,7 +68,7 @@ int main(void) {
         Game restored;
         game_new(&restored,7);
         assert(game_load(&restored,file));
-        assert(game_orb_color(&restored)==color);
+        assert(game_orb_color(&restored)==(OrbColor)color);
         remove(file);
     }
 
