@@ -10,7 +10,16 @@ from pathlib import Path
 
 def audit(snapshot, source_dir):
     layouts=json.loads(snapshot.read_text())["layouts"]
-    present={p.name for p in source_dir.rglob("*.bclyt")}
+    source_files=list(source_dir.rglob("*.bclyt"))
+    present={p.name for p in source_files}
+    if len(present)!=len(source_files):
+        raise ValueError("ambiguous duplicate bundled BClyt filenames")
+    invalid_sources=[]
+    for path in source_files:
+        with path.open("rb") as stream:
+            header=stream.read(8)
+        if len(header)<8 or header[:4]!=b"CLYT" or header[4:6]!=b"\\xff\\xfe":
+            invalid_sources.append(path.relative_to(source_dir).as_posix())
     names=[Path(entry["file"]).name for entry in layouts]
     if len(names)!=len(set(names)):
         raise ValueError("ambiguous duplicate source layout basenames")
@@ -23,6 +32,8 @@ def audit(snapshot, source_dir):
         "bundled_layout_sources":sum(r["source_bclyt"] for r in records),
         "missing_layout_sources":sum(not r["source_bclyt"] for r in records),
         "bundled_animation_sources":len(animations),
+        "invalid_layout_sources":invalid_sources,
+        "unmatched_layout_sources":sorted(present-set(names)),
         "animations":animations,
         "layouts":records,
         "note":"Snapshots alone do not establish source availability or playable UI fidelity."
