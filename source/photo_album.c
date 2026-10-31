@@ -6,6 +6,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <errno.h>
 
 static uint16_t le16(const unsigned char *p) {
     return (uint16_t)((unsigned)p[0] | ((unsigned)p[1]<<8));
@@ -120,10 +121,12 @@ int dr_photo_save_new(const char *folder,int *next_slot,const uint16_t *src,size
         int slot=(start+n)%DR_PHOTO_MAX;
         char file[256];
         if(!photo_path(file,sizeof file,folder,slot))return 0;
-        struct stat st;if(stat(file,&st)==0)continue;
+        struct stat st;
+        if(stat(file,&st)==0)continue;
+        /* Do not treat an inaccessible path as a free photo slot. */
+        if(errno!=ENOENT)return 0;
         if(!dr_photo_write(file,src,count)) {
-            /* If another writer claimed the slot, try the next number;
-               genuine I/O failures still stop the save. */
+            /* Only a genuinely occupied slot is safe to skip. */
             if(stat(file,&st)==0)continue;
             return 0;
         }
