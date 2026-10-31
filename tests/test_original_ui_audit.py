@@ -46,4 +46,7 @@ assert sprites[66:]==["radar_cloud_white.spr","radar_cloud_pink.spr"]
 assert "S_ORIGINAL_POKEMON_FIRST=17,S_ORIGINAL_ITEM_FIRST=43" in main_source
 assert main_source.count("draw_original_encounter_art();")==2
 assert "else draw_sprite(top,S_ORB,px-29,py-29);" in main_source
+# Runtime sprite loading must reject truncated or appended NitroFS data.
+assert "ftell(f)!=(long)(4u+payload)" in main_source
+assert "fread(s->pixels,1,payload,f)!=payload" in main_source
 print("PASS: original UI source inventory distinguishes 22 snapshots from bundled sources")
