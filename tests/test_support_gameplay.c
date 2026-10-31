@@ -52,6 +52,8 @@ int main(void) {
     g.ext_selection=EXT_BASIC;
     g.session_type=0;
     g.session_species=0;
+    /* Captures must occur during an active, unexpired encounter. */
+    g.capture_timeout=100;
     g.freeze_frames=240;
     g.slow_frames=120;
     game_capture(&g);
