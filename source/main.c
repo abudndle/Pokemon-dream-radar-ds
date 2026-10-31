@@ -560,7 +560,8 @@ static void render(void) {
             snprintf(txt,sizeof txt,"Replaced storage slot %d",game.replaced_slot+1);
             print(bottom,16,92,PINK,txt);
         }
-        print(bottom,16,112,CYAN,"Research progress saved.");
+        print(bottom,16,112,have_storage?CYAN:PINK,
+              dr_research_save_status(have_storage,game.requested_save));
         print(bottom,38,165,WHITE,"A: RETURN TO LAB");
         break;}
     case STATE_REPLACE: {
