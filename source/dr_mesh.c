@@ -51,3 +51,15 @@ int dr_mesh_decode(const unsigned char *bytes,size_t size,DrMesh *out) {
     *out=tmp;
     return 1;
 }
+
+/* No GPU dependencies: project packed Q12 mesh coordinates into screen space.
+   Caller chooses the center and integer pixel scale (pixels per model unit).
+   Limit scale so all intermediate products fit signed 32-bit arithmetic. */
+int dr_mesh_project_vertex(const DrMeshVertex *v,int cx,int cy,int scale,int *x,int *y) {
+    if(!v || !x || !y || scale<1 || scale>256 || cx<0 || cx>255 || cy<0 || cy>191)return 0;
+    int64_t px=(int64_t)v->x*scale;
+    int64_t py=(int64_t)v->y*scale;
+    *x=cx+(int)(px/4096);
+    *y=cy-(int)(py/4096);
+    return 1;
+}
