@@ -15,8 +15,11 @@ int dr_support_at(int x,int y) {
     return -1;
 }
 int dr_transfer_button_at(int x,int y) {
-    if(x<5||x>250||y<157||y>189)return -1;
-    return x<127?0:1;
+    /* Only the two visible footer controls are actionable. */
+    if(y<157 || y>=190)return -1;
+    if(x>=10 && x<120)return 0;
+    if(x>=138 && x<246)return 1;
+    return -1;
 }
 /* One transfer geometry source for icons, selection outline and touch input. */
 void dr_transfer_slot_rect(int index,int *x,int *y,int *w,int *h) {
