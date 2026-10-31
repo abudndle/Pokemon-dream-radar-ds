@@ -31,6 +31,11 @@ int main(void) {
     assert(!game_save(NULL,"/tmp/missing.drs"));
     assert(!game_save(&invalid,NULL));
     assert(!game_save(&invalid,""));
+    /* A failed open must not silently alter the in-memory save checksum. */
+    Game denied;game_new(&denied,123);
+    denied.save.checksum=0xAABBCCDDu;
+    assert(!game_save(&denied,"/this/directory/does/not/exist/dream-radar.sav"));
+    assert(denied.save.checksum==0xAABBCCDDu);
     Game g;game_new(&g,1);
     g.save.orbs=123;
     assert(save_backend_write(&backend,&g));
