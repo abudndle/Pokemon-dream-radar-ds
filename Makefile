@@ -55,6 +55,8 @@ test-host:
 	./build/test_encounter_types
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c tests/test_cloud_recharge.c -o build/test_cloud_recharge
 	./build/test_cloud_recharge
+	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c tests/test_search_reentry.c -o build/test_search_reentry
+	./build/test_search_reentry
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c tests/test_cloud_targeting.c -o build/test_cloud_targeting
 	./build/test_cloud_targeting
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c tests/test_effect_frame_timing.c -o build/test_effect_frame_timing
