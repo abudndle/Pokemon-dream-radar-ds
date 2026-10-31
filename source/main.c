@@ -1213,12 +1213,14 @@ running_dsi=isDSiMode();
                 have_storage=0;
                 storage_root=NULL;
             }
-            /* Camera photos belong on the actual DSi SD card, in their own
-               folder; never save pictures to a retail-game cartridge. */
-            int photo_len=snprintf(photo_dir,sizeof photo_dir,"%s/Photos",export_dir);
+            /* Camera photos belong only on actual DSi SD storage. Skip
+               formatting the album path if export storage was rejected. */
             if(have_storage && running_dsi && storage_root &&
-               strcmp(storage_root,"sd:/")==0 &&
-               photo_len>=0 && photo_len<(int)sizeof photo_dir) {
+               strcmp(storage_root,"sd:/")==0) {
+                int photo_len=snprintf(photo_dir,sizeof photo_dir,"%s/Photos",export_dir);
+                if(photo_len<0 || photo_len>=(int)sizeof photo_dir) {
+                    photo_storage_ready=0;
+                } else {
                 struct stat st;
                 /* mkdir() cannot create Photos if its parent is absent.
                    Ensure both directories exist on a freshly formatted SD. */
@@ -1227,6 +1229,7 @@ running_dsi=isDSiMode();
                 if(parent_ok)
                     photo_storage_ready=mkdir(photo_dir,0777)==0 ||
                         (stat(photo_dir,&st)==0 && S_ISDIR(st.st_mode));
+                }
             }
         }
     }
