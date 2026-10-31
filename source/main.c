@@ -491,13 +491,22 @@ static void render(void) {
         if(game.screen==STATE_RADAR) {
             render_radar_top();
         } else {
-            render_camera_background();
-            draw_sprite(top,S_ORB,game.sphere_x-29,game.sphere_y-29);
+            if(!running_dsi || !game.camera_active || !game.camera_ok) {
+                /* DS and camera-disabled DSi retain the same camera-free aiming
+                 * perspective during the capture encounter. */
+                render_ds_search_sandbox();
+                draw_sprite(top,S_ORB,game.sphere_x-game.aim_x+128-29,
+                            game.sphere_y-game.aim_y+96-29);
+            } else {
+                render_camera_background();
+                draw_sprite(top,S_ORB,game.sphere_x-29,game.sphere_y-29);
+            }
             progress_bar(9,4,181,game.capture_hp,240,GOLD);
             char tx[32];snprintf(tx,sizeof tx,"%d",game.capture_timeout/60);
             rect(top,199,2,55,18,0x8421);
             print(top,213,7,WHITE,tx);
-            draw_sprite(top,S_RETICLE,game.aim_x-16,game.aim_y-16);
+            if(running_dsi && game.camera_active && game.camera_ok)
+                draw_sprite(top,S_RETICLE,game.aim_x-16,game.aim_y-16);
         }
         render_search_bottom();
         break;}
