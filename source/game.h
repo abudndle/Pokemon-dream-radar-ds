@@ -55,6 +55,10 @@ typedef struct {
     int selection, page, intro_page, result_page, ext_selection;
     int story_event, story_event_page;
     int capture_hp, capture_timeout, sphere_x, sphere_y, sphere_vx, sphere_vy;
+    /* Runtime-only hostile sphere energy ball. Not part of save data. */
+    int projectile_enabled, projectile_active;
+    int projectile_x, projectile_y, projectile_vx, projectile_vy;
+    int projectile_cooldown, projectile_lifetime, projectile_hits;
     int aim_x, aim_y, freeze_frames, slow_frames, active_clouds, cloud_hit;
     int session_orbs, session_caught, session_type, session_species, session_item;
     uint16_t session_color_counts[ORB_COLOR_COUNT];
