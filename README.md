@@ -1,3 +1,31 @@
+## Verified original Dream Radar DARC / BCLIM inventory
+
+After local-only LZH8 decompression, `tools/inventory_darc.py` validates
+the nested DARC directory entries, file ranges, and BCLIM image footers:
+
+```sh
+python3 tools/decode_ncch_lzh8.py /private/game.ncch /private/lzh8.json \
+  --extract-dir /private/dream_radar_darc
+python3 tools/inventory_darc.py /private/dream_radar_darc /private/darc_inventory.json
+```
+
+In the user's privately supplied Dream Radar image, **177/177 DARC
+containers parsed** and exposed **1,462 original files**: 875 BCLIM image
+files, 417 BCLAN animation resources, 135 BCLYT interface layouts and 35
+MSBT message catalogs. BCLIM footer records provide width, height, image
+byte size and pixel-format code, **not decoded pixels**. These are primarily
+UI and messaging resources; they are not evidence of original 3D Pokémon
+geometry being recovered. For optional **private/local-only** extraction:
+
+```sh
+python3 tools/inventory_darc.py /private/dream_radar_darc /private/darc_inventory.json \
+  --extract-dir /private/dream_radar_assets
+```
+
+Do not upload extracted original files, private archives, or the decrypted
+NCCH to this public repository. `make test-host` uses a synthetic DARC
+archive and BCLIM footer, including invalid-input regression cases.
+
 ## Verified original Dream Radar LZH8 -> DARC decoding
 
 **The original `.carc` files are Nintendo LZH8, not the low-endian LZ40
