@@ -18,7 +18,7 @@ def audit(snapshot, source_dir):
     for path in source_files:
         with path.open("rb") as stream:
             header=stream.read(8)
-        if len(header)<8 or header[:4]!=b"CLYT" or header[4:6]!=b"\\xff\\xfe":
+        if len(header)<8 or header[:4]!=b"CLYT" or header[4:6]!=b"\xff\xfe":
             invalid_sources.append(path.relative_to(source_dir).as_posix())
     names=[Path(entry["file"]).name for entry in layouts]
     if len(names)!=len(set(names)):
