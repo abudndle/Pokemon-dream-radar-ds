@@ -11,9 +11,12 @@ from check_nds import check_rom
 def fixture(valid=True):
     data = bytearray(2048)
     data[:11] = b'DREAM RADAR'
-    for off, pos, size in ((0x20, 0x200, 64), (0x30, 0x280, 32),
-                           (0x40, 0x300, 32), (0x48, 0x340, 32)):
-        struct.pack_into('<II', data, off, pos, size)
+    for offset_pos, size_pos, pos, size in ((0x20, 0x2C, 0x200, 64),
+                                            (0x30, 0x3C, 0x280, 32),
+                                            (0x40, 0x44, 0x300, 32),
+                                            (0x48, 0x4C, 0x340, 32)):
+        struct.pack_into('<I', data, offset_pos, pos)
+        struct.pack_into('<I', data, size_pos, size)
     if not valid:
         struct.pack_into('<II', data, 0x40, 0x2000, 100)
     return data
