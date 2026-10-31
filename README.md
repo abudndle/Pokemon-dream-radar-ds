@@ -1,3 +1,7 @@
+## Radar-to-capture gameplay integration coverage
+
+The host suite now includes `tests/test_gameplay_integration.c`, which exercises a complete scripted gameplay sequence: aim at a radar cloud, enter an item-focused encounter, activate a freeze support item, fire the capture beam, receive a research item in queued storage, and arrive at the results screen. The test also checks search progression, consumed inventory, effect cleanup, and the save request flag. This **adds gameplay regression coverage**, not new original 3DS mechanics; its execution on GitHub Actions and gameplay behavior in a real DS/DSi ROM still require verification.
+
 ## Optional original encounter mesh rendering milestone
 
 During a Pokémon capture encounter, the game now tries to load a converted `nitro:/pokemon_XX.drm` mesh, where `XX` is the zero-padded encounter species index (00–25). It decodes the bounded `DRM1` data and draws a CPU-side cyan wireframe into the top screen. If the mesh is missing or invalid, the **original extracted 2D Pokémon art remains the fallback**; item encounters retain their 2D artwork. A single species mesh is cached instead of rereading the file each frame. The same shared encounter rendering path is used for camera and non-camera modes.
