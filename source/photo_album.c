@@ -49,10 +49,12 @@ int dr_photo_read(const char *filename,uint16_t *dst,size_t count) {
     FILE *f=fopen(filename,"rb");if(!f)return 0;
     unsigned char head[54];int ok=0;
     if(fread(head,1,sizeof head,f)!=sizeof head)goto done;
-    if(head[0]!='B' || head[1]!='M' || le32(head+10)!=54 ||
-       le32(head+14)!=40 || le32(head+18)!=DR_PHOTO_W ||
-       le32(head+22)!=DR_PHOTO_H || le16(head+26)!=1 ||
-       le16(head+28)!=24 || le32(head+30)!=0 ||
+    if(head[0]!='B' || head[1]!='M' ||
+       le32(head+2)!=54+DR_PHOTO_W*DR_PHOTO_H*3 ||
+       le32(head+10)!=54 || le32(head+14)!=40 ||
+       le32(head+18)!=DR_PHOTO_W || le32(head+22)!=DR_PHOTO_H ||
+       le16(head+26)!=1 || le16(head+28)!=24 ||
+       le32(head+30)!=0 ||
        le32(head+34)!=DR_PHOTO_W*DR_PHOTO_H*3)goto done;
     /* Reject truncated/corrupt photos rather than displaying stale pixels. */
     unsigned char row[DR_PHOTO_W*3];
