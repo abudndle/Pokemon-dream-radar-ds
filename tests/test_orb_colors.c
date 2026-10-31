@@ -60,7 +60,7 @@ int main(void) {
         assert(g.search_orb_color==color);
         assert(g.session_color_counts[color]==0);
         assert(game_leave_search(&g));
-        assert(game_orb_color(&g)==color); /* zero reward does not overwrite */
+        assert(game_orb_color(&g)==(OrbColor)color); /* zero reward does not overwrite */
 
         /* Search color must survive game save/reload without a schema bump. */
         const char *file="build/test_orb_colors.sav";
