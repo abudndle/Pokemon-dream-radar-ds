@@ -58,7 +58,10 @@ int dr_shop_row_top(int index) {
 int dr_shop_hit(int x,int y) {
     if(x<10 || x>=246 || y<26 || y>=170)return -1;
     int index=(y-26)/24;
-    return index<6 && y<dr_shop_row_top(index)+22?index:-1;
+    if(index>=6)return -1;
+    int top=dr_shop_row_top(index);
+    const int quad[8]={10,top,245,top,245,top+21,10,top+21};
+    return dr_quad_hit(quad,x,y)?index:-1;
 }
 /* Shared C-side convex quadrilateral picking for actual DS touchscreen menus.
    Vertex order is perimeter order; accepts either winding direction. */
