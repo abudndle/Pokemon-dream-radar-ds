@@ -45,7 +45,10 @@ static int existing_photo(const char *folder,int slot) {
            le32(head+2)==54+DR_PHOTO_W*DR_PHOTO_H*3 &&
            le32(head+10)==54 && le32(head+14)==40 &&
            le32(head+18)==DR_PHOTO_W && le32(head+22)==DR_PHOTO_H &&
-           le16(head+26)==1 && le16(head+28)==24 && le32(head+30)==0;
+           le16(head+6)==0 && le16(head+8)==0 &&
+           le16(head+26)==1 && le16(head+28)==24 &&
+           le32(head+30)==0 &&
+           le32(head+34)==DR_PHOTO_W*DR_PHOTO_H*3;
 }
 int dr_photo_find(const char *folder,int from,int direction,int *slot_out) {
     if(!folder || !*folder || !slot_out || (direction!=1 && direction!=-1))return 0;
