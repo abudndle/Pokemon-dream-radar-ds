@@ -106,10 +106,17 @@ int game_load(Game *g, const char *file) {
         s.story_phase>3 || (s.legends_caught & ~31u) ||
         s.intro_seen>1 || s.optical_aim>1 || s.camera_enabled>1 ||
         s.reserved[0]>3 || s.reserved[1]>7) return 0;
-    /* A saved custom background must refer to photo_000..photo_999.
-       Reject malformed metadata without affecting older saves lacking it. */
+    /* Optional background metadata must never invalidate otherwise sound
+       game progress. Repair an out-of-range selection after checksum
+       verification, and persist the repaired record on the next save. */
+    int repaired_background=0;
     if(s.reserved[11]==0xB6u &&
-       ((unsigned)s.reserved[9] | ((unsigned)s.reserved[10]<<8))>=1000u)return 0;
+       ((unsigned)s.reserved[9] | ((unsigned)s.reserved[10]<<8))>=1000u) {
+        s.reserved[9]=0;
+        s.reserved[10]=0;
+        s.reserved[11]=0;
+        repaired_background=1;
+    }
     for (int i=0;i<3;i++) if (s.upgrades[i]<1 || s.upgrades[i]>5 || s.goods[i]>9) return 0;
     for (int i=0;i<MAX_CAUGHT;i++) if (i<s.pending_count && s.pending[i]>25) return 0;
     /* Older v3 homebrew saves indexed item stacks by item ID. Reconstruct
@@ -125,7 +132,7 @@ int game_load(Game *g, const char *file) {
         }
     }
     g->save = s;
-    if(migrated_item_layout)g->requested_save=1;
+    if(migrated_item_layout || repaired_background)g->requested_save=1;
     /* The three secret research extensions persist in unused reserved bytes,
        preserving version 3 save compatibility with previous milestone builds. */
     g->special_unlocked = s.reserved[1];
