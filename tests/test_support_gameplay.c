@@ -27,6 +27,12 @@ int main(void) {
     assert(!game_use_support(&g,1));
     assert(g.save.goods[1]==1 && g.slow_frames==300 && !g.requested_save);
     g.save.goods[1]=0;
+    g.capture_timeout=0; g.requested_save=0;
+    assert(!game_use_support(&g,2));
+    assert(g.save.goods[2]==1 && g.capture_timeout==0 && !g.requested_save);
+    g.capture_timeout=-1;
+    assert(!game_use_support(&g,2));
+    assert(g.save.goods[2]==1 && g.capture_timeout==-1 && !g.requested_save);
     g.capture_timeout=120*60;
     assert(game_use_support(&g,2) && g.capture_timeout==145*60);
     g.save.goods[2]=1; g.capture_timeout=INT_MAX-10;
