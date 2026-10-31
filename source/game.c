@@ -281,25 +281,33 @@ int game_use_support(Game *g, int slot) {
 }
 void game_fire(Game *g) {
     if (g->screen==STATE_RADAR) {
-        for (int i=0;i<g->active_clouds;i++) {
-            Cloud *c=&g->clouds[i];
+        /* When hit circles overlap, choose the closest cloud, not the
+           lowest array index. This keeps stylus aiming deterministic. */
+        int selected=-1, nearest=19*19;
+        for (int i=0;i<g->active_clouds && i<MAX_CLOUDS;i++) {
+            const Cloud *c=&g->clouds[i];
             int dx=c->x-g->aim_x,dy=c->y-g->aim_y;
-            if (c->alive && dx*dx+dy*dy<19*19) {
-                c->alive=0;g->cloud_hit++;
-                if (c->kind && (g->ext_selection!=EXT_BASIC || (rnd(g)%3)==0)) {
-                    start_sphere(g);return;
-                }
-                int reward = 3+(rnd(g)%5);
-                g->session_orbs=g->session_orbs>INT_MAX-reward ? INT_MAX : g->session_orbs+reward;
-                g->save.orbs=add_orbs_saturating(g->save.orbs,(uint32_t)reward);
-                g->save.total_orbs=add_orbs_saturating(g->save.total_orbs,(uint32_t)reward);
+            int distance=dx*dx+dy*dy;
+            if(c->alive && distance<nearest) {
+                nearest=distance;
+                selected=i;
+            }
+        }
+        if(selected>=0) {
+            Cloud *c=&g->clouds[selected];
+            c->alive=0;g->cloud_hit++;
+            if (c->kind && (g->ext_selection!=EXT_BASIC || (rnd(g)%3)==0)) {
+                start_sphere(g);return;
+            }
+            int reward = 3+(rnd(g)%5);
+            g->session_orbs=g->session_orbs>INT_MAX-reward ? INT_MAX : g->session_orbs+reward;
+            g->save.orbs=add_orbs_saturating(g->save.orbs,(uint32_t)reward);
+            g->save.total_orbs=add_orbs_saturating(g->save.total_orbs,(uint32_t)reward);
+            g->requested_save=1;
+            if (g->cloud_hit >= g->active_clouds) {
+                g->save.searches++;
+                g->screen=STATE_RESULTS;
                 g->requested_save=1;
-                if (g->cloud_hit >= g->active_clouds) {
-                    g->save.searches++;
-                    g->screen=STATE_RESULTS;
-                    g->requested_save=1;
-                }
-                return;
             }
         }
     } else if (g->screen==STATE_SPHERE) {
