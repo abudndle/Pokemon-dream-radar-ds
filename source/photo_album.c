@@ -112,7 +112,7 @@ int dr_photo_write(const char *filename,const uint16_t *src,size_t count) {
     return ok;
 }
 int dr_photo_save_new(const char *folder,int *next_slot,const uint16_t *src,size_t count) {
-    if(!folder || !next_slot || !src)return 0;
+    if(!folder || !*folder || !next_slot || !src || count<DR_PHOTO_W*DR_PHOTO_H)return 0;
     int start=*next_slot;
     if(start<0 || start>=DR_PHOTO_MAX)start=0;
     for(int n=0;n<DR_PHOTO_MAX;n++) {
