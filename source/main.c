@@ -288,25 +288,27 @@ static void render_ds_search_sandbox(int show_clouds) {
         print(top,6,6,WHITE,line);
     }
 }
+static void render_camera_background(void);
 static void render_radar_top(void) {
-    if(!running_dsi) {render_ds_search_sandbox(1);return;}
-    load_bg("radar_overview.raw",top,0x8844);
-    char line[40];int white=0,pink=0;
-    dr_radar_counts(&game,&white,&pink);
-    draw_sprite(top,S_CLOUD_WHITE,8,3);
-    snprintf(line,sizeof line,"%d / %d",dr_remaining_clouds(&game),game.active_clouds);
-    print(top,39,9,WHITE,line);
-    draw_sprite(top,S_CLOUD_WHITE,9,24);
-    snprintf(line,sizeof line,"%d",white);print(top,39,29,WHITE,line);
-    draw_sprite(top,S_CLOUD_PINK,9,43);
-    snprintf(line,sizeof line,"%d",pink);print(top,39,48,WHITE,line);
+    if(!running_dsi || !game.camera_active || !game.camera_ok) {
+        render_ds_search_sandbox(1);
+        return;
+    }
+    /* DSi camera provides the backdrop while world-space clouds follow aim. */
+    render_camera_background();
     for(int i=0;i<game.active_clouds;i++) {
         const Cloud *c=&game.clouds[i];
         if(!c->alive)continue;
-        /* Scale the 3DS radar marker placement to the DS screen and preserve original icons. */
-        draw_sprite(top,S_RADAR_PINK,c->x-8,c->y-8);
+        int sx=c->x-game.aim_x+128;
+        int sy=c->y-game.aim_y+96;
+        if(sx>=-32 && sx<SW && sy>=-32 && sy<SH)
+            draw_sprite(top,c->kind ? S_CLOUD_PINK : S_CLOUD_WHITE,sx-16,sy-16);
     }
-    draw_sprite(top,S_RADAR_ARROW,game.aim_x-11,171);
+    draw_sprite(top,S_RETICLE,112,80);
+    char line[32];
+    snprintf(line,sizeof line,"CLOUDS %d/%d",dr_remaining_clouds(&game),game.active_clouds);
+    rect(top,2,2,121,17,0x8421);
+    print(top,6,6,WHITE,line);
 }
 static void render_transfer_bottom(void) {
     load_bg("transfer_bottom.raw",bottom,0x8844);
@@ -872,7 +874,7 @@ static void switch_screen(GameScreen next) {
     if(game.screen==STATE_RADAR || game.screen==STATE_SPHERE)camera_off();
     game.screen=next;game.selection=0;
     if(next!=STATE_TRANSFER)game.archive_confirm=0;
-    if(next==STATE_SPHERE)camera_on();
+    if(next==STATE_RADAR || next==STATE_SPHERE)camera_on();
 }
 static void finish_story_dialogue(void) {
     if(game.story_event>0 && game.story_event<=3 &&
@@ -1190,9 +1192,9 @@ running_dsi=isDSiMode();
         if((game.save.frames_played%60)==0){
             time_t current=time(NULL);if(current>0)game_regen_clouds(&game,(uint32_t)current);
         }
-        if(game.screen!=STATE_SPHERE && game.camera_active)camera_off();
-        if(game.screen==STATE_SPHERE && !game.camera_active)camera_on();
-        if(game.screen==STATE_SPHERE)update_camera();
+        if(game.screen!=STATE_SPHERE && game.screen!=STATE_RADAR && game.camera_active)camera_off();
+        if((game.screen==STATE_SPHERE || game.screen==STATE_RADAR) && !game.camera_active)camera_on();
+        if(game.screen==STATE_SPHERE || game.screen==STATE_RADAR)update_camera();
         render();
         if(game.requested_save && have_storage && (game.save.frames_played%30)==0){
             if(save_backend_write(&save_backend,&game))game.requested_save=0;
