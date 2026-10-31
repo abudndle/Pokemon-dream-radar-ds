@@ -48,7 +48,9 @@ int dr_mesh_decode(const unsigned char *bytes,size_t size,DrMesh *out) {
         tmp.triangle[i].b=(uint16_t)b;
         tmp.triangle[i].c=(uint16_t)c;
     }
-    /* Out is changed only on success; caller owns decoded allocations. */
+    /* Atomically replace an existing decoded mesh. A failed decode above
+       leaves the caller's previous allocations and contents untouched. */
+    dr_mesh_free(out);
     *out=tmp;
     return 1;
 }
