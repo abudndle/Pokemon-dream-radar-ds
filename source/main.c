@@ -73,7 +73,7 @@ static int export_unique_research(void) {
 
 typedef struct {u16 w,h;u16 *pixels;} Sprite;
 static Sprite sprites[68];
-enum {S_LOGO,S_CLOUD,S_YELLOW,S_RETICLE,S_ORB,S_SHOP,S_ICON,S_BURNET,S_UP_BEAM,S_UP_ENERGY,S_UP_SCOPE,S_GOOD0,S_GOOD1,S_GOOD2,S_RADAR_PINK,S_RADAR_DARK,S_RADAR_ARROW,S_CLOUD_WHITE,S_CLOUD_PINK};
+enum {S_LOGO,S_CLOUD,S_YELLOW,S_RETICLE,S_ORB,S_SHOP,S_ICON,S_BURNET,S_UP_BEAM,S_UP_ENERGY,S_UP_SCOPE,S_GOOD0,S_GOOD1,S_GOOD2,S_RADAR_PINK,S_RADAR_DARK,S_RADAR_ARROW,S_CLOUD_WHITE=66,S_CLOUD_PINK=67};
 static const char *sprite_files[]={"logo.spr","cloud.spr","cloud_yellow.spr","reticle.spr","orb.spr","shop.spr","icon.spr","burnet.spr","upgrade_beam.spr","upgrade_energy.spr","upgrade_scope.spr",
     "support_0.spr","support_1.spr","support_2.spr",
     "radar_marker_pink.spr","radar_marker_dark.spr","radar_arrow.spr",
