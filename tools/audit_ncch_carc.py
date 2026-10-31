@@ -15,6 +15,19 @@ def classify_header(first_byte):
     if first_byte==0x11:return "lz11"
     return "unverified"
 
+def inspect_size_header(header, compressed_size, limit=64*1024*1024):
+    """Interpret the common Nintendo four-byte type/24-bit-size layout.
+
+    A plausible size is evidence for an LZ40 *candidate*, not proof that
+    the following bytes decode successfully. Never allocate based on it.
+    """
+    if len(header)<4 or compressed_size<4 or header[0]!=0x40:
+        return None
+    size=int.from_bytes(header[1:4],"little")
+    if size==0 or size>limit:
+        return None
+    return size
+
 def inspect(path):
     image=Path(path).read_bytes()
     romfs_start=struct.unpack_from("<I",image,0x1b0)[0]*512
@@ -31,7 +44,8 @@ def inspect(path):
         results.append({"path":entry["path"],"size":length,
                         "header16_hex":header.hex(),
                         "header_byte":header[0],
-                        "compression":classify_header(header[0])})
+                        "compression":classify_header(header[0]),
+                        "lz40_candidate_unpacked_size":inspect_size_header(header,length)})
     return {"archive_count":len(results),
             "first_byte_counts":dict(sorted(Counter(f"0x{r['header_byte']:02x}" for r in results).items())),
             "archives":results}
