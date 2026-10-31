@@ -30,20 +30,31 @@ OrbColor game_orb_color(const Game *g) {
 OrbColor game_orb_live_color(const Game *g) {
     if(!g)return ORB_PINK;
     unsigned unlocked=g->save.story_phase>3u?3u:g->save.story_phase;
-    /* DS adaptation: one color per cloud reward, advanced by waiting
-       45 frames. Real 3DS gameplay has moving, individually hittable Orbs. */
     return (OrbColor)((g->save.frames_played/45u)%(unlocked+1u));
+}
+OrbColor game_dream_orb_color(const Game *g,int slot) {
+    if(!g || slot<0 || slot>=MAX_DREAM_ORBS)return ORB_PINK;
+    unsigned unlocked=g->save.story_phase>3u?3u:g->save.story_phase;
+    unsigned phase=g->dream_orbs[slot].color_phase;
+    return (OrbColor)(((g->save.frames_played/45u)+phase)%(unlocked+1u));
+}
+int game_active_dream_orbs(const Game *g) {
+    if(!g)return 0;
+    int count=0;
+    for(int i=0;i<MAX_DREAM_ORBS;i++)if(g->dream_orbs[i].alive)count++;
+    return count;
 }
 const char *game_orb_color_name(OrbColor color) {
     static const char *const names[]={"PINK","GREEN","ORANGE","BLUE"};
     return color>=ORB_PINK && color<ORB_COLOR_COUNT?names[color]:"UNKNOWN";
 }
-static void record_orb_reward(Game *g,int reward) {
-    if(reward<=0)return;
-    OrbColor color=game_orb_live_color(g);
+static void record_orb_reward(Game *g,OrbColor color) {
     unsigned current=g->session_color_counts[color];
-    unsigned next=current+(unsigned)reward;
-    g->session_color_counts[color]=(uint16_t)(next>UINT16_MAX?UINT16_MAX:next);
+    if(current<UINT16_MAX)g->session_color_counts[color]=(uint16_t)(current+1u);
+    if(g->session_orbs<INT_MAX)g->session_orbs++;
+    g->save.orbs=add_orbs_saturating(g->save.orbs,1u);
+    g->save.total_orbs=add_orbs_saturating(g->save.total_orbs,1u);
+    g->requested_save=1;
 }
 static void finish_orb_search(Game *g) {
     OrbColor winner=game_orb_color(g);
@@ -334,6 +345,73 @@ void game_secret_key(Game *g, int key) {
         g->cheat_progress[i]=j;
     }
 }
+/* Runtime-only orb entities. Shooting a cloud creates a cluster; each orb
+ * requires a separate shot, cycles color, moves, and disappears after TTL.
+ * This avoids granting currency simply for breaking a Dream Cloud. */
+static void complete_radar_if_empty(Game *g) {
+    if(g->screen!=STATE_RADAR)return;
+    for(int i=0;i<g->active_clouds && i<MAX_CLOUDS;i++)
+        if(g->clouds[i].alive)return;
+    if(game_active_dream_orbs(g))return;
+    finish_orb_search(g);
+    if(g->save.searches<UINT32_MAX)g->save.searches++;
+    g->screen=STATE_RESULTS;
+    g->requested_save=1;
+}
+static void spawn_dream_orbs(Game *g,int x,int y,int count,int chain) {
+    const int ox[5]={-22,22,0,-12,12};
+    const int oy[5]={-12,-12,22,12,12};
+    if(count<1)return;
+    if(count>5)count=5;
+    /* Only one cluster is currently chain-eligible at once. Existing
+     * separately spawned Orbs remain collectible but cancel split chains. */
+    int already=game_active_dream_orbs(g);
+    int created=0;
+    for(int i=0;i<count;i++) {
+        int slot=-1;
+        for(int j=0;j<MAX_DREAM_ORBS;j++)
+            if(!g->dream_orbs[j].alive){slot=j;break;}
+        if(slot<0)break;
+        DreamOrb *o=&g->dream_orbs[slot];
+        o->x=x+ox[i];o->y=y+oy[i];
+        if(o->x<8)o->x=8;
+        if(o->x>247)o->x=247;
+        if(o->y<8)o->y=8;
+        if(o->y>183)o->y=183;
+        o->vx=(i%2)?1:-1;
+        o->vy=(i%3)?-1:1;
+        o->ttl=chain?120-25*chain:210;
+        if(o->ttl<45)o->ttl=45;
+        o->color_phase=(uint8_t)i;
+        o->alive=1;
+        created++;
+    }
+    g->orb_group_collected=0;
+    g->orb_group_target=(uint8_t)created;
+    g->orb_chain_valid=(uint8_t)(already==0 && (chain!=0 || count>=4) && created==count);
+    g->orb_chain_stage=(uint8_t)chain;
+}
+static void capture_dream_orb(Game *g,int slot) {
+    DreamOrb *o=&g->dream_orbs[slot];
+    if(!o->alive)return;
+    OrbColor color=game_dream_orb_color(g,slot);
+    int x=o->x,y=o->y;
+    o->alive=0;
+    record_orb_reward(g,color);
+    if(g->orb_group_collected<UINT8_MAX)g->orb_group_collected++;
+    if(g->orb_total_collected<UINT8_MAX)g->orb_total_collected++;
+    /* Four- or five-orb groups may spawn shrinking three-orb chains.
+     * Per-cloud maximum is 20 collected orbs. */
+    if(!game_active_dream_orbs(g) && g->orb_chain_valid &&
+       g->orb_group_target>0 &&
+       g->orb_group_collected==g->orb_group_target &&
+       g->orb_chain_stage<5 && g->orb_total_collected<DREAM_ORB_CHAIN_LIMIT) {
+        unsigned remaining=DREAM_ORB_CHAIN_LIMIT-g->orb_total_collected;
+        int spawn=remaining<3u?(int)remaining:3;
+        if(spawn>0)spawn_dream_orbs(g,x,y,spawn,g->orb_chain_stage+1);
+    }
+    complete_radar_if_empty(g);
+}
 void game_begin_search(Game *g, int ext) {
     if (!g) return;
     /* Never restart an encounter or replace an unresolved storage choice. */
@@ -359,6 +437,10 @@ void game_begin_search(Game *g, int ext) {
     g->projectile_active=0;g->projectile_enabled=0;
     g->projectile_hits=0;g->projectile_cooldown=0;
     memset(g->session_color_counts,0,sizeof g->session_color_counts);
+    memset(g->dream_orbs,0,sizeof g->dream_orbs);
+    g->orb_chain_stage=0;g->orb_chain_valid=0;
+    g->orb_group_collected=0;g->orb_group_target=0;
+    g->orb_total_collected=0;
     g->search_orb_color=(uint8_t)game_orb_color(g);
     g->session_orbs=0; g->session_caught=-1;g->session_item=-1;
     /* Starting a new radar scan must not expose the previous species. */
@@ -568,8 +650,20 @@ void game_fire(Game *g) {
        distance arithmetic (including extreme external input values). */
     if(g->aim_x<0 || g->aim_x>255 || g->aim_y<0 || g->aim_y>191)return;
     if (g->screen==STATE_RADAR) {
-        /* When hit circles overlap, choose the closest cloud, not the
-           lowest array index. This keeps stylus aiming deterministic. */
+        /* Orbs must be shot separately; prioritize a small orb near the
+           reticle over the larger cloud underneath. */
+        int hit_orb=-1;
+        int64_t closest_orb=11*11;
+        for(int i=0;i<MAX_DREAM_ORBS;i++) {
+            const DreamOrb *o=&g->dream_orbs[i];
+            if(!o->alive || o->x<0 || o->x>255 || o->y<0 || o->y>191)continue;
+            int64_t dx=(int64_t)o->x-g->aim_x;
+            int64_t dy=(int64_t)o->y-g->aim_y;
+            int64_t dist=dx*dx+dy*dy;
+            if(dist<closest_orb){closest_orb=dist;hit_orb=i;}
+        }
+        if(hit_orb>=0){capture_dream_orb(g,hit_orb);return;}
+        /* When cloud hit circles overlap, choose the closest cloud. */
         int selected=-1;
         int64_t nearest=19*19;
         for (int i=0;i<g->active_clouds && i<MAX_CLOUDS;i++) {
@@ -593,18 +687,11 @@ void game_fire(Game *g) {
             if (c->kind && (g->ext_selection!=EXT_BASIC || (rnd(g)%3)==0)) {
                 start_sphere(g);return;
             }
-            int reward = 3+(rnd(g)%5);
-            record_orb_reward(g,reward);
-            g->session_orbs=g->session_orbs>INT_MAX-reward ? INT_MAX : g->session_orbs+reward;
-            g->save.orbs=add_orbs_saturating(g->save.orbs,(uint32_t)reward);
-            g->save.total_orbs=add_orbs_saturating(g->save.total_orbs,(uint32_t)reward);
-            g->requested_save=1;
-            if (g->cloud_hit >= g->active_clouds) {
-                finish_orb_search(g);
-                if(g->save.searches<UINT32_MAX)g->save.searches++;
-                g->screen=STATE_RESULTS;
-                g->requested_save=1;
-            }
+            /* Pink clouds yield 3..5 depending on their animated size;
+             * a non-encounter storm cloud produces exactly four. */
+            int count=c->kind?4:3+(int)((g->save.frames_played/30u)%3u);
+            spawn_dream_orbs(g,c->x,c->y,count,0);
+            complete_radar_if_empty(g);
         }
     } else if (g->screen==STATE_SPHERE) {
         /* Shoot an incoming energy ball before it reaches the aim point. */
@@ -794,6 +881,26 @@ void game_tick(Game *g) {
     /* The play-time counter is persisted as uint32_t; never wrap to zero. */
     if (g->save.frames_played<UINT32_MAX)g->save.frames_played++;
     if (g->messages>0)g->messages--;
+    if (g->screen==STATE_RADAR) {
+        for(int i=0;i<MAX_DREAM_ORBS;i++) {
+            DreamOrb *o=&g->dream_orbs[i];
+            if(!o->alive)continue;
+            if(o->ttl<=1){o->alive=0;g->orb_chain_valid=0;continue;}
+            o->ttl--;
+            o->x+=o->vx;o->y+=o->vy;
+            if(o->x<=8 || o->x>=247) {
+                if(o->x<8)o->x=8;
+                if(o->x>247)o->x=247;
+                o->vx=-o->vx;
+            }
+            if(o->y<=8 || o->y>=183) {
+                if(o->y<8)o->y=8;
+                if(o->y>183)o->y=183;
+                o->vy=-o->vy;
+            }
+        }
+        complete_radar_if_empty(g);
+    }
     if (g->screen==STATE_SPHERE) {
         /* Apply effects to the entire current frame before decrementing.
            Otherwise the last frozen frame moves one tick too early. */
