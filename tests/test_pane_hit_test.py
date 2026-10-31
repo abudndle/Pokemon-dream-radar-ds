@@ -14,6 +14,8 @@ square=pane([[10,10],[30,10],[10,30],[30,30]])
 assert pane_hit(square,20,20)
 assert not pane_hit(square,31,20)
 assert not pane_hit(square,-1,20)
+assert not pane_hit(square,None,20)
+assert not pane_hit(square,"20",20)
 assert not pane_hit(pane(square["world_corners_ds"],False),20,20)
 # Diamond's bounding rectangle contains a large region outside its quad.
 diamond=pane([[100,70],[130,100],[70,100],[100,130]])
