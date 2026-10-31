@@ -60,7 +60,13 @@ def convert(layout):
         area=max(0.0,bounds[2]-bounds[0])*max(0.0,bounds[3]-bounds[1])
         covered=(right-left)*(bottom-top) if visible else 0.0
         coverage=round(covered/area,4) if area>0 else 0.0
+        # Pane flags can mark a node hidden; preserve that separately from
+        # geometry, because a hidden in-bounds node must not receive input.
+        flag_visible=bool(pane["flags"] & 1)
+        effective_visible=visible and flag_visible
         return {
+            "flag_visible": flag_visible,
+            "effective_visible": effective_visible,
             "viewport_coverage": coverage,
             "visible_in_viewport": visible,
             "clipped_bounds_ds": clipped,
