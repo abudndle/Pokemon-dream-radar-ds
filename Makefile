@@ -66,6 +66,8 @@ test-host:
 	./build/test_radar_resume
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c tests/test_sphere_projectiles.c -o build/test_sphere_projectiles
 	./build/test_sphere_projectiles
+	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c tests/test_capture_profiles.c -o build/test_capture_profiles
+	./build/test_capture_profiles
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c tests/test_simulator_item_rewards.c -o build/test_simulator_item_rewards
 	./build/test_simulator_item_rewards
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c tests/test_cloud_recharge.c -o build/test_cloud_recharge
