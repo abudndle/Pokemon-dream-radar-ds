@@ -33,6 +33,24 @@ int main(void) {
     g.save.total_orbs=400;
     begin_capture(&g,EXT_TORNADUS);
     assert(g.capture_timeout==(90+g.save.upgrades[1]*30)*60);
+    game_new(&g,123);
+    g.screen=STATE_SPHERE;
+    g.capture_timeout=60;
+    g.sphere_x=g.aim_x;
+    g.sphere_y=g.aim_y;
+    g.capture_hp=2147483647;
+    g.session_type=0;
+    g.session_species=0;
+    game_fire(&g);
+    assert(g.screen==STATE_RESULTS && g.capture_hp==240);
+    game_new(&g,123);
+    g.screen=STATE_SPHERE;
+    g.capture_timeout=60;
+    g.sphere_x=g.aim_x;
+    g.sphere_y=g.aim_y;
+    g.save.upgrades[0]=0;
+    game_fire(&g);
+    assert(g.screen==STATE_SPHERE && g.capture_hp==0);
     puts("PASS: introductory timer only on first basic encounter");
     return 0;
 }
