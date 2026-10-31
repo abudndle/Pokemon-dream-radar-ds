@@ -60,7 +60,8 @@ def audit(path):
             sibling,position,length,fname=item(files,first,True)
             if file_data_base+position+length>rom_size:
                 raise ValueError("File extends beyond RomFS")
-            results.append({"path":folder+"/"+fname,"size":length})
+            results.append({"path":folder+"/"+fname,"size":length,
+                            "romfs_offset":(lvl3-rom_off)+file_data_base+position})
             first=sibling
         while child!=0xffffffff:
             sibling,_,_,_=item(dirs,child,False)
