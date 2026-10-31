@@ -298,14 +298,17 @@ int game_use_support(Game *g, int slot) {
 }
 void game_fire(Game *g) {
     if (!g) return;
+    /* Aim comes from input devices; reject invalid coordinates before doing
+       distance arithmetic (including extreme external input values). */
+    if(g->aim_x<0 || g->aim_x>255 || g->aim_y<0 || g->aim_y>191)return;
     if (g->screen==STATE_RADAR) {
         /* When hit circles overlap, choose the closest cloud, not the
            lowest array index. This keeps stylus aiming deterministic. */
         int selected=-1, nearest=19*19;
         for (int i=0;i<g->active_clouds && i<MAX_CLOUDS;i++) {
             const Cloud *c=&g->clouds[i];
-            int dx=c->x-g->aim_x,dy=c->y-g->aim_y;
-            int distance=dx*dx+dy*dy;
+            int64_t dx=(int64_t)c->x-g->aim_x,dy=(int64_t)c->y-g->aim_y;
+            int64_t distance=dx*dx+dy*dy;
             if(c->alive && distance<nearest) {
                 nearest=distance;
                 selected=i;
@@ -331,7 +334,7 @@ void game_fire(Game *g) {
     } else if (g->screen==STATE_SPHERE) {
         /* An expired encounter must not be captured between timer ticks. */
         if(g->capture_timeout<=0)return;
-        int dx=g->sphere_x-g->aim_x, dy=g->sphere_y-g->aim_y;
+        int64_t dx=(int64_t)g->sphere_x-g->aim_x, dy=(int64_t)g->sphere_y-g->aim_y;
         if (dx*dx+dy*dy<22*22) {
             g->capture_hp += g->save.upgrades[0]*(g->freeze_frames ? 5 : 3);
             if (g->capture_hp>=240) game_capture(g);
