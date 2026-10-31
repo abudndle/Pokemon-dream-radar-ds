@@ -7,6 +7,7 @@ static void search(Game *g,int clouds) {
     game_new(g,73);
     g->save.orbs=1000;
     g->save.total_orbs=1000;
+    g->save.story_phase=1; /* Unlock the Dowsing extension. */
     g->save.cloud_count=(uint8_t)clouds;
     game_begin_search(g,EXT_DOWSING);
     assert(g->screen==STATE_RADAR);
