@@ -42,6 +42,21 @@ with tempfile.TemporaryDirectory() as temp:
         "removed": ["zero.cmb"],
         "changed": ["Pokemon/candidate.BCMDL"]
     }
+    # Malformed or duplicated prior manifests must not silently overwrite
+    # entries and misreport which original model file changed.
+    for bad in (
+        {"files": [report["files"][0], report["files"][0]]},
+        {"files": [{"path": "../escape.bch", "bytes": 1, "sha256": "0" * 64}]},
+        {"files": [{"path": "wrong.bch", "bytes": -1, "sha256": "0" * 64}]},
+        {"files": [{"path": "wrong.bch", "bytes": 1, "sha256": "not-a-hash"}]},
+        {"models_converted": 0},
+    ):
+        try:
+            compare_inventories(bad, inventory(root))
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("Invalid inventory accepted")
     try:
         inventory(root / "missing")
     except ValueError:
