@@ -40,6 +40,72 @@ int main(void) {
     assert(game_item_slot_kind(&g,0)==g.session_item);
     assert(game_use_support(&g,0)==0);
     assert(g.requested_save==1);
-    puts("PASS: radar-to-item capture integrates aim, support, reward and results");
+    /* Pokémon capture through the same gameplay shot path. */
+    game_new(&g,23456);
+    g.screen=STATE_SPHERE;
+    g.ext_selection=EXT_BASIC;
+    g.session_type=0;
+    g.session_species=4;
+    g.session_item=-1;
+    g.sphere_x=g.aim_x=128;
+    g.sphere_y=g.aim_y=96;
+    g.capture_timeout=100;
+    g.capture_hp=225;
+    g.save.upgrades[0]=5;
+    searches=g.save.searches;
+    game_fire(&g);
+    assert(g.screen==STATE_RESULTS);
+    assert(g.session_caught==4);
+    assert(g.save.pending_count==1 && g.save.pending[0]==4);
+    assert(g.save.caught_count==1);
+    assert(g.save.searches==searches+1);
+
+    /* When Pokémon storage is full, a hit must open a deliberate replacement
+       prompt rather than silently overwriting captured Pokémon. */
+    game_new(&g,34567);
+    g.screen=STATE_SPHERE;
+    g.ext_selection=EXT_BASIC;
+    g.session_type=0;
+    g.session_species=5;
+    g.session_item=-1;
+    g.sphere_x=g.aim_x=128;
+    g.sphere_y=g.aim_y=96;
+    g.capture_timeout=100;
+    g.capture_hp=225;
+    g.save.upgrades[0]=5;
+    g.save.pending_count=MAX_CAUGHT;
+    for(int i=0;i<MAX_CAUGHT;i++)g.save.pending[i]=(uint8_t)i;
+    game_fire(&g);
+    assert(g.screen==STATE_REPLACE);
+    assert(g.replace_kind==REPLACE_POKEMON);
+    assert(g.save.pending[0]==0 && g.save.pending[1]==1);
+    assert(game_replace_pending(&g,2)==1);
+    assert(g.screen==STATE_RESULTS);
+    assert(g.save.pending_count==MAX_CAUGHT);
+    assert(g.save.pending[2]==5);
+    assert(g.save.caught_count==1);
+    assert(g.session_caught==5);
+    assert(g.requested_save==1);
+
+    /* A cancellation must preserve all original storage slots. */
+    game_new(&g,45678);
+    g.screen=STATE_SPHERE;
+    g.ext_selection=EXT_BASIC;
+    g.session_type=0;
+    g.session_species=6;
+    g.sphere_x=g.aim_x=128;
+    g.sphere_y=g.aim_y=96;
+    g.capture_timeout=100;
+    g.capture_hp=225;
+    g.save.upgrades[0]=5;
+    g.save.pending_count=MAX_CAUGHT;
+    for(int i=0;i<MAX_CAUGHT;i++)g.save.pending[i]=(uint8_t)i;
+    game_fire(&g);
+    assert(g.screen==STATE_REPLACE);
+    assert(game_cancel_pending_replace(&g)==1);
+    assert(g.screen==STATE_RESULTS && g.session_caught==-4);
+    assert(g.save.caught_count==0);
+    for(int i=0;i<MAX_CAUGHT;i++)assert(g.save.pending[i]==i);
+    puts("PASS: item/Pokémon capture, full-storage replacement, cancellation and results");
     return 0;
 }
