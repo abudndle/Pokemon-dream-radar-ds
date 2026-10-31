@@ -122,8 +122,10 @@ int game_save(Game *g, const char *file) {
     if (!g || !file || !*file) return 0;
     /* Do not mutate in-memory save data when the destination cannot open. */
     FILE *f=fopen(file,"wb"); if (!f) return 0;
-    g->save.checksum = game_checksum(&g->save);
-    int okay = fwrite(&g->save,1,sizeof g->save,f)==sizeof g->save;
+    /* Serialize a snapshot: even a short write must not change live state. */
+    SaveData snapshot=g->save;
+    snapshot.checksum=game_checksum(&snapshot);
+    int okay = fwrite(&snapshot,1,sizeof snapshot,f)==sizeof snapshot;
     if (fclose(f)) okay=0;
     return okay;
 }
