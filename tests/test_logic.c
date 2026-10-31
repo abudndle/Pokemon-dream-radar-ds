@@ -108,6 +108,7 @@ int main(void) {
     g.session_type=0;
     g.session_species=21;
     g.ext_selection=EXT_HOOH;
+    g.capture_timeout=100; /* Replacement is only valid while encounter is active. */
     uint8_t legends_before=g.save.legends_caught;
     game_capture(&g);
     assert(g.screen==STATE_REPLACE && g.replace_kind==REPLACE_POKEMON);
