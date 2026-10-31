@@ -73,6 +73,8 @@ void game_begin_search(Game *g, int extension);
 void game_fire(Game *g);
 int game_use_support(Game *g, int slot);
 void game_tick(Game *g);
+/* End active radar/capture session safely when Back is pressed. */
+int game_leave_search(Game *g);
 int game_buy(Game *g, int kind, int idx);
 void game_capture(Game *g);
 /* Full queue: choose one occupied slot, or decline; never auto-overwrite. */
