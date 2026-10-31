@@ -87,6 +87,7 @@ void game_new(Game *g, uint32_t seed) {
     g->aim_x = 128; g->aim_y = 96;
 }
 int game_load(Game *g, const char *file) {
+    if (!g || !file || !*file) return 0;
     FILE *f = fopen(file,"rb"); if (!f) return 0;
     SaveData s;
     int ok = fread(&s,1,sizeof s,f)==sizeof s;
@@ -118,6 +119,7 @@ int game_load(Game *g, const char *file) {
     return 1;
 }
 int game_save(Game *g, const char *file) {
+    if (!g || !file || !*file) return 0;
     g->save.checksum = game_checksum(&g->save);
     FILE *f=fopen(file,"wb"); if (!f) return 0;
     int okay = fwrite(&g->save,1,sizeof g->save,f)==sizeof g->save;
