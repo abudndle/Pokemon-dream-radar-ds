@@ -540,6 +540,10 @@ int game_replace_pending(Game *g, int slot) {
 int game_cancel_pending_replace(Game *g) {
     if(!g || g->screen!=STATE_REPLACE || g->replace_kind==REPLACE_NONE)return 0;
     g->session_caught=-4;
+    /* Declining full storage earns neither the proposed Pokemon nor item. */
+    g->session_species=-1;
+    g->session_item=-1;
+    g->session_type=0;
     g->replaced_slot=-1;
     conclude_capture(g);
     msg(g,"Replacement canceled; stored Pokemon and items kept.");
