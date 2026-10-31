@@ -80,6 +80,17 @@ int main(void) {
         assert(items.save.pending_items[i]==MAX_ITEM_STACK && game_item_slot_kind(&items,i)==i);
     assert(items.replaced_slot==1);
 
+    /* A full stack of the same item must never wrap to zero. If a free
+       stack exists, create it there rather than damaging the full stack. */
+    Game stacked;game_new(&stacked,77);
+    stacked.ext_selection=EXT_BASIC;
+    stacked.save.pending_items[0]=MAX_ITEM_STACK;
+    stacked.save.reserved[2]=4; /* Item ID 3, stored as type+1. */
+    fake_capture(&stacked,1,3);
+    assert(stacked.screen==STATE_RESULTS);
+    assert(stacked.save.pending_items[0]==MAX_ITEM_STACK);
+    assert(stacked.save.pending_items[1]==1 && game_item_slot_kind(&stacked,1)==3);
+
     /* Replacing something invalidates any existing archive-release proof. */
     char path[]="/tmp/dr_replacement_export.txt";
     assert(game_export(&items,path));
