@@ -1,3 +1,9 @@
+## DRM1 mesh decoder milestone
+
+The project now includes `source/dr_mesh.c` and `source/dr_mesh.h`, a bounded C decoder for the `DRM1` intermediate mesh files written by `tools/convert_extracted_obj.py`. Its format is an 8-byte header (`DRM1`, 16-bit vertex count, 16-bit triangle count), then packed signed Q12 XYZ vertices and unsigned 16-bit triangle indices (six bytes each). The decoder rejects truncated/appended payloads, invalid indices, repeated vertices and zero-area geometry. Run `make test-host` to compile its host regression test.
+
+**Scope:** This is a portable CPU-side intermediate mesh decoder, not the DS GPU renderer. No genuine original Pokémon geometry has yet been bundled or rendered; textures, materials, camera transforms, skeletal animation and verified 3DS asset provenance remain open work.
+
 ## Original exported geometry conversion — Q12 mesh milestone
 
 A new bounded converter is available at `tools/convert_extracted_obj.py`. If you export a **genuine original model** to Wavefront OBJ using an appropriate private 3DS extraction tool, run `python3 tools/convert_extracted_obj.py /private/original_export.obj build/model.drm`. It produces a compact `DRM1` file with signed 16-bit Q12 vertices and triangle indices, plus a JSON metadata sidecar. This is a **source-geometry intermediate format**, not yet a DS GPU renderer or proof of authenticity. It supports simple vertex positions and triangulates polygon faces, with a configurable 2048-triangle default budget; it does not yet convert normals, textures, materials, rigging, or animations. The exported original geometry is not bundled in this repository. Run `python3 tests/test_extracted_obj_converter.py` for portable conversion checks.
