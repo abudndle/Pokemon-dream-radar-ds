@@ -620,6 +620,12 @@ int game_export(Game *g, const char *path) {
     if (!g || !path || !*path) return 0;
     g->pending_export_signature=0;
     if(g->save.pending_count>MAX_CAUGHT)return 0;
+    for(int i=0;i<g->save.pending_count;i++)
+        if(g->save.pending[i]>25)return 0;
+    for(int i=0;i<MAX_ITEMS;i++)
+        if(g->save.pending_items[i] &&
+           (g->save.reserved[2+i]<1 ||
+            g->save.reserved[2+i]>RESEARCH_ITEM_TYPES))return 0;
     size_t n=strlen(path);
     if (n > 480) return 0;
     char temporary[512];
