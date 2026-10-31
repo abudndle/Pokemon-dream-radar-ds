@@ -16,6 +16,10 @@ int main(void) {
     assert(!game_use_support(&g,3));
     assert(game_use_support(&g,0));
     assert(g.freeze_frames==300 && g.save.goods[0]==0 && g.requested_save);
+    g.save.goods[0]=1;g.requested_save=0;
+    assert(!game_use_support(&g,0));
+    assert(g.save.goods[0]==1 && g.freeze_frames==300 && !g.requested_save);
+    g.save.goods[0]=0;
     g.requested_save=0;
     assert(!game_use_support(&g,0) && !g.requested_save);
     assert(game_use_support(&g,1) && g.slow_frames==300);
