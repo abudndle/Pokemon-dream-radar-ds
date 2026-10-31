@@ -562,7 +562,8 @@ int game_buy(Game *g, int kind, int idx) {
         if (idx<0 || idx>=3)return 0;
         int cost=(idx==0) ? 100 : 50;
         if (g->save.orbs<(uint32_t)cost) {msg(g,"Not enough Dream Orbs.");return 0;}
-        if (g->save.goods[idx]>=9) {msg(g,"Cannot carry more.");return 0;}
+        if (g->save.goods[idx]>9) {msg(g,"Invalid support inventory.");return 0;}
+        if (g->save.goods[idx]==9) {msg(g,"Cannot carry more.");return 0;}
         g->save.orbs-=cost;g->save.goods[idx]++;g->requested_save=1;
         msg(g,"Support item purchased!");return 1;
     }
