@@ -60,6 +60,17 @@ int main(void) {
     assert(g.save.cloud_count==9);
     game_regen_clouds(&g,10300);
     assert(g.save.cloud_count==10);
+    /* Corrupt upgrade bytes must not grant beyond a real level-five cap. */
+    game_new(&g,19);
+    g.save.cloud_count=0;g.save.last_cloud_time=1;
+    g.save.upgrades[2]=255;
+    game_regen_clouds(&g,100000);
+    assert(g.save.cloud_count==30);
+    game_new(&g,20);
+    g.save.cloud_count=0;g.save.last_cloud_time=1;
+    g.save.upgrades[2]=0;
+    game_regen_clouds(&g,100000);
+    assert(g.save.cloud_count==10);
     puts("PASS: recharge intervals, huge clock jumps, caps, clock rollback");
     return 0;
 }
