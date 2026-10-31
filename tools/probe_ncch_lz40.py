@@ -85,7 +85,7 @@ def main():
     args=p.parse_args()
     result=probe_ncch(args.ncch)
     args.report.parent.mkdir(parents=True,exist_ok=True)
-    args.report.write_text(json.dumps(result,indent=2)+"\\n",encoding="utf-8")
+    args.report.write_text(json.dumps(result,indent=2)+"\n",encoding="utf-8")
     print(f"Probed {result['tested']} CARCs: "
           f"{len(result['successes'])} standard-LZ40 matches; "
           f"{len(result['failures'])} rejected")
