@@ -17,6 +17,8 @@ int main(void) {
     Game g;game_new(&g,0xf00d);
     assert(g.save.upgrades[0]==1 && g.save.cloud_count==5);
     game_capture(NULL);
+    assert(!game_replace_pending(NULL,0));
+    assert(!game_cancel_pending_replace(NULL));
     assert(!game_buy(NULL,0,0));
     game_secret_key(NULL,0);
     g.cheat_progress[0]=999;
