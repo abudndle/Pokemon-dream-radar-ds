@@ -77,6 +77,17 @@ int main(void) {
     assert(dr_support_at(67+40,101+20)==0);
     assert(dr_support_at(67+44,101+17)==0);
     assert(dr_support_at(67+44,101+18)==-1);
+    /* Every point in the original support region should remain selectable
+       after the quadrilateral broad-phase integration. */
+    for(int k=0;k<3;k++) {
+        int cx,cy;dr_support_center(k,&cx,&cy);
+        for(int dx=-44;dx<=44;dx++)for(int dy=-39;dy<=39;dy++) {
+            int x=cx+dx,y=cy+dy;
+            if(x<0||x>=256||y<0||y>=192)continue;
+            int in_region=(2*(dx<0?-dx:dx)+(dy<0?-dy:dy)<=105);
+            if(in_region)assert(dr_support_at(x,y)==k);
+        }
+    }
     assert(dr_support_at(67,101)==0);
     assert(dr_support_at(190,101)==1);
     assert(dr_support_at(128,151)==2);
