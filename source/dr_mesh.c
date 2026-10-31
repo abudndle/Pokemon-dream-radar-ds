@@ -205,9 +205,23 @@ int dr_mesh_wireframe(const DrMesh *mesh,uint16_t *pixels,int width,int height,
     return dr_mesh_wireframe_yaw(mesh,pixels,width,height,cx,cy,scale,color,0);
 }
 
-/* Flat-shaded preview of validated DRM1 triangles. Integer-only fill; each
- * triangle is clipped by its bounding box to the DS viewport. This is not
- * texture mapping, z-buffering, or original 3DS material rendering. */
+/* Flat-shaded preview for untextured DRM1 geometry. The 16-bit
+ * single-threaded depth scratch is static to avoid a per-frame allocation
+ * and large ARM9 stack use (96 KiB at the DS maximum viewport). Like the
+ * textured preview, this is affine software rendering, not original 3DS
+ * material, lighting or animation data. */
+static uint16_t mesh_solid_depth[256u*192u];
+
+static uint16_t mesh_shade_color(uint16_t color,unsigned light) {
+    unsigned r=color&31u,g=(color>>5)&31u,b=(color>>10)&31u;
+    r=(r*light+6u)/12u;
+    g=(g*light+6u)/12u;
+    b=(b*light+6u)/12u;
+    if(r>31u)r=31u;
+    if(g>31u)g=31u;
+    if(b>31u)b=31u;
+    return (uint16_t)((color&0x8000u)|(b<<10)|(g<<5)|r);
+}
 static int64_t mesh_edge(int ax,int ay,int bx,int by,int px,int py) {
     return ((int64_t)px-ax)*(by-ay)-((int64_t)py-ay)*(bx-ax);
 }
@@ -218,20 +232,30 @@ int dr_mesh_solid_yaw(const DrMesh *mesh,uint16_t *pixels,int width,int height,
        width<1 || width>256 || height<1 || height>192 ||
        cx<0 || cx>=width || cy<0 || cy>=height ||
        scale<1 || scale>256 || yaw_step>=16)return 0;
-    /* Validate every triangle before touching the framebuffer. */
+    /* Validate all indices before writing a single pixel. */
     for(unsigned i=0;i<mesh->triangles;i++) {
         DrMeshTriangle t=mesh->triangle[i];
-        if(t.a>=mesh->vertices || t.b>=mesh->vertices || t.c>=mesh->vertices)return 0;
+        if(t.a>=mesh->vertices || t.b>=mesh->vertices || t.c>=mesh->vertices)
+            return 0;
     }
+    /* The texture renderer has independent depth scratch. Both renderers
+     * reset depth on every draw; none of the prior encounter can leak in. */
+    memset(mesh_solid_depth,0,(size_t)width*height*sizeof *mesh_solid_depth);
+    uint16_t shades[9];
+    for(unsigned i=0;i<9;i++)
+        shades[i]=mesh_shade_color(color,i+8u);
     for(unsigned i=0;i<mesh->triangles;i++) {
         DrMeshTriangle t=mesh->triangle[i];
         unsigned ids[3]={t.a,t.b,t.c};
-        int x[3],y[3];
-        for(int j=0;j<3;j++)
+        int x[3],y[3],z[3];
+        for(int j=0;j<3;j++) {
             if(!dr_mesh_project_vertex_yaw(&mesh->vertex[ids[j]],cx,cy,scale,
-                                           yaw_step,&x[j],&y[j]))return 0;
+                                           yaw_step,&x[j],&y[j]) ||
+               !dr_mesh_depth_vertex_yaw(&mesh->vertex[ids[j]],yaw_step,
+                                         &z[j]))return 0;
+        }
         int minx=x[0],maxx=x[0],miny=y[0],maxy=y[0];
-        for(int j=1;j<3;j++){
+        for(int j=1;j<3;j++) {
             if(x[j]<minx)minx=x[j];
             if(x[j]>maxx)maxx=x[j];
             if(y[j]<miny)miny=y[j];
@@ -241,14 +265,24 @@ int dr_mesh_solid_yaw(const DrMesh *mesh,uint16_t *pixels,int width,int height,
         if(miny<0)miny=0;
         if(maxx>=width)maxx=width-1;
         if(maxy>=height)maxy=height-1;
+        if(minx>maxx || miny>maxy)continue;
         int64_t area=mesh_edge(x[0],y[0],x[1],y[1],x[2],y[2]);
-        if(!area || minx>maxx || miny>maxy)continue;
-        for(int py=miny;py<=maxy;py++)for(int px=minx;px<=maxx;px++){
-            int64_t a=mesh_edge(x[0],y[0],x[1],y[1],px,py);
-            int64_t b=mesh_edge(x[1],y[1],x[2],y[2],px,py);
-            int64_t d=mesh_edge(x[2],y[2],x[0],y[0],px,py);
-            if(area>0?(a>=0 && b>=0 && d>=0):(a<=0 && b<=0 && d<=0))
-                pixels[(size_t)py*width+px]=color;
+        if(!area)continue;
+        for(int py=miny;py<=maxy;py++)for(int px=minx;px<=maxx;px++) {
+            int64_t w0=mesh_edge(x[1],y[1],x[2],y[2],px,py);
+            int64_t w1=mesh_edge(x[2],y[2],x[0],y[0],px,py);
+            int64_t w2=mesh_edge(x[0],y[0],x[1],y[1],px,py);
+            if(area>0?(w0<0 || w1<0 || w2<0):
+                      (w0>0 || w1>0 || w2>0))continue;
+            int64_t zq12=(w0*z[0]+w1*z[1]+w2*z[2])/area;
+            uint16_t depth=(uint16_t)(32769+zq12/2);
+            size_t offset=(size_t)py*width+px;
+            if(depth<=mesh_solid_depth[offset])continue;
+            int level=12+(int)(zq12/1024);
+            if(level<8)level=8;
+            if(level>16)level=16;
+            pixels[offset]=shades[level-8];
+            mesh_solid_depth[offset]=depth;
         }
     }
     return 1;
