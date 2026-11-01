@@ -6,7 +6,7 @@ import sys
 import tempfile
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "tools"))
-from verify_staged_models import verify
+from verify_staged_models import verify, verify_pairs
 
 with tempfile.TemporaryDirectory() as temporary:
     root = pathlib.Path(temporary)
@@ -39,3 +39,30 @@ with tempfile.TemporaryDirectory() as temporary:
         (root / filename).unlink()
         (root / manifest).unlink()
 print("PASS: staged model and animation integrity checks")
+
+with tempfile.TemporaryDirectory() as temporary:
+    root = pathlib.Path(temporary)
+    meshes, skins = root / "meshes", root / "skins"
+    meshes.mkdir()
+    skins.mkdir()
+    for folder, filename, magic in ((meshes, "pokemon_00.drm", "DRM1"),
+                                    (skins, "pokemon_00.drk", "DRK1")):
+        payload = magic.encode() + (3).to_bytes(2, "little") + b"fixture"
+        (folder / filename).write_bytes(payload)
+        manifest = "model_manifest.json" if magic == "DRM1" else "gltf_animation_manifest.json"
+        (folder / manifest).write_text(json.dumps({"format": magic, "models": [
+            {"file": filename, "bytes": len(payload),
+             "sha256": hashlib.sha256(payload).hexdigest()}]}))
+    assert verify_pairs(skins, meshes) == 1
+    payload = b"DRM1" + (4).to_bytes(2, "little") + b"fixture"
+    (meshes / "pokemon_00.drm").write_bytes(payload)
+    report = json.loads((meshes / "model_manifest.json").read_text())
+    report["models"][0].update(bytes=len(payload), sha256=hashlib.sha256(payload).hexdigest())
+    (meshes / "model_manifest.json").write_text(json.dumps(report))
+    try:
+        verify_pairs(skins, meshes)
+    except ValueError as exc:
+        assert "Vertex count mismatch" in str(exc)
+    else:
+        raise AssertionError("Incompatible mesh and skeleton accepted")
+print("PASS: matching mesh/skeleton pair validation")
