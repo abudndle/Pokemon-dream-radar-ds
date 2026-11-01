@@ -6,7 +6,7 @@ The source-of-truth checklist is [`feature_parity.json`](feature_parity.json), c
 
 | Original feature | Current status | Remaining gap |
 |---|---|---|
-| Title, intro and research lab navigation | partial | Screens and D-pad/touch routing implemented; not frame-perfect. |
+| Title, intro and research lab navigation | partial | **Only the bottom-screen title menu is intentionally recreated** and must remain unchanged; the top title and every other scene target original 3DS presentation. Existing DS routing is not frame-perfect. |
 | Professor Burnet story and tutorials | partial | Dialogue and tips exist; exact original scene sequencing not independently verified. |
 | Dream Cloud generation and shooting | partial | Clouds and collectible Orbs remain after an intermediate sphere encounter; A resumes the same scan, B abandons remaining targets. Original distribution and pacing are not fully matched. |
 | Aim/beam input and capture | partial | Stylus/D-pad/A inputs work; original gyroscopic aiming is absent. |
