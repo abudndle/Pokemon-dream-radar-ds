@@ -1,0 +1,29 @@
+name: Five-minute Dream Radar host validation
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dream-radar-five-minute-host-validation
+  cancel-in-progress: true
+
+jobs:
+  host-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Check out latest main
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install host test dependencies
+        run: sudo apt-get update && sudo apt-get install -y build-essential python3
+      - name: Run host regression suite
+        run: make test-host
+      - name: Run DS and DSi syntax checks
+        run: make test-syntax
