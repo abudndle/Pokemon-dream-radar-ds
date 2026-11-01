@@ -1,4 +1,5 @@
 #include "title_panes_generated.h"
+#include "dr_title_runtime.h"
 /* Pokémon Dream Radar DSi: BlocksDS ARM9. Original art converted from player's NCCH.
  * This is a homebrew prototype, NOT a 1:1 port. No retail save writes.
  */
@@ -752,7 +753,11 @@ static void render(void) {
         print(bottom,29,19,WHITE,tx);
         const char *opts[]={"Start","Send Research Data","Credits","Records"};
         for(int i=0;i<4;i++) {
+            DrPaneRect resolved;
             const DrPaneRect *r=&dr_title_panes[i];
+            /* Source-derived pane world geometry drives labels and focus.
+               Keep the previously approved bounds as fail-closed fallback. */
+            if(dr_title_runtime_rect(i,&resolved))r=&resolved;
             /* Original blue title panels use a bright white/cyan focus edge,
                not the gold selection outline from the development UI. */
             if(game.selection==i) {
@@ -1479,7 +1484,10 @@ static void handle_key(int keys,int down,touchPosition *touch) {
     if(game.screen==STATE_TITLE){
         if(down&KEY_UP)game.selection=(game.selection+3)%4;
         if(down&KEY_DOWN)game.selection=(game.selection+1)%4;
-        int title_touch=(down&KEY_TOUCH)?dr_title_hit(touch->px,touch->py):-1;
+        int title_touch=(down&KEY_TOUCH)?
+            dr_title_runtime_hit(touch->px,touch->py):-1;
+        if((down&KEY_TOUCH) && !dr_title_runtime_available())
+            title_touch=dr_title_hit(touch->px,touch->py);
         if(title_touch>=0)game.selection=title_touch;
         if((down&KEY_A)||(down&KEY_START)||title_touch>=0) {
             switch(game.selection){
