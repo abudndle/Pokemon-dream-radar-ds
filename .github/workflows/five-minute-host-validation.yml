@@ -1,6 +1,11 @@
 name: Five-minute Dream Radar host validation
 
 on:
+  push:
+    branches:
+      - main
+      - 'codex/**'
+  pull_request:
   schedule:
     - cron: '*/5 * * * *'
   workflow_dispatch:
@@ -17,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
-      - name: Check out latest main
+      - name: Check out triggering revision
         uses: actions/checkout@v4
         with:
           persist-credentials: false
