@@ -14,7 +14,16 @@ assert 'case STATE_CAMERA_QUICK:' in main
 assert 'render_camera_quick_icon' not in main
 assert 'camera_quick_icon_visible' not in main
 assert 'dr_camera_quick_icon_hit' not in platform
-assert 'dr_camera_quick_open(game.screen==STATE_TITLE,' in main
+assert 'camera_combo_menu_allowed(GameScreen screen)' in main
+assert 'dr_camera_quick_open(camera_combo_menu_allowed(game.screen),' in main
+assert 'dr_camera_quick_open(1,keys,down,KEY_SELECT,KEY_X)' in main
+assert 'if((down&KEY_B) ||' in main
+assert 'game.selection=camera_quick_return_selection;' in main
+routing=main.split('static int camera_combo_menu_allowed(GameScreen screen)',1)[1].split('static int title_live_rects',1)[0]
+for allowed in ['STATE_TITLE','STATE_LAB','STATE_SHOP','STATE_EXTENSIONS','STATE_RECORDS','STATE_STORAGE','STATE_TRANSFER','STATE_SETTINGS','STATE_TIPS','STATE_ALBUM']:
+    assert ('case '+allowed+':') in routing
+for blocked in ['STATE_RADAR','STATE_SPHERE','STATE_INTRO','STATE_DIALOGUE','STATE_CAMERA_QUICK']:
+    assert ('case '+blocked+':') not in routing
 assert 'keys,down,KEY_SELECT,KEY_X)' in main
 assert 'int dr_camera_quick_open(int is_title,int held,int down,' in platform
 assert '(held&chord)==chord && (down&chord)!=0;' in platform
@@ -70,4 +79,4 @@ assert 'int dr_settings_count(int dsi_mode){return dsi_mode?3:2;}' in platform
 assert 'return dsi_mode?selection+1:selection+2;' in platform
 assert 'if(action==DR_SETTING_CAMERA)' not in main
 assert 'if(action==DR_SETTING_PLACEHOLDER)' not in main
-print('PASS: hidden Select+X camera options, no gear/gameplay shortcut, BMP persistence')
+print('PASS: menu-only Select+X camera options, return selection, no gear or gameplay shortcut')
