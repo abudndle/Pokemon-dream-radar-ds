@@ -47,13 +47,17 @@ int main(void) {
     g.aim_y=85;
     game_fire(&g);
     assert(g.screen==STATE_SPHERE);
-    assert(g.radar_resume_pending==0); /* Last cloud has been opened. */
+    assert(g.radar_resume_pending); /* Uncollected Orbs remain in the outing. */
     g.capture_timeout=120;
     game_capture(&g);
     assert(g.screen==STATE_RESULTS);
     assert(g.save.searches==1);
     assert(g.save.orbs>=900);
-    assert(!game_resume_radar(&g));
+    assert(game_resume_radar(&g));
+    assert(g.screen==STATE_RADAR);
+    assert(game_active_dream_orbs(&g)>=1);
+    assert(game_leave_search(&g));
+    assert(!g.radar_resume_pending);
     assert(game_save(&g,path));
     game_new(&restored,123);
     assert(game_load(&restored,path));
