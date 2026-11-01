@@ -190,3 +190,15 @@ with tempfile.TemporaryDirectory() as temporary:
     else:
         raise AssertionError("Symlinked staged manifest accepted")
 print("PASS: symlinked manifest rejection")
+
+with tempfile.TemporaryDirectory() as temporary:
+    root = pathlib.Path(temporary)
+    for invalid in ([], None, 7, "DRM1"):
+        (root / "model_manifest.json").write_text(json.dumps(invalid))
+        try:
+            verify(root, "model_manifest.json", "DRM1", ".drm")
+        except ValueError as exc:
+            assert "manifest format" in str(exc), str(exc)
+        else:
+            raise AssertionError("Non-object staged manifest accepted")
+print("PASS: non-object manifest roots rejected")
