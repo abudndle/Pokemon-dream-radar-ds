@@ -137,6 +137,42 @@ int main(void) {
     assert(loaded.screen==STATE_RADAR);
     assert(loaded.orb_total_collected==DREAM_ORB_CHAIN_LIMIT);
 
+    /* A checksummed sidecar must not restore physically impossible entities.
+     * In particular, a huge Orb velocity could overflow signed arithmetic
+     * on the first radar tick after loading. The stable save remains usable. */
+    for(int invalid=0;invalid<6;invalid++) {
+        Game malformed=g;
+        DreamOrb *orb=&malformed.dream_orbs[0];
+        orb->alive=1;orb->x=120;orb->y=80;
+        orb->vx=-1;orb->vy=1;orb->ttl=210;orb->color_phase=4;
+        switch(invalid) {
+            case 0: orb->vx=2;break;
+            case 1: orb->vy=2147483647;break;
+            case 2: orb->ttl=211;break;
+            case 3: orb->color_phase=5;break;
+            case 4: malformed.clouds[0].kind=2;break;
+            case 5: orb->vx=0;break;
+        }
+        assert(save_backend_write(&backend,&malformed));
+        reload(&backend,&loaded);
+        assert(loaded.screen==STATE_EXTENSIONS);
+        assert(loaded.save.orbs==g.save.orbs);
+    }
+    Game valid_orb=g;
+    valid_orb.dream_orbs[0].alive=1;
+    valid_orb.dream_orbs[0].x=120;
+    valid_orb.dream_orbs[0].y=80;
+    valid_orb.dream_orbs[0].vx=-1;
+    valid_orb.dream_orbs[0].vy=1;
+    valid_orb.dream_orbs[0].ttl=210;
+    valid_orb.dream_orbs[0].color_phase=4;
+    assert(save_backend_write(&backend,&valid_orb));
+    reload(&backend,&loaded);
+    assert(loaded.screen==STATE_RADAR);
+    assert(loaded.dream_orbs[0].alive && loaded.dream_orbs[0].ttl==210);
+    game_tick(&loaded);
+    assert(loaded.dream_orbs[0].x==119 && loaded.dream_orbs[0].y==81);
+
     /* A sidecar for a different save cannot revive old entities. */
     assert(save_backend_write(&backend,&g)); /* Replace corrupted sidecar. */
     Game newer=g;
