@@ -98,11 +98,11 @@ def test():
     payload=b'ABABAB'
     assert decompress_lz11(lz_literals(payload))[0]==payload
     # LZ11 short 2-byte token, 4 copies at distance 2.
-    assert decompress_lz11(bytes.fromhex('110600002041420020'))[0]==payload
+    assert decompress_lz11(bytes.fromhex('110600002041423001'))[0]==payload
     # Medium token: 17 copies at distance 1.
     assert decompress_lz11(bytes.fromhex('111200004041000000'))[0]==b'A'*18
     # Long token: 273 copies at distance 1.
-    assert decompress_lz11(bytes.fromhex('111201004041100000'))[0]==b'A'*274
+    assert decompress_lz11(bytes.fromhex('11120100404110000000'))[0]==b'A'*274
     reject(lambda:decompress_lz11(b'\x11\x01\0\0'), 'Truncated')
     reject(lambda:decompress_lz11(b'\x11\x00\0\0'), 'Truncated')
     reject(lambda:decompress_lz11(bytes.fromhex('11060000802000')), 'Invalid')
@@ -126,7 +126,7 @@ def test():
     struct.pack_into('<I',invalid,8,0x87)
     reject(lambda:inspect_cbmd(invalid),'offset')
     invalid=bytearray(banner())
-    invalid[-1]=1
+    invalid[-64]=ord('X')
     reject(lambda:inspect_cbmd(invalid),'CWAV')
     invalid=bytearray(banner())
     invalid[0x88]=0x10
