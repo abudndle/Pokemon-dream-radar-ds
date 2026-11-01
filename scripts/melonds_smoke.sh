@@ -95,9 +95,11 @@ press_ds_key z
 snapshot 04-extensions
 press_ds_key z
 snapshot 05-radar
-# The original A button fires the beam in radar. Exercise that input before
-# leaving; no in-game photo or post-shot screenshot is triggered.
+# The original A button fires the beam in radar. Capture the actual frame
+# after firing to distinguish an observed cloud removal from an unverified
+# input attempt. This is external emulator evidence, not an in-game photo.
 press_ds_key z
+snapshot 05-radar-postfire
 press_ds_key x
 snapshot 06-results
 press_ds_key x
