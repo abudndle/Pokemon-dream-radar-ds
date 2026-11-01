@@ -95,9 +95,30 @@ press_ds_key z
 snapshot 04-extensions
 press_ds_key z
 snapshot 05-radar
-# The original A button fires the beam in radar. Capture the actual frame
-# after firing to distinguish an observed cloud removal from an unverified
-# input attempt. This is external emulator evidence, not an in-game photo.
+# Use actual fallback-sprite pixels to aim toward the nearest visible cloud.
+# The planner is intentionally non-fatal: a missing/unrecognized cloud is
+# evidence of a limitation, not permission to fabricate a successful shot.
+aim_ds_key() {
+  local key="$1" seconds="$2"
+  [[ "$key" == none ]] && return 0
+  xdotool windowfocus "$window"
+  xdotool keydown --clearmodifiers "$key"
+  sleep "$seconds"
+  xdotool keyup "$key"
+  sleep 0.4
+}
+if python3 tools/plan_melonds_aim.py "$out/05-radar.png" >"$out/aim-plan.json"; then
+  read -r horizontal horizontal_seconds vertical vertical_seconds < <(
+    python3 -c 'import json,sys; p=json.load(open(sys.argv[1])); print(p["horizontal_key"], p["horizontal_seconds"], p["vertical_key"], p["vertical_seconds"])' "$out/aim-plan.json"
+  )
+  aim_ds_key "$horizontal" "$horizontal_seconds"
+  aim_ds_key "$vertical" "$vertical_seconds"
+  snapshot 05-radar-aimed
+else
+  echo "WARNING: screenshot-guided aim unavailable; trying center reticle" | tee -a "$out/runtime.log"
+fi
+# The original A button fires the beam in radar. Compare the actual counter
+# frame after firing; an input attempt alone is not a successful cloud hit.
 press_ds_key z
 snapshot 05-radar-postfire
 press_ds_key x
