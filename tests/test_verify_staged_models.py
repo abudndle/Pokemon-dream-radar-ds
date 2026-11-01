@@ -225,3 +225,15 @@ with tempfile.TemporaryDirectory() as temporary:
     else:
         raise AssertionError("Oversized manifest accepted")
 print("PASS: oversized staged manifests rejected")
+
+with tempfile.TemporaryDirectory() as temporary:
+    root = pathlib.Path(temporary)
+    (root / "model_manifest.json").write_text(
+        '{"format":"DRM1","models":[],"unexpected":true}')
+    try:
+        verify(root, "model_manifest.json", "DRM1", ".drm")
+    except ValueError as exc:
+        assert "Unexpected staged manifest fields" in str(exc), str(exc)
+    else:
+        raise AssertionError("Unknown manifest field accepted")
+print("PASS: unknown staged manifest fields rejected")
