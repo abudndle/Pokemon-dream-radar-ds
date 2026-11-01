@@ -1,50 +1,49 @@
-# Title-screen-only camera settings and placeholder-image import (DS/DSi)
+# Hidden camera settings for Pokémon Dream Radar DS/DSi
 
-This is an **additional DS-port setting**, deliberately separated from the original Pokémon Dream Radar menus. It does not replace the old Options page, photo album, or any original-game resource. The icon appears **only on the title screen**, at the **bottom-left corner of the lower touch screen** (small gear, x=3–36, y=168–191). No gear or camera-settings entry is displayed during gameplay, Professor Burnet's introduction, or in the Options list.
+The original 3DS title's four lower-screen choices remain Start, Send Research Data, Credits and Records. The DS-port-only camera/background utility is intentionally hidden: **no gear icon, title menu entry, or single-X shortcut** is displayed.
 
-Tap it to open a focused menu with **only two actions**:
+## Open and return
 
-1. **Camera: ON/OFF** — toggles the real DSi camera. On DS/DS Lite and a standard DS emulator, this row displays **CAMERA: NOT AVAILABLE**. Gameplay remains camera-free, and the setting cannot enable an unsupported camera.
-2. **Import placeholder BMP** — reads a single user-provided image from removable storage. Import automatically turns off the live camera so the image is visible as the camera-free radar/capture background.
+Hold **Select + X** together on a non-gameplay menu. Either button may be pressed first; the second must be newly pressed while the first is held. This works on Title, Research Lab, Development Shop, Extensions, Records, Storage, transfer queue, Options, Tips, and Album. It is disabled during active cloud search, Pokémon/item encounters, introduction/story dialogue and other gameplay.
 
-On the **title screen only**, tap the gear or press **X** (the emulator keyboard fallback) to open the menu. Press **Up/Down** to select a row, **A** to activate, **B** to return to the title with its previous selection, or touch a row directly. **Select** inside the camera menu resets the background to the bundled default without deleting files. Select/X/Start no longer open this menu from the intro or gameplay. The import/toggle selection still applies when a later research session starts.
+Inside Camera Settings, press **B** or **Select + X** again to go back to the **same previous menu and its previous selected row**. The exit combination runs before the standalone Select reset action, so it cannot accidentally clear an imported background.
 
-## Prepare and import an image
+Use Up/Down, A or the touchscreen inside Camera Settings to choose:
 
-Copy a **256 × 192-pixel, uncompressed, 24-bit Windows BMP** to this exact filename on your accessible storage:
+1. **Camera ON/OFF:** DSi real camera toggle; on DS/DS Lite and standard DS-mode emulators the row reports CAMERA: NOT AVAILABLE.
+2. **Import placeholder BMP:** reads one specific user-owned still image, disables the live camera and uses the image in radar/search encounters.
+
+Press **Select alone** while inside Camera Settings to restore the bundled camera-free background without deleting your BMP.
+
+## User-supplied background
+
+Use a **256 × 192 uncompressed 24-bit Windows BMP** at one of:
 
 ```text
-sd:/DreamRadarDSi/placeholder.bmp    (DSi with SD)
-fat:/DreamRadarDSi/placeholder.bmp   (DS/DS Lite with DLDI flashcart)
+sd:/DreamRadarDSi/placeholder.bmp     (DSi with SD)
+fat:/DreamRadarDSi/placeholder.bmp    (DS/DS Lite with DLDI flashcart)
 ```
 
-There is no arbitrary filesystem picker in the game. On emulator, attach writable FAT storage if you want to import a local file; the ROM's bundled files are not writable. The BMP file is *not* committed to GitHub or inserted into the ROM.
-
-To convert your own JPG/PNG on a Linux PC with ImageMagick, run:
+Convert on Linux with:
 
 ```sh
 magick input.png -resize '256x192^' -gravity center -extent 256x192 \
   -type TrueColor BMP3:placeholder.bmp
 ```
 
-Some distributions use `convert` instead of `magick`. Verify `identify placeholder.bmp` shows **256x192 24-bit BMP**. Place the result in `DreamRadarDSi/placeholder.bmp` on the mounted FAT/SD root, then launch the ROM.
+The menu never browses arbitrary paths. A missing, corrupt, oversized or truncated image cannot overwrite the previous valid image or preference. The selected user-owned BMP is reloaded from removable storage after reboot when available; it is never added to the public ROM.
 
-Open the bottom-left gear, select **IMPORT PLACEHOLDER BMP**, and press A. A success notification confirms import; the top screen previews the imported image. With the DSi camera off, the same picture is used behind Dream Clouds and Pokémon/item capture encounters. On DS without a camera, this image is your camera-free view.
+## Fidelity and validation limits
 
-The image selection persists in the existing homebrew save's previously reserved background-selection marker, without changing the save format. The next launch reloads the fixed BMP from storage when the file remains valid. If the BMP is absent, damaged, the wrong size, or has appended data, the old image is not overwritten; the game retains its bundled background fallback.
+This is a hidden DS-port utility, not a 3DS retail title option. The title artwork and original menu geometry are preserved as separate work under Milestone #47. The current title backgrounds are recreated from a user-provided 3DS reference screenshot; they are **not yet exact original Nintendo UI textures**. The extracted original title logo is already packaged. A DSi camera is not equivalent to the Nintendo 3DS physical gyroscope.
 
-**Limits:** The icon is a new DS-specific addition, not an original 3DS UI element. The image is a still camera replacement, **not** a simulated live camera, a filesystem browser, automatic AR tracking, or a reconstruction of the original 3DS motion sensor. The emulator smoke test can verify its appearance after boot, but actual use of the imported image requires the correct mounted writable storage.
+Host regressions check the Select+X chord and rejection of single-key/touch entry, menu restrictions, previous-menu selection return, safe BMP paths, atomic imports and save persistence. Emulator input delivery is tracked separately and is never claimed when screenshots show no actual navigation. Real DSi camera and SD import still require hardware testing.
 
-## Verification
+## Original 3DS title background restoration
 
-The Linux host suite includes `tests/test_camera_quick.c` for title-only input gating, hitboxes, safe paths, BMP decoding, and invalid-file protection, plus `tests/test_camera_quick_ui.py` to verify title-only routing and camera/BMP persistence. The Linux emulator smoke workflow attempts title X or a real gear tap, checks title return only if the menu actually opens, and logs input delivery as **unverified** when those events cannot be confirmed; it also checks a title-to-intro Start transition and observes whether intro X leaves the frame unchanged. A real DSi camera and writable FAT BMP import remain separate end-to-end tests.
-
-## Transactional BMP selection (milestone #21)
-
-The import and save selection now share a portable, host-tested transaction in `source/dr_background.c`. A missing, truncated, malformed or oversized BMP leaves the existing display pixels, saved background marker, camera toggle and current gameplay session unchanged. A successful import marks the file in the homebrew save, disables the DSi camera, and uses the same BMP for the camera-free radar and sphere backgrounds. Restoring the marker on reboot reads the file again without dirtying the save. If the file is unavailable on reboot, the bundled background remains the fallback; the saved preference is retained for when storage returns. Reset clears the selection without deleting the user's file.
-
-`tests/test_background_import.c` covers success, rollback, restore, reset and preservation of the active capture timeout. An actual end-to-end DSi/DeSmuME FAT import remains a separate hardware or emulator test; portable host tests do not prove SD mounting.
-
-## Milestone #22 — title-only camera access
-
-The camera settings gear and X shortcut exist exclusively on the title screen. The DS/DSi Options menu no longer offers camera or custom-photo entries; optical aim and DS cartridge/SD game pairing remain. Existing selected images and saves are still restored by the original background loader on launch. Camera toggling and BMP imports are unchanged once the title-only menu is open. Portable tests cover rejection from other states; real emulator smoke validation attempts title entry/return and intro rejection without claiming success for unregistered SDL input.
+The logo sprite is extracted from the owner's original game, but the public
+title backdrops are still adapted images. To use **your own extracted original
+3DS title backgrounds**, follow [the title pane runtime and private artwork
+instructions](TITLE_PANE_RUNTIME.md). The full-title restoration is not
+claimed complete until texture/material pairing and in-emulator visual
+comparison are verified against original 3DS captures.
