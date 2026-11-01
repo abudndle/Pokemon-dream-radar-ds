@@ -1,6 +1,6 @@
 ## Camera-free placeholder image and bottom-left settings icon
 
-The lower-screen **gear icon** opens a two-option camera menu on DS/DSi: toggle the DSi camera (unavailable on DS), or import a single 256x192 24-bit BMP from `sd:/DreamRadarDSi/placeholder.bmp` or `fat:/DreamRadarDSi/placeholder.bmp`. Imported images replace the camera-free radar background and persist in the homebrew save. Press Select to reset, B to return. See [camera settings/import guide](docs/CAMERA_QUICK_SETTINGS.md). This DS-specific addition is not a claim of original 3DS feature parity.
+The **title screen only** shows a bottom-left gear icon (or press X on title) for a two-option camera menu on DS/DSi: toggle the DSi camera (unavailable on DS), or import a single 256x192 24-bit BMP from `sd:/DreamRadarDSi/placeholder.bmp` or `fat:/DreamRadarDSi/placeholder.bmp`. Imported images replace the camera-free radar background and persist in the homebrew save. Press Select inside this menu to reset and B to return to title; the camera menu never opens during gameplay or intro, and ordinary Options has no camera row. See [camera settings/import guide](docs/CAMERA_QUICK_SETTINGS.md). This DS-specific addition is not a claim of original 3DS feature parity.
 
 ## Encounter-specific Sphere movement and attack profiles
 
@@ -397,7 +397,7 @@ Do not treat the validation script as a substitute for testing in melonDS DSi mo
 
 ## Camera and data rules
 
-- **DS / DS Lite:** camera-independent gameplay and no camera menus. Filesystem writes require compatible DLDI/flashcart storage; these consoles do not have DSi internal SD access.
+- **DS / DS Lite:** camera-independent gameplay; the title-only camera settings screen permits BMP import but shows the hardware camera as unavailable. Filesystem writes require compatible DLDI/flashcart storage; these consoles do not have DSi internal SD access.
 - **DSi:** camera is optional. If disabled, absent or initialization fails, aim with stylus and D-pad. Experimental camera tracking cannot reproduce a missing gyroscope.
 - **Pokémon game recognition:** only one active game at a time, via inserted Slot-1 header (where hardware access allows) or one TWiLight `.nds` and `.sav[1..9]` pair; retail save files are read-only.
 - **Storage full:** replace a chosen Pokémon/item slot with a second confirmation or cancel. Legendary once-only flags set only on accepted capture.

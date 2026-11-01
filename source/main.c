@@ -688,15 +688,8 @@ static void extension_ensure_selected(void) {
     if(!extension_visible(game.ext_selection)) game.ext_selection=EXT_BASIC;
 }
 static int camera_quick_icon_visible(void) {
-    switch(game.screen) {
-    case STATE_SETTINGS:
-    case STATE_PLACEHOLDER:
-    case STATE_CAMERA_QUICK:
-    case STATE_SD_SAVES:
-    case STATE_REPLACE:
-        return 0;
-    default: return 1;
-    }
+    /* Camera settings is a title-only DS option, never a gameplay overlay. */
+    return game.screen==STATE_TITLE;
 }
 static void render_camera_quick_icon(void) {
     /* A gear-shaped 34x24 touch icon, anchored to bottom-left. */
@@ -1123,15 +1116,12 @@ static void render(void) {
         char tx[70];
         for(int i=0;i<dr_settings_count(running_dsi);i++) {
             int action=dr_settings_action(running_dsi,i);
-            if(action==DR_SETTING_CAMERA)
-                snprintf(tx,sizeof tx,"CAMERA: %s",game.save.camera_enabled?"ON":"OFF");
-            else if(action==DR_SETTING_OPTICAL)
+            if(action==DR_SETTING_OPTICAL)
                 snprintf(tx,sizeof tx,"OPTICAL AIM: %s",game.save.optical_aim?"ON":"OFF");
             else if(action==DR_SETTING_CART)
                 snprintf(tx,sizeof tx,"READ INSERTED DS GAME");
             else snprintf(tx,sizeof tx,"SELECT ONE SD GAME");
-            if(action==DR_SETTING_PLACEHOLDER)snprintf(tx,sizeof tx,"CUSTOM CAMERA-FREE IMAGE");
-            button(bottom,16+i*28,tx,game.selection==i);
+             button(bottom,16+i*28,tx,game.selection==i);
         }
         print(bottom,12,158,CYAN,game_cart_name(game.cart));
         print(bottom,12,169,GRAY,game_cart_source_name(game.cart_source));
@@ -1343,14 +1333,9 @@ static void from_results(int continue_search) {
     } else switch_screen(STATE_LAB);
 }
 static void handle_key(int keys,int down,touchPosition *touch) {
-    if(camera_quick_icon_visible() &&
-       (((down&KEY_TOUCH) &&
-         dr_camera_quick_icon_hit(touch->px,touch->py)) ||
-        (down&KEY_SELECT) ||
-        ((down&KEY_X) && (game.screen==STATE_TITLE ||
-                          game.screen==STATE_INTRO)) ||
-        dr_camera_intro_start_shortcut(game.screen==STATE_INTRO,
-                                       down,KEY_START))) {
+    if(dr_camera_quick_open(game.screen==STATE_TITLE,
+                            (down&KEY_TOUCH)!=0,(down&KEY_X)!=0,
+                            touch->px,touch->py)) {
         camera_quick_return=game.screen;
         camera_quick_return_selection=game.selection;
         switch_screen(STATE_CAMERA_QUICK);
@@ -1659,31 +1644,10 @@ static void handle_key(int keys,int down,touchPosition *touch) {
         if(touched>=0)game.selection=touched;
         if((down&KEY_A) || touched>=0){
             int action=dr_settings_action(running_dsi,game.selection);
-            if(action==DR_SETTING_CAMERA){
-                game.save.camera_enabled=!game.save.camera_enabled;
-                camera_failed_this_run=dr_camera_retry_latch(game.save.camera_enabled,camera_failed_this_run);
-                game.requested_save=1;
-            }
-            if(action==DR_SETTING_OPTICAL){game.save.optical_aim=!game.save.optical_aim;game.requested_save=1;}
+             if(action==DR_SETTING_OPTICAL){game.save.optical_aim=!game.save.optical_aim;game.requested_save=1;}
             if(action==DR_SETTING_CART)check_cartridge();
             if(action==DR_SETTING_SD){scan_sd_saves();switch_screen(STATE_SD_SAVES);}
-            if(action==DR_SETTING_PLACEHOLDER) {
-                placeholder_preview_slot=-1;
-                placeholder_preview_loaded=0;
-                if(custom_background_slot>=0)
-                    preview_custom_background(custom_background_slot);
-                if(!placeholder_preview_loaded && photo_storage_ready) {
-                    int found=-1, cursor=-1, first=-1;
-                    while(dr_photo_find(photo_dir,cursor,1,&found)) {
-                        if(found==first)break;
-                        if(first<0)first=found;
-                        if(preview_custom_background(found))break;
-                        cursor=found;
-                    }
-                }
-                switch_screen(STATE_PLACEHOLDER);
-            }
-        }
+         }
         if(down&KEY_B)switch_screen(STATE_LAB);
         return;
     }
