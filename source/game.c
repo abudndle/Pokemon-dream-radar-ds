@@ -911,6 +911,7 @@ void game_fire(Game *g) {
         if(selected>=0) {
             Cloud *c=&g->clouds[selected];
             c->alive=0;
+            g->requested_save=1; /* Persist removed cloud and any new sphere. */
             /* Damaged runtime counters must not overflow on a successful hit. */
             if(g->cloud_hit<0)g->cloud_hit=0;
             if(g->cloud_hit<INT_MAX)g->cloud_hit++;
@@ -1083,6 +1084,7 @@ void game_capture(Game *g) {
     g->freeze_frames=0;
     g->slow_frames=0;
     g->screen=STATE_REPLACE;
+    g->requested_save=1; /* Preserve the unresolved choice across restart. */
     msg(g,"Storage full: choose a slot to replace, or press B to keep it.");
 }
 int game_replace_pending(Game *g, int slot) {
@@ -1130,6 +1132,7 @@ int game_resume_radar(Game *g) {
        !radar_has_remaining(g))return 0;
     g->screen=STATE_RADAR;
     g->radar_resume_pending=0;
+    g->requested_save=1;
     g->session_caught=-1;
     g->session_species=-1;
     g->session_item=-1;
