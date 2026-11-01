@@ -145,7 +145,10 @@ static int radar_checkpoint_restore(const char *save_path,Game *g) {
     for(int i=0;i<MAX_CLOUDS;i++) {
         const Cloud *cloud=&r.session.clouds[i];
         if(cloud->alive!=0 && cloud->alive!=1)return 0;
-        if(cloud->alive && (cloud->x<0 || cloud->x>255 ||
+        /* A cloud outside the active search range must not reappear as
+         * an invisible target that can never be cleared by radar logic. */
+        if(cloud->alive && (i>=r.session.active_clouds ||
+                            cloud->x<0 || cloud->x>255 ||
                             cloud->y<0 || cloud->y>191 ||
                             cloud->kind<0 || cloud->kind>1))return 0;
     }
