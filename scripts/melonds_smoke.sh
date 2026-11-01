@@ -256,8 +256,10 @@ if [[ -f "$out/05-sphere-encounter.png" ]]; then
   echo "INFO: exercising bounded live sphere shooting; reward not yet verified" | tee -a "$out/runtime.log"
   xdotool windowfocus "$window"
   xdotool keydown --clearmodifiers z
-  for step in $(seq 1 12); do
-    case "$step" in
+  capture_last="$out/05-sphere-encounter.png"
+  for step in $(seq 1 24); do
+    sweep=$(( (step - 1) % 12 + 1 ))
+    case "$sweep" in
       1)  direction=Right; seconds=0.40 ;;
       2)  direction=Up;    seconds=0.17 ;;
       3)  direction=Left;  seconds=0.70 ;;
@@ -271,7 +273,20 @@ if [[ -f "$out/05-sphere-encounter.png" ]]; then
       11) direction=Left;  seconds=0.70 ;;
       12) direction=Down;  seconds=0.18 ;;
     esac
-    aim_ds_key "$direction" "$seconds"
+    # Prefer the observed silhouette on the known flat DS fallback scene.
+    # Unknown artwork/backgrounds fail closed to the bounded manual sweep.
+    if python3 tools/plan_melonds_aim.py "$capture_last" --target sphere \
+        >"$out/sphere-aim-$step.json" 2>/dev/null; then
+      read -r horizontal horizontal_seconds vertical vertical_seconds < <(
+        python3 -c 'import json,sys; p=json.load(open(sys.argv[1])); print(p["horizontal_key"],p["horizontal_seconds"],p["vertical_key"],p["vertical_seconds"])' \
+          "$out/sphere-aim-$step.json"
+      )
+      aim_ds_key "$horizontal" "$horizontal_seconds"
+      aim_ds_key "$vertical" "$vertical_seconds"
+      sleep 0.35
+    else
+      aim_ds_key "$direction" "$seconds"
+    fi
     capture_last="$out/05-sphere-sweep-$step.png"
     snapshot "05-sphere-sweep-$step"
     if python3 tools/verify_melonds_navigation.py "$out" \
