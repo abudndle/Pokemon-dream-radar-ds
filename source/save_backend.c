@@ -207,6 +207,34 @@ static int radar_checkpoint_restore(const char *save_path,Game *g) {
                 ball->ttl<=0 || ball->ttl>90))return 0;
         }
     }
+    /* The results page must not revive a fabricated reward from a
+     * checksummed but semantically inconsistent runtime sidecar. Stable
+     * SaveData is authoritative; the session only describes what to show. */
+    if(r.session.screen==STATE_RESULTS) {
+        int caught=r.session.session_caught;
+        if(caught< -4 || caught>25)return 0;
+        if(caught>=0) {
+            if(caught!=r.session.session_species)return 0;
+            if(caught>=LEGEND_SPECIES_START && caught<=LEGEND_SPECIES_END) {
+                unsigned bit=1u<<(caught-LEGEND_SPECIES_START);
+                if(!(r.session.save.reserved[14]&bit))return 0;
+            } else {
+                int present=0;
+                for(int i=0;i<r.session.save.pending_count;i++)
+                    if(r.session.save.pending[i]==caught)present=1;
+                if(!present)return 0;
+            }
+        } else if(caught==-2) {
+            int item=r.session.session_item;
+            if(item<0 || item>=RESEARCH_ITEM_TYPES)return 0;
+            int present=0;
+            for(int i=0;i<MAX_ITEMS;i++)
+                if(r.session.save.pending_items[i] &&
+                   r.session.save.reserved[2+i]==(uint8_t)(item+1))
+                    present=1;
+            if(!present)return 0;
+        }
+    }
     for(int i=0;i<MAX_CLOUDS;i++) {
         const Cloud *cloud=&r.session.clouds[i];
         if(cloud->alive!=0 && cloud->alive!=1)return 0;
