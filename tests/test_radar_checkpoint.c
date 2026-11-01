@@ -233,6 +233,27 @@ int main(void) {
     assert(loaded.screen==STATE_SPHERE && loaded.projectile_active);
     assert(loaded.projectile_extra[0].active && loaded.projectile_extra[1].active);
     assert(loaded.projectile_extra[0].ttl==90 && loaded.projectile_hits==0);
+    /* Legendary results are backed by the dedicated occupancy mask, not
+     * ordinary six-slot storage. Reject an invented crown/reward on reload. */
+    Game legendary_result=projectile;
+    game_capture(&legendary_result);
+    assert(legendary_result.screen==STATE_RESULTS);
+    assert(legendary_result.session_caught==LEGEND_SPECIES_START);
+    assert(legendary_result.save.reserved[14]&1u);
+    assert(save_backend_write(&backend,&legendary_result));
+    reload(&backend,&loaded);
+    assert(loaded.screen==STATE_RESULTS);
+    assert(loaded.session_caught==LEGEND_SPECIES_START);
+    Game forged_legendary=legendary_result;
+    forged_legendary.save.reserved[14]&=(uint8_t)~1u;
+    assert(save_backend_write(&backend,&forged_legendary));
+    reload(&backend,&loaded);
+    assert(loaded.screen==STATE_EXTENSIONS);
+    assert(!(loaded.save.reserved[14]&1u));
+    /* Return to the actual sphere fixture before the projectile tick test. */
+    assert(save_backend_write(&backend,&projectile));
+    reload(&backend,&loaded);
+    assert(loaded.screen==STATE_SPHERE && loaded.projectile_active);
     game_tick(&loaded);
     assert(loaded.screen==STATE_SPHERE && loaded.projectile_extra[0].ttl==89);
     assert(loaded.projectile_hits==0);
