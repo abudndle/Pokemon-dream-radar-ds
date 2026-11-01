@@ -12,7 +12,6 @@ assert "game.screen==STATE_SPHERE && (keys&KEY_A)" not in block, "Encounter-only
 smoke = (root / "scripts/melonds_smoke.sh").read_text()
 radar = smoke.split("snapshot 05-radar", 1)[1].split("snapshot 06-results", 1)[0]
 assert "press_ds_key z" in radar, "Emulator smoke test must fire A during radar"
-assert "snapshot 05-radar-after-shot" in radar, "Emulator must capture post-shot evidence"
-assert radar.index("press_ds_key z") < radar.index("snapshot 05-radar-after-shot"), "Screenshot must follow A shot"
-assert radar.index("snapshot 05-radar-after-shot") < radar.index("press_ds_key x"), "Shot must precede radar exit"
-print("PASS: A-button beam firing available in radar and sphere; emulator shot coverage present")
+assert "snapshot 05-radar-after-shot" not in radar, "Firing must not trigger a post-shot screenshot"
+assert radar.index("press_ds_key z") < radar.index("press_ds_key x"), "Shot must precede radar exit"
+print("PASS: A-button beam firing available in radar and sphere; emulator shot coverage present without a post-shot screenshot")
