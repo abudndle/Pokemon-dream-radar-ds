@@ -116,7 +116,21 @@ static int radar_checkpoint_restore(const char *save_path,Game *g) {
        r.session.orb_group_target>5 ||
        /* Group collection can exceed the most recently spawned group's
         * target when orbs from overlapping clouds remain active. */
-       r.session.orb_total_collected>DREAM_ORB_CHAIN_LIMIT)return 0;
+       r.session.orb_total_collected>DREAM_ORB_CHAIN_LIMIT ||
+       /* A scan contains at most MAX_CLOUDS clouds and each cloud can
+        * produce at most DREAM_ORB_CHAIN_LIMIT rewards. Reject impossible
+        * counters before they can change the predominant Orb color. */
+       r.session.session_orbs<0 ||
+       r.session.session_orbs>MAX_CLOUDS*DREAM_ORB_CHAIN_LIMIT ||
+       r.session.cloud_hit<0 ||
+       r.session.cloud_hit>r.session.active_clouds)return 0;
+    /* Each Orb reward increments exactly one color tally and the session
+     * total together. Use a wide accumulator to reject checksummed but
+     * contradictory checkpoints, without wrapping a narrow counter. */
+    uint32_t tallied_orbs=0;
+    for(int i=0;i<ORB_COLOR_COUNT;i++)
+        tallied_orbs+=(uint32_t)r.session.session_color_counts[i];
+    if(tallied_orbs!=(uint32_t)r.session.session_orbs)return 0;
     /* A full-storage prompt must have an actionable, bounded replacement.
      * Without these checks a checksummed but inconsistent sidecar can
      * restore a screen from which the player cannot complete the reward. */
