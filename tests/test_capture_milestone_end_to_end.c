@@ -79,6 +79,16 @@ int main(void) {
     assert(restored.save.searches==g.save.searches);
     assert(restored.save.orbs==g.save.orbs);
     assert(restored.save.story_phase==g.save.story_phase);
+    assert(restored.save.caught_count==g.save.caught_count);
+    assert(restored.save.pending_count==g.save.pending_count);
+    assert(restored.save.total_orbs==g.save.total_orbs);
+    assert(restored.save.cloud_count==g.save.cloud_count);
+    for(int i=0;i<MAX_CAUGHT;i++)
+        assert(restored.save.pending[i]==g.save.pending[i]);
+    for(int i=0;i<MAX_ITEMS;i++) {
+        assert(restored.save.pending_items[i]==g.save.pending_items[i]);
+        assert(restored.save.reserved[2+i]==g.save.reserved[2+i]);
+    }
     assert(unlink(path)==0);
     puts("PASS: cloud search, orb, sphere, results, save and reload");
     return 0;
