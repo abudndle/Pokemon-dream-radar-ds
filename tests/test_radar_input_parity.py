@@ -10,7 +10,13 @@ root = Path(__file__).resolve().parents[1]
 source = (root / "source/main.c").read_text()
 block = source.split("if(game.screen==STATE_RADAR || game.screen==STATE_SPHERE){", 1)[1].split("if(game.screen==STATE_INTRO){", 1)[0]
 assert re.search(r"if\s*\(\s*game\.screen\s*==\s*STATE_SPHERE\s*&&\s*\(keys\s*&\s*KEY_A\)", block), "Encounter-only fallback guard missing"
-assert not re.search(r"if\s*\(\s*\(keys\s*&\s*KEY_A\)", block), "Ungated A-button firing found in radar"
+# Every firing call in the shared input handler must be encounter-gated.
+for match in re.finditer(r"game_fire\s*\(\s*&game\s*\)", block):
+    prefix = block[:match.start()]
+    statement = prefix[prefix.rfind(";") + 1:]
+    assert "STATE_SPHERE" in statement, "Ungated radar firing call"
+    assert "KEY_A" in statement, "Unreviewed firing control"
+assert block.count("game_fire(&game)") == 1, "Unexpected firing path"
 smoke = (root / "scripts/melonds_smoke.sh").read_text()
 radar = smoke.split("snapshot 05-radar", 1)[1].split("snapshot 06-results", 1)[0]
 assert "press_ds_key z" not in radar, "Smoke test incorrectly presses A on radar"
