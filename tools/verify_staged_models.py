@@ -32,6 +32,29 @@ def verify(directory: Path, manifest: str, expected_format: str, extension: str)
         payload = path.read_bytes()
         if payload[:4] != expected_format.encode("ascii"):
             raise ValueError("Invalid asset magic: " + name)
+        vertices = int.from_bytes(payload[4:6], "little") if len(payload) >= 6 else 0
+        if expected_format == "DRM1":
+            triangles = int.from_bytes(payload[6:8], "little") if len(payload) >= 8 else 0
+            expected_length = 8 + 6 * (vertices + triangles)
+            if not (1 <= vertices <= 65535 and 1 <= triangles <= 2048
+                    and len(payload) == expected_length):
+                raise ValueError("Invalid DRM1 geometry layout: " + name)
+            offset = 8 + 6 * vertices
+            for index in range(triangles):
+                base = offset + 6 * index
+                a, b, c = (int.from_bytes(payload[base + j:base + j + 2], "little")
+                           for j in (0, 2, 4))
+                if max(a, b, c) >= vertices or len({a, b, c}) != 3:
+                    raise ValueError("Invalid DRM1 triangle: " + name)
+        elif expected_format == "DRK1":
+            if len(payload) < 10:
+                raise ValueError("Truncated DRK1 header: " + name)
+            bones, frames, ticks, reserved = payload[6:10]
+            expected_length = 10 + 8 * bones + 3 * vertices + 4 * bones * frames
+            if not (3 <= vertices <= 2048 and 1 <= bones <= 32
+                    and 2 <= frames <= 16 and 1 <= ticks <= 60
+                    and reserved == 0 and len(payload) == expected_length):
+                raise ValueError("Invalid DRK1 animation layout: " + name)
         digest = entry.get("sha256")
         size = entry.get("bytes")
         if (type(size) is not int or size != len(payload)
