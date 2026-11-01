@@ -121,6 +121,20 @@ fi
 # frame after firing; an input attempt alone is not a successful cloud hit.
 press_ds_key z
 snapshot 05-radar-postfire
+# Dream Orbs appear only after a cloud is hit. Attempt a separate Orb shot
+# from the actual post-fire screenshot; never infer collection from the input.
+if python3 tools/plan_melonds_aim.py "$out/05-radar-postfire.png" --target orb >"$out/orb-aim-plan.json"; then
+  read -r horizontal horizontal_seconds vertical vertical_seconds < <(
+    python3 -c 'import json,sys; p=json.load(open(sys.argv[1])); print(p["horizontal_key"], p["horizontal_seconds"], p["vertical_key"], p["vertical_seconds"])' "$out/orb-aim-plan.json"
+  )
+  aim_ds_key "$horizontal" "$horizontal_seconds"
+  aim_ds_key "$vertical" "$vertical_seconds"
+  snapshot 05-radar-orb-aimed
+  press_ds_key z
+  snapshot 05-radar-orb-postfire
+else
+  echo "WARNING: no visible pink Dream Orb target; collection not verified" | tee -a "$out/runtime.log"
+fi
 press_ds_key x
 snapshot 06-results
 press_ds_key x
