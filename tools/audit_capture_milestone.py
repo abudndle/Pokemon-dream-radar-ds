@@ -12,10 +12,12 @@ import sys
 REQUIRED = {
     "source/game.c": "portable gameplay rules",
     "tests/test_radar_resume.c": "scan resume",
+    "tests/test_capture_milestone_end_to_end.c": "complete capture and persistent reward acceptance",
     "tests/test_dream_orb_entities.c": "orb collection",
     "tests/test_capture_profiles.c": "capture profile",
     "tests/test_gameplay_save_roundtrip.c": "save reload",
     "tests/test_melonds_navigation.py": "screenshot heading recognition",
+    ".github/workflows/capture-host-acceptance.yml": "CI acceptance evidence",
     "docs/feature_parity.json": "feature parity tracking",
 }
 
