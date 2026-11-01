@@ -5,8 +5,11 @@ Only input files named pokemon_00.obj..pokemon_25.obj are recognized. No
 copyrighted assets are shipped or downloaded by this script.
 """
 import argparse
+import hashlib
 import json
 import re
+import tempfile
+import os
 from pathlib import Path
 from convert_extracted_obj import convert
 
@@ -27,14 +30,23 @@ def stage(source: Path, output: Path):
     output.mkdir(parents=True, exist_ok=True)
     report = {"format": "DRM1", "source_provenance": "not_verified",
               "models": []}
-    for name, blob, info in converted:
-        target = output / (name + ".drm")
-        target.write_bytes(blob)
-        report["models"].append({"file": target.name,
-                                 "vertices": info["vertices"],
-                                 "triangles": info["triangles"]})
-    (output / "model_manifest.json").write_text(
-        json.dumps(report, indent=2) + "\n", encoding="utf-8")
+    # Stage to a sibling directory; never publish a partially converted set.
+    with tempfile.TemporaryDirectory(prefix=".dream-radar-models-", dir=output.parent) as temp:
+        staged = Path(temp)
+        for name, blob, info in converted:
+            target = staged / (name + ".drm")
+            target.write_bytes(blob)
+            report["models"].append({"file": target.name,
+                                     "sha256": hashlib.sha256(blob).hexdigest(),
+                                     "bytes": len(blob),
+                                     "vertices": info["vertices"],
+                                     "triangles": info["triangles"]})
+        (staged / "model_manifest.json").write_text(
+            json.dumps(report, indent=2) + "\n", encoding="utf-8")
+        # Replace each file atomically on the same filesystem. A failed
+        # conversion above leaves the previously published set untouched.
+        for item in sorted(staged.iterdir(), key=lambda x: x.name == "model_manifest.json"):
+            os.replace(item, output / item.name)
     return report
 
 def main():

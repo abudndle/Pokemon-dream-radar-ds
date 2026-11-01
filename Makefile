@@ -56,6 +56,7 @@ test-host:
 	./build/test_legendary_escape
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c tests/test_legendary_storage.c -o build/test_legendary_storage
 	./build/test_legendary_storage
+	python3 tests/test_model_staging_integrity.py
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c tests/test_capture_timeout_policy.c -o build/test_capture_timeout_policy
 	./build/test_capture_timeout_policy
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c tests/test_encounter_types.c -o build/test_encounter_types
