@@ -1,0 +1,52 @@
+name: Linux melonDS boot and screenshots
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - '.github/workflows/melonds-smoke.yml'
+      - 'scripts/melonds_smoke.sh'
+      - 'source/**'
+      - 'nitrofs/**'
+      - 'Makefile'
+      - 'scripts/build_both.sh'
+      - 'scripts/check_nds.py'
+jobs:
+  melonds-boot:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Flatpak and screenshot tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends flatpak xvfb xauth xdotool imagemagick x11-utils
+          sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+      - name: Install official melonDS Flatpak
+        run: |
+          sudo flatpak install --noninteractive -y flathub net.kuribo64.melonDS
+          flatpak info net.kuribo64.melonDS
+      - name: Build latest DS/DSi ROM
+        run: |
+          docker run --rm -v "$PWD:/workspace" -w /workspace \
+            -e SKIP_HOST_TESTS=1 -e SKIP_ROM_CHECK=1 \
+            skylyrac/blocksds:slim-latest sh scripts/build_both.sh
+          python3 scripts/check_nds.py dream_radar.nds
+      - name: Launch melonDS and capture actual emulator window
+        run: |
+          xvfb-run -a -s '-screen 0 1280x900x24' \
+            bash scripts/melonds_smoke.sh dream_radar.nds melonds-results
+      - name: Publish melonDS screenshot and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-melonds-real-screenshots
+          path: |
+            melonds-results/*.png
+            melonds-results/*.log
+            melonds-results/*.txt
+          if-no-files-found: warn
+          retention-days: 30
