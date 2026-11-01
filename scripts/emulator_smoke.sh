@@ -68,7 +68,17 @@ snapshot 02-after-start
 xdotool key --window "$window" x 2>/dev/null || true
 sleep 6
 snapshot 03-after-a
+# The new bottom-left gear lives at DS touch (20,180); the SDL window
+# stacks 256x192 top and bottom screens, so the click is (20,192+180).
+# This is an actual X11 pointer event, never a mockup screenshot.
+xdotool mousemove --window "$window" 20 372 2>/dev/null || true
+xdotool mousedown 1 2>/dev/null || true
+sleep 0.3
+xdotool mouseup 1 2>/dev/null || true
+sleep 3
+snapshot 04-camera-settings
 python3 tools/verify_emulator_screenshots.py \
   --output "$outdir/report.json" \
-  "$outdir/01-title.png" "$outdir/02-after-start.png" "$outdir/03-after-a.png"
+  "$outdir/01-title.png" "$outdir/02-after-start.png" \
+  "$outdir/03-after-a.png" "$outdir/04-camera-settings.png"
 echo "Real DeSmuME screenshot capture and validation complete"
