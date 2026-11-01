@@ -171,3 +171,22 @@ with tempfile.TemporaryDirectory() as temporary:
     else:
         raise AssertionError("Nonzero DRK1 bone reserved byte accepted")
 print("PASS: reserved skeleton bytes rejected")
+
+with tempfile.TemporaryDirectory() as temporary:
+    root = pathlib.Path(temporary)
+    payload = fixture("DRM1")
+    name = "pokemon_00.drm"
+    (root / name).write_bytes(payload)
+    manifest = root / "model_manifest.json"
+    real_manifest = root / "original_manifest.json"
+    real_manifest.write_text(json.dumps({"format": "DRM1", "models": [
+        {"file": name, "bytes": len(payload),
+         "sha256": hashlib.sha256(payload).hexdigest()}]}))
+    manifest.symlink_to(real_manifest)
+    try:
+        verify(root, manifest.name, "DRM1", ".drm")
+    except ValueError as exc:
+        assert "symlinked staged manifest" in str(exc), str(exc)
+    else:
+        raise AssertionError("Symlinked staged manifest accepted")
+print("PASS: symlinked manifest rejection")
