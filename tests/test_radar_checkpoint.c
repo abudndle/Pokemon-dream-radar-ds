@@ -312,6 +312,19 @@ int main(void) {
     reload(&backend,&loaded);
     assert(loaded.screen==STATE_SPHERE && loaded.session_type==1);
     assert(loaded.session_species==-1 && loaded.session_item==0);
+    /* A real item reward remains visible after restart only when its
+     * corresponding item stack was actually committed. */
+    Game item_result=item_sphere;
+    game_capture(&item_result);
+    assert(item_result.screen==STATE_RESULTS && item_result.session_caught==-2);
+    assert(save_backend_write(&backend,&item_result));
+    reload(&backend,&loaded);
+    assert(loaded.screen==STATE_RESULTS && loaded.session_caught==-2);
+    assert(loaded.session_item==0);
+    int found_item=0;
+    for(int i=0;i<MAX_ITEMS;i++)
+        if(game_item_slot_kind(&loaded,i)==0)found_item=1;
+    assert(found_item);
 
     Game simulator_sphere=item_sphere;
     simulator_sphere.ext_selection=EXT_SIM_TORNADUS;
@@ -354,6 +367,29 @@ int main(void) {
     assert(save_backend_write(&backend,&loaded));
     reload(&backend,&g);
     assert(g.screen==STATE_RESULTS && g.save.pending[2]==8);
+    assert(g.session_caught==8 && g.session_species==8);
+    /* Corrupt but checksummed result claims cannot display a reward absent
+     * from the authoritative save after restart. No private assets needed. */
+    Game valid_results=g;
+    for(int invalid=0;invalid<6;invalid++) {
+        Game malformed=valid_results;
+        switch(invalid) {
+            case 0: malformed.session_caught=26;break;
+            case 1: malformed.session_caught=-5;break;
+            case 2: malformed.session_caught=7;break;
+            case 3: malformed.session_caught=-2;malformed.session_item=-1;break;
+            case 4: malformed.session_caught=-2;malformed.session_item=0;break;
+            case 5: malformed.save.pending[2]=7;break;
+        }
+        assert(save_backend_write(&backend,&malformed));
+        reload(&backend,&loaded);
+        assert(loaded.screen==STATE_EXTENSIONS);
+    }
+    assert(save_backend_write(&backend,&valid_results));
+    reload(&backend,&loaded);
+    assert(loaded.screen==STATE_RESULTS && loaded.session_caught==8);
+    assert(loaded.save.pending[2]==8);
+    g=loaded;
 
     /* A malformed but internally checksummed runtime prompt must not trap
      * the user in an unfinishable replacement screen after reboot. */
