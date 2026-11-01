@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Batch staging must not leave partial results when one model is invalid."""
 import json
+import hashlib
 import pathlib
 import sys
 import tempfile
@@ -28,6 +29,12 @@ with tempfile.TemporaryDirectory() as temporary:
     assert (staged/'pokemon_25.drk').read_bytes()[:4]==b'DRK1'
     assert not (staged/'pokemon_26.drk').exists()
     assert not report['verified_original_3ds_animation']
+    for row in report['models']:
+        payload=(staged/row['file']).read_bytes()
+        assert row['bytes']==len(payload)
+        assert row['sha256']==hashlib.sha256(payload).hexdigest()
+    assert json.loads((staged/'gltf_animation_manifest.json').read_text())==report
+    saved_files={p.name:p.read_bytes() for p in staged.iterdir()}
     saved=(staged/'pokemon_00.drk').read_bytes()
     (gltf/'pokemon_25.gltf').write_text('{"invalid": true}')
     try:stage(gltf,mesh,staged)
@@ -35,6 +42,7 @@ with tempfile.TemporaryDirectory() as temporary:
     else:raise AssertionError('Bad batch was accepted')
     assert saved==(staged/'pokemon_00.drk').read_bytes()
     assert saved==(staged/'pokemon_25.drk').read_bytes()
+    assert saved_files=={p.name:p.read_bytes() for p in staged.iterdir()}
     (gltf/'pokemon_00.gltf').unlink()
     (gltf/'pokemon_25.gltf').unlink()
     try:stage(gltf,mesh,staged)
