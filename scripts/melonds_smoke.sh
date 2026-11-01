@@ -96,9 +96,8 @@ snapshot 04-extensions
 press_ds_key z
 snapshot 05-radar
 # The original A button fires the beam in radar. Exercise that input before
-# leaving; a separate deterministic encounter test must still prove a hit.
+# leaving; no in-game photo or post-shot screenshot is triggered.
 press_ds_key z
-snapshot 05-radar-after-shot
 press_ds_key x
 snapshot 06-results
 press_ds_key x
