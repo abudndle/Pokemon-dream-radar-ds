@@ -62,12 +62,32 @@ static const char *storage_root;
 static char export_dir[64];
 static char photo_dir[96];
 static int photo_storage_ready;
+static GameScreen camera_quick_return=STATE_TITLE;
+static int camera_quick_return_selection;
 static u16 custom_background[PIXELS] __attribute__((aligned(32)));
 static int custom_background_loaded, custom_background_slot=-1;
 static int placeholder_preview_slot=-1;
 static u16 placeholder_preview[PIXELS] __attribute__((aligned(32)));
 static int placeholder_preview_loaded;
 #define CUSTOM_BG_MARKER 0xB6
+#define IMPORTED_BG_MARKER 0xB7
+/* A single user-provided 24-bit BMP, never an arbitrary storage filename. */
+static int load_imported_placeholder(void) {
+    char filename[128];
+    if(!have_storage || !storage_root ||
+       !dr_placeholder_path(filename,sizeof filename,storage_root))return 0;
+    if(!dr_photo_read(filename,custom_background,PIXELS))return 0;
+    custom_background_loaded=1;
+    custom_background_slot=-2;
+    return 1;
+}
+static void select_imported_placeholder(void) {
+    game.save.reserved[9]=0;
+    game.save.reserved[10]=0;
+    game.save.reserved[11]=IMPORTED_BG_MARKER;
+    game.save.camera_enabled=0;
+    game.requested_save=1;
+}
 static int load_custom_background(int slot) {
     char filename[128];
     if(!running_dsi || !photo_storage_ready || slot<0 || slot>=DR_PHOTO_MAX)return 0;
@@ -89,6 +109,10 @@ static int preview_custom_background(int slot) {
     return 1;
 }
 static void restore_custom_background(void) {
+    if(game.save.reserved[11]==IMPORTED_BG_MARKER) {
+        load_imported_placeholder();
+        return;
+    }
     if(game.save.reserved[11]!=CUSTOM_BG_MARKER)return;
     int slot=(int)game.save.reserved[9] | ((int)game.save.reserved[10]<<8);
     load_custom_background(slot);
@@ -669,6 +693,28 @@ static int extension_row_of(int ext) {
 static void extension_ensure_selected(void) {
     if(!extension_visible(game.ext_selection)) game.ext_selection=EXT_BASIC;
 }
+static int camera_quick_icon_visible(void) {
+    switch(game.screen) {
+    case STATE_SETTINGS:
+    case STATE_PLACEHOLDER:
+    case STATE_CAMERA_QUICK:
+    case STATE_SD_SAVES:
+    case STATE_REPLACE:
+        return 0;
+    default: return 1;
+    }
+}
+static void render_camera_quick_icon(void) {
+    /* A gear-shaped 34x24 touch icon, anchored to bottom-left. */
+    rect(bottom,3,168,34,24,0x8421);
+    border(bottom,3,168,34,24,WHITE);
+    const int cx=20,cy=180;
+    rect(bottom,cx-2,cy-9,5,18,CYAN);
+    rect(bottom,cx-9,cy-2,19,5,CYAN);
+    rect(bottom,cx-6,cy-6,13,13,WHITE);
+    rect(bottom,cx-4,cy-4,9,9,0x8421);
+    rect(bottom,cx-2,cy-2,5,5,CYAN);
+}
 static void render(void) {
     switch(game.screen) {
     case STATE_TITLE: {
@@ -757,7 +803,7 @@ static void render(void) {
                              "RECORDS","OPTIONS","TALK TO BURNET","PHOTO ALBUM"};
          for(int i=0;i<dr_lab_count(running_dsi);i++)
              button(bottom,dr_lab_row_top(i),opts[dr_lab_action(running_dsi,i)],game.selection==i);}
-        print(bottom,11,176,GRAY,"Y: CHECK DS CART  B: TITLE");
+        print(bottom,44,176,GRAY,"Y: CHECK CART  B: TITLE");
         break;
     case STATE_SHOP: {
         render_shop_top();
@@ -1046,6 +1092,36 @@ static void render(void) {
         print(bottom,10,177,GRAY,"B: BACK TO OPTIONS");
         break;
     }
+    case STATE_CAMERA_QUICK: {
+        if(custom_background_loaded) {
+            memcpy(top,custom_background,sizeof top);
+            rect(top,0,0,256,25,0x8421);
+            print(top,10,8,WHITE,"CAMERA BACKGROUND PREVIEW");
+        } else {
+            load_bg("menu_top.raw",top,0x8824);
+            top_title("CAMERA SETTINGS");
+            draw_sprite(top,S_RETICLE,110,68);
+        }
+        load_bg("menu_bottom.raw",bottom,0x8824);
+        char line[48];
+        if(running_dsi)
+            snprintf(line,sizeof line,"CAMERA: %s",
+                     game.save.camera_enabled?"ON":"OFF");
+        else snprintf(line,sizeof line,"CAMERA: NOT AVAILABLE");
+        for(int row=0;row<2;row++) {
+            int y=row==0?40:86;
+            rect(bottom,12,y,232,28,0x8421);
+            border(bottom,12,y,232,28,game.selection==row?CYAN:GRAY);
+            if(game.selection==row)border(bottom,14,y+2,228,24,WHITE);
+            print(bottom,21,y+10,WHITE,row==0?line:"IMPORT PLACEHOLDER BMP");
+        }
+        print(bottom,11,126,CYAN,"/DreamRadarDSi/placeholder.bmp");
+        print(bottom,11,138,WHITE,"256x192 / 24-BIT BMP ONLY");
+        print(bottom,11,152,custom_background_loaded?GOLD:GRAY,
+              custom_background_loaded?"BACKGROUND: LOADED":"BACKGROUND: BUILT-IN");
+        print(bottom,11,173,GRAY,"SELECT: RESET   B: BACK");
+        break;
+    }
     case STATE_SETTINGS: {
         load_bg("menu_top.raw",top,0x8824);top_title(running_dsi?"DSi RADAR OPTIONS":"DS RADAR OPTIONS");
         draw_sprite(top,S_RETICLE,110,68);
@@ -1068,6 +1144,7 @@ static void render(void) {
         print(bottom,12,181,GRAY,"B: LAB");
         break;}
     }
+    if(camera_quick_icon_visible())render_camera_quick_icon();
     if(game.messages>0) {
         rect(top,5,145,246,42,0x88C4);border(top,5,145,246,42,GOLD);
         print_wrapped(top,10,150,38,WHITE,game.message,3);
@@ -1272,6 +1349,58 @@ static void from_results(int continue_search) {
     } else switch_screen(STATE_LAB);
 }
 static void handle_key(int keys,int down,touchPosition *touch) {
+    if(camera_quick_icon_visible() && (down&KEY_TOUCH) &&
+       dr_camera_quick_icon_hit(touch->px,touch->py)) {
+        camera_quick_return=game.screen;
+        camera_quick_return_selection=game.selection;
+        switch_screen(STATE_CAMERA_QUICK);
+        return;
+    }
+    if(game.screen==STATE_CAMERA_QUICK) {
+        if(down&(KEY_UP|KEY_DOWN))game.selection^=1;
+        int tapped=(down&KEY_TOUCH)?
+            dr_camera_quick_row_hit(touch->px,touch->py):-1;
+        if(tapped>=0)game.selection=tapped;
+        if((down&KEY_A)||tapped>=0) {
+            if(game.selection==0) {
+                if(running_dsi) {
+                    game.save.camera_enabled=!game.save.camera_enabled;
+                    camera_failed_this_run=dr_camera_retry_latch(
+                        game.save.camera_enabled,camera_failed_this_run);
+                    game.requested_save=1;
+                    snprintf(game.message,sizeof game.message,
+                             game.save.camera_enabled?
+                             "DSi camera enabled.":"DSi camera disabled.");
+                } else snprintf(game.message,sizeof game.message,
+                                "No DS camera: use an imported BMP.");
+                game.messages=120;
+            } else {
+                if(load_imported_placeholder()) {
+                    select_imported_placeholder();
+                    snprintf(game.message,sizeof game.message,
+                             "Placeholder imported; camera turned OFF.");
+                } else snprintf(game.message,sizeof game.message,
+                                "Place 256x192 BMP at DreamRadarDSi/placeholder.bmp.");
+                game.messages=140;
+            }
+        }
+        if(down&KEY_SELECT) {
+            custom_background_loaded=0;
+            custom_background_slot=-1;
+            game.save.reserved[9]=0;
+            game.save.reserved[10]=0;
+            game.save.reserved[11]=0;
+            game.requested_save=1;
+            snprintf(game.message,sizeof game.message,
+                     "Original camera-free background restored.");
+            game.messages=120;
+        }
+        if(down&KEY_B) {
+            switch_screen(camera_quick_return);
+            game.selection=camera_quick_return_selection;
+        }
+        return;
+    }
     if(game.screen==STATE_LAB){
         const int bits[]={KEY_Y,KEY_X,KEY_A,KEY_X,KEY_LEFT,KEY_RIGHT,KEY_UP,KEY_DOWN,KEY_L,KEY_R};
         (void)bits;
