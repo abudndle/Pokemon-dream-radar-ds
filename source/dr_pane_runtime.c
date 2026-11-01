@@ -122,8 +122,10 @@ int dr_ui_evaluate(const DrUiPane *panes,size_t count,
         int left=(int)floorf(minx+0.0001f),top=(int)floorf(miny+0.0001f);
         int right=left+(int)floorf(maxx-minx+0.5f);
         int bottom=top+(int)floorf(maxy-miny+0.5f);
-        if(left<0)left=0;if(top<0)top=0;
-        if(right>256)right=256;if(bottom>192)bottom=192;
+        if(left<0)left=0;
+        if(top<0)top=0;
+        if(right>256)right=256;
+        if(bottom>192)bottom=192;
         if(p->parent>=0 && nodes[p->parent].clip_children) {
             const DrUiFrame *par=&result[p->parent];
             if(left<par->x)left=par->x;
