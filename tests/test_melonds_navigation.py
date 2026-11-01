@@ -192,10 +192,10 @@ def write_png(path, raw):
         return (struct.pack(">I", len(data)) + kind + data +
                 struct.pack(">I", zlib.crc32(kind + data) & 0xffffffff))
     rows = b"".join(
-        b"\\x00" + bytes(raw[y * width * 3:(y + 1) * width * 3])
+        b"\x00" + bytes(raw[y * width * 3:(y + 1) * width * 3])
         for y in range(height))
     header = struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0)
-    path.write_bytes(b"\\x89PNG\\r\\n\\x1a\\n" +
+    path.write_bytes(b"\x89PNG\r\n\x1a\n" +
                      chunk(b"IHDR", header) +
                      chunk(b"IDAT", zlib.compress(rows)) +
                      chunk(b"IEND", b""))
