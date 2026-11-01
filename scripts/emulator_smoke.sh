@@ -68,37 +68,27 @@ snapshot 02-after-start
 xdotool key --window "$window" x 2>/dev/null || true
 sleep 6
 snapshot 03-after-a
-# The new bottom-left gear lives at DS touch (20,180); the SDL window
-# stacks 256x192 top and bottom screens, so the click is (20,192+180).
-# This is an actual X11 pointer event, never a mockup screenshot.
-xdotool mousemove --window "$window" 20 372 2>/dev/null || true
-xdotool mousedown 1 2>/dev/null || true
-sleep 0.3
-xdotool mouseup 1 2>/dev/null || true
+# Keep the same focus path that successfully advanced Start and DS A above.
+# DeSmuME CLI maps keyboard 's' to DS X, which opens the added camera
+# quick menu on title/intro (without overriding search/photo controls).
+# Mouse/XTest stylus injection is NOT yet reliable under headless Xvfb.
+xdotool windowfocus "$window" 2>/dev/null || true
+xdotool key --clearmodifiers --window "$window" s
 sleep 3
-snapshot 04-after-touch-attempt
-# SDL DeSmuME's XTest touch/modifier events may not be accepted in
-# headless Xvfb. On title/intro, DS X (keyboard 's') safely opens the
-# exact same camera menu, while not overriding radar X/photo input.
-xdotool keydown --window "$window" s
-sleep 0.35
-xdotool keyup --window "$window" s
-sleep 3
-snapshot 05-camera-settings-shortcut
-# A test screenshot must show an actual state change, not merely the same
-# 256x384 window after an input that the emulator silently ignored.
-python3 - "$outdir/03-after-a.png" "$outdir/05-camera-settings-shortcut.png" <<'PY'
+snapshot 04-camera-settings
+# Reject unchanged screenshots: a visible emulator window alone does not
+# demonstrate the newly added camera settings menu.
+python3 - "$outdir/03-after-a.png" "$outdir/04-camera-settings.png" <<'PY'
 import hashlib
 import pathlib
 import sys
 before, after=(pathlib.Path(p).read_bytes() for p in sys.argv[1:3])
 if hashlib.sha256(before).digest()==hashlib.sha256(after).digest():
-    raise SystemExit("DS X shortcut did not open camera settings; unchanged real screenshot")
-print("PASS: emulator displayed a changed frame after DS X shortcut")
+    raise SystemExit("DS X did not open camera settings; unchanged real screenshot")
+print("PASS: emulator displayed a changed frame after DS X camera shortcut")
 PY
 python3 tools/verify_emulator_screenshots.py \
   --output "$outdir/report.json" \
   "$outdir/01-title.png" "$outdir/02-after-start.png" \
-  "$outdir/03-after-a.png" "$outdir/04-after-touch-attempt.png" \
-  "$outdir/05-camera-settings-shortcut.png"
+  "$outdir/03-after-a.png" "$outdir/04-camera-settings.png"
 echo "Real DeSmuME screenshot capture and validation complete"
