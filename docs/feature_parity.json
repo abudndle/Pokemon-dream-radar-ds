@@ -291,16 +291,18 @@
       "id": "bclan_keyframes",
       "feature": "Original BCLAN animation keyframes and playback",
       "status": "investigation_only",
-      "gap": "Clip lengths and loop flags identified; actual keyframe decoding and rendering pending.",
+      "gap": "417 CLAN files in the validated private 177-DARC set are 2D UI/pane animations, not Pokémon skeletons; clip timing identified, runtime pane-keyframe playback pending.",
       "evidence": [
-        "tools/map_original_ui_layouts.py"
+        "tools/map_original_ui_layouts.py",
+        "tools/audit_darc_asset_kinds.py",
+        "docs/ORIGINAL_DARC_ASSET_KIND_AUDIT.json"
       ]
     },
     {
       "id": "original_3d_models",
       "feature": "Original Pokémon 3D geometry and animations",
       "status": "partial",
-      "gap": "Optional DRM1 models support DRA1 vertex keys, DRB1 rigid parts, and DRK1 two-influence skinning; strict private glTF-to-DRK1 retargeting now verifies matching geometry/joints, but original 3DS asset decoding and animation fidelity remain absent.",
+      "gap": "Converted DRM1/DRA1/DRB1/DRK1 and strict glTF retargeting exist. The 177 decoded DARC archives contain UI/2D resources and no independently identified 3D skeleton; original native 3DS model/animation source, decoding, and fidelity remain unverified.",
       "evidence": [
         "source/dr_mesh.c",
         "source/dr_texture.c",
@@ -328,6 +330,12 @@
         "tests/test_gltf_skin_converter.py",
         "tests/test_stage_gltf_animations.py",
         "docs/GLTF_TO_DRK1.md",
+        "tools/inventory_darc.py",
+        "tools/audit_darc_asset_kinds.py",
+        "tests/test_darc_asset_kind_audit.py",
+        "tests/test_darc_asset_report.py",
+        "docs/ORIGINAL_DARC_MODEL_SEARCH.md",
+        "docs/ORIGINAL_DARC_ASSET_KIND_AUDIT.json",
         "source/main.c"
       ]
     },

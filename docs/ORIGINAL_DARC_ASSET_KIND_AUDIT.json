@@ -1,0 +1,61 @@
+{
+  "3d_candidate_count": 0,
+  "3d_candidates": [],
+  "archive_count": 177,
+  "archive_groups": {
+    "LocalizeTex": {
+      "archives": 35,
+      "categories": {
+        "image": 70
+      },
+      "files": 70
+    },
+    "Message": {
+      "archives": 7,
+      "categories": {
+        "message": 35
+      },
+      "files": 35
+    },
+    "Obj": {
+      "archives": 99,
+      "categories": {
+        "image": 388,
+        "ui_animation": 198,
+        "ui_layout": 99
+      },
+      "files": 685
+    },
+    "Ui": {
+      "archives": 36,
+      "categories": {
+        "image": 417,
+        "ui_animation": 219,
+        "ui_layout": 36
+      },
+      "files": 672
+    }
+  },
+  "categories": {
+    "image": 875,
+    "message": 35,
+    "ui_animation": 417,
+    "ui_layout": 135
+  },
+  "caveat": "Only recognized top-level DARC member formats were checked. Zero 3D candidates here does not prove that the original game contains no 3D models or skeletal animation elsewhere, including other RomFS or executable sections.",
+  "extensions": {
+    ".bclan": 417,
+    ".bclim": 875,
+    ".bclyt": 135,
+    ".msbt": 35
+  },
+  "file_count": 1462,
+  "format": "DARC_ASSET_KIND_AUDIT_V1",
+  "private_asset_bytes_exported": 0,
+  "validated_signatures": {
+    "CLAN": 417,
+    "CLIM_footer": 875,
+    "CLYT": 135,
+    "MsgS": 35
+  }
+}

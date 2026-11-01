@@ -144,6 +144,8 @@ test-host:
 	python3 tests/test_ncch_lz40_probe.py
 	python3 tests/test_ncch_lzh8.py
 	python3 tests/test_darc_inventory.py
+	python3 tests/test_darc_asset_kind_audit.py
+	python3 tests/test_darc_asset_report.py
 	python3 tests/test_bclim_spr_converter.py
 	python3 tests/test_original_ui_layouts.py
 	python3 tests/test_feature_parity.py
