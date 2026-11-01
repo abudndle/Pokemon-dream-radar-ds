@@ -7,7 +7,7 @@ Tap it to open a focused menu with **only two actions**:
 1. **Camera: ON/OFF** — toggles the real DSi camera. On DS/DS Lite and a standard DS emulator, this row displays **CAMERA: NOT AVAILABLE**. Gameplay remains camera-free, and the setting cannot enable an unsupported camera.
 2. **Import placeholder BMP** — reads a single user-provided image from removable storage. Import automatically turns off the live camera so the image is visible as the camera-free radar/capture background.
 
-You can also press **Select** on the normal gameplay screens to open the same camera menu; this is useful when an emulator does not forward stylus events. Press **Up/Down** to select a row, **A** to activate, **B** to return to the exact previous game screen and selection, or touch a row directly. **Select** resets the background to the bundled default (without deleting files). In radar/sphere, opening the quick menu temporarily stops the camera and pauses encounter input; returning resumes the previous session.
+You can also press **Select** on normal gameplay screens or **X on the title/intro screens** to open the same camera menu; these shortcuts are useful when an emulator does not forward stylus events. Press **Up/Down** to select a row, **A** to activate, **B** to return to the exact previous game screen and selection, or touch a row directly. **Select** resets the background to the bundled default (without deleting files). In radar/sphere, opening the quick menu temporarily stops the camera and pauses encounter input; returning resumes the previous session.
 
 ## Prepare and import an image
 
