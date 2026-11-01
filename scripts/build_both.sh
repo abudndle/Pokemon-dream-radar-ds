@@ -8,7 +8,12 @@ fi
 rm -rf build
 # Compile source-derived title-pane geometry into the ROM. Native original
 # CLPA keyframes are optional private SD/FAT overrides, never public assets.
-python3 tools/stage_title_ui.py ui_mapping/original_pane_geometry.json nitrofs/title.drui
+if command -v python3 >/dev/null 2>&1; then
+    python3 tools/stage_title_ui.py ui_mapping/original_pane_geometry.json nitrofs/title.drui
+elif [ ! -s nitrofs/title.drui ]; then
+    echo "Stage nitrofs/title.drui on the host before entering the SDK-only Docker image" >&2
+    exit 1
+fi
 make check-sdk
 make -j2
 rom="dream_radar.nds"
