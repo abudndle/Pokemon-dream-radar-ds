@@ -33,10 +33,10 @@ sudo apt-get install -y desmume xvfb xauth xdotool imagemagick x11-utils
 # First build dream_radar.nds with scripts/build_both.sh in BlocksDS.
 python3 scripts/check_nds.py dream_radar.nds
 xvfb-run -a -s '-screen 0 1024x900x24' \
-  bash scripts/emulator_smoke.sh dream_radar.nds build/emulator
+  bash scripts/emulator_smoke.sh dream_radar.nds emulator-results
 ```
 
-Then inspect the actual PNG files under `build/emulator/` and read `build/emulator/report.json`.
+Then inspect the actual PNG files under `emulator-results/` and read `emulator-results/report.json`.
 
 If DeSmuME fails to boot, doesn't open a window, or produces blank images, **do not replace those captures with fabricated screenshots**. The workflow should fail and preserve the logs, so the runtime problem can be fixed.
 
