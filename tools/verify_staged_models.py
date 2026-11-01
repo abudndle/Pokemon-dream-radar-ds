@@ -51,8 +51,8 @@ def verify(directory: Path, manifest: str, expected_format: str, extension: str)
                 raise ValueError("Truncated DRK1 header: " + name)
             bones, frames, ticks, reserved = payload[6:10]
             expected_length = 10 + 8 * bones + 3 * vertices + 4 * bones * frames
-            if not (3 <= vertices <= 2048 and 1 <= bones <= 32
-                    and 2 <= frames <= 16 and 1 <= ticks <= 60
+            if not (3 <= vertices <= 2048 and 1 <= bones <= 16
+                    and 2 <= frames <= 8 and 1 <= ticks <= 60
                     and reserved == 0 and len(payload) == expected_length):
                 raise ValueError("Invalid DRK1 animation layout: " + name)
         digest = entry.get("sha256")
