@@ -563,6 +563,8 @@ static int sandbox_edge(int value,int low,int high) {
     return value<low ? low : (value>high ? high : value);
 }
 static void draw_floating_dream_orbs(void) {
+    /* Dream Orbs are released by shot clouds, never pre-shown in other states. */
+    if(game.screen!=STATE_RADAR)return;
     static const u16 colors[ORB_COLOR_COUNT]={
         0xC1DF, /* pink */ 0x83E0, /* green */
         0x829F, /* orange */ 0xFC00 /* blue */
