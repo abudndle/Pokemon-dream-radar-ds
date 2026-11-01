@@ -7,6 +7,7 @@ import sys
 import tempfile
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "tools"))
 from map_original_ui_layouts import LayoutError, layout_metadata, animation_metadata, inventory
+from parse_original_bclyt import extract as extract_panes
 
 def section(tag, content):
     return tag + struct.pack("<I", len(content)+8) + content
@@ -54,6 +55,28 @@ with tempfile.TemporaryDirectory() as d:
     assert report["source_canvas_counts"] == {"400x240": 1}
     assert report["groups_with_animation"] == 1
     assert report["layouts"][0]["group"] == "Ui/Menu"
+    snapshot = root/"snapshot.json"
+    snapshot.write_text(json.dumps({"layouts": [extract_panes(folder/"blyt"/"Menu.bclyt")]}))
+    assert inventory(root, snapshot)["snapshot_verification"]["verified_layouts"] == 1
+    original_snapshot = snapshot.read_text()
+    altered = json.loads(original_snapshot)
+    altered["layouts"][0]["panes"][0]["translation"][0] = 1.0
+    snapshot.write_text(json.dumps(altered))
+    try:
+        inventory(root, snapshot)
+    except LayoutError as exc:
+        assert "differs" in str(exc)
+    else:
+        raise AssertionError("changed snapshot transform accepted")
+    altered = json.loads(original_snapshot)
+    altered["layouts"][0]["file"] = "Missing.bclyt"
+    snapshot.write_text(json.dumps(altered))
+    try:
+        inventory(root, snapshot)
+    except LayoutError as exc:
+        assert "missing" in str(exc)
+    else:
+        raise AssertionError("missing original source accepted")
     bad = root/"Ui"/"Menu"/"anim"/"Menu_In.bclan"
     bad.write_bytes(clip[:-1])
     try:

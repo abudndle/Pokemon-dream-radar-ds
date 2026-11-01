@@ -9,8 +9,10 @@ import argparse
 import json
 import math
 import struct
+import hashlib
 from collections import Counter
 from pathlib import Path
+from parse_original_bclyt import extract as extract_panes
 
 class LayoutError(ValueError):
     pass
@@ -98,7 +100,30 @@ def animation_metadata(data):
     return {"frames": frames, "loops": bool(loop),
             "sections": [tag.decode("ascii", "replace") for tag, _ in chunks]}
 
-def inventory(root):
+def verify_snapshot(root, snapshot):
+    """Compare original private source panes with the public extracted snapshot."""
+    sources = {}
+    for path in Path(root).rglob("*.bclyt"):
+        if path.name in sources:
+            raise LayoutError("ambiguous original layout basename")
+        sources[path.name] = path
+    entries = json.loads(Path(snapshot).read_text(encoding="utf-8"))["layouts"]
+    names = [Path(entry["file"]).name for entry in entries]
+    if not names or len(names) != len(set(names)):
+        raise LayoutError("empty or ambiguous snapshot layouts")
+    for entry, name in zip(entries, names):
+        if name not in sources:
+            raise LayoutError(f"missing original source for snapshot: {name}")
+        # Validate the original container before using the geometric extractor.
+        layout_metadata(sources[name].read_bytes())
+        decoded = extract_panes(sources[name])
+        if any(decoded[key] != entry[key] for key in ("sections", "panes")):
+            raise LayoutError(f"original source differs from snapshot: {name}")
+    return {"verified_layouts": len(entries),
+            "snapshot_sha256": hashlib.sha256(Path(snapshot).read_bytes()).hexdigest(),
+            "scope": "Exact decoded pane hierarchy/transforms and section counts; no original binaries copied"}
+
+def inventory(root, snapshot=None):
     root = Path(root)
     if not root.is_dir():
         raise LayoutError("original assets directory does not exist")
@@ -134,7 +159,7 @@ def inventory(root):
     dimensions = Counter(
         f"{int(g['source_canvas'][0])}x{int(g['source_canvas'][1])}"
         for g in groups.values())
-    return {
+    report = {
         "layout_count": len(layouts),
         "animation_count": len(animations),
         "looped_animation_count": total_looped,
@@ -143,13 +168,18 @@ def inventory(root):
         "note": "Source-backed local transforms/durations only; 3DS pane compositing and BCLAN keyframe playback are not implemented.",
         "layouts": [groups[k] for k in sorted(groups)]
     }
+    if snapshot is not None:
+        report["snapshot_verification"] = verify_snapshot(root, snapshot)
+    return report
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("private_asset_directory", type=Path)
     parser.add_argument("report_json", type=Path)
+    parser.add_argument("--snapshot", type=Path,
+                        help="Require exact source matches for every layout in this snapshot")
     args = parser.parse_args()
-    report = inventory(args.private_asset_directory)
+    report = inventory(args.private_asset_directory, args.snapshot)
     args.report_json.parent.mkdir(parents=True, exist_ok=True)
     args.report_json.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     print(f"Verified {report['layout_count']} layouts and "

@@ -12,6 +12,8 @@ on:
       - 'Makefile'
       - 'scripts/build_both.sh'
       - 'scripts/check_nds.py'
+      - 'tools/verify_melonds_navigation.py'
+      - 'source/font6.h'
 jobs:
   melonds-boot:
     runs-on: ubuntu-24.04
@@ -33,12 +35,12 @@ jobs:
         run: |
           docker run --rm -v "$PWD:/workspace" -w /workspace \
             -e SKIP_HOST_TESTS=1 -e SKIP_ROM_CHECK=1 \
-            skylyrac/blocksds:slim-latest sh scripts/build_both.sh
+            skylyrac/blocksds@sha256:779f6193d1030c62e60d1f0f39c3e32cf4045c0bd224a45c0ceadf9d9ab01a51 sh scripts/build_both.sh
           python3 scripts/check_nds.py dream_radar.nds
       - name: Configure melonDS keyboard mappings
         run: |
-          mkdir -p "$HOME/.var/app/net.kuribo64.melonDS/config"
-          cat > "$HOME/.var/app/net.kuribo64.melonDS/config/melonDS.toml" <<'EOF'
+          mkdir -p "$HOME/.var/app/net.kuribo64.melonDS/config/melonDS"
+          cat > "$HOME/.var/app/net.kuribo64.melonDS/config/melonDS/melonDS.toml" <<'EOF'
           [Instance0]
           [Instance0.Keyboard]
           A = 90
@@ -54,7 +56,7 @@ jobs:
           Select = 16777221
           Start = 16777220
           EOF
-          cat "$HOME/.var/app/net.kuribo64.melonDS/config/melonDS.toml"
+          cat "$HOME/.var/app/net.kuribo64.melonDS/config/melonDS/melonDS.toml"
       - name: Launch melonDS and capture actual emulator window
         run: |
           xvfb-run -a -s '-screen 0 1280x900x24' \
@@ -68,5 +70,6 @@ jobs:
             melonds-results/*.png
             melonds-results/*.log
             melonds-results/*.txt
+            melonds-results/*.json
           if-no-files-found: warn
           retention-days: 30

@@ -1,0 +1,85 @@
+#!/usr/bin/env python3
+"""Recognize actual DS screen headings, rejecting arbitrary frame changes.
+
+The screenshot must contain a native-size 256x384 vertical DS display below
+the emulator menu. Uses the game's existing 6x8 font, not OCR guesses.
+ImageMagick supplies PNG decoding; source images are never modified.
+"""
+import argparse
+import json
+from pathlib import Path
+import re
+import subprocess
+
+ROOT = Path(__file__).resolve().parents[1]
+STAGES = {
+    "02-intro": (10, 8, "PROFESSOR BURNET"),
+    "03-lab": (10, 8, "RESEARCH LAB"),
+    "04-extensions": (10, 8, "SEARCH EXTENSIONS"),
+    "05-radar": (6, 6, "CLOUDS"),
+    "06-results": (10, 8, "RESEARCH RESULTS"),
+    "07-lab-return": (10, 8, "RESEARCH LAB"),
+}
+
+def font_rows():
+    source = (ROOT / "source/font6.h").read_text()
+    rows = [int(value, 16) for value in re.findall(r"0x([0-9a-fA-F]+)", source)]
+    if len(rows) != 768:
+        raise ValueError("Unexpected game font dimensions")
+    return rows
+
+def check_heading(pixels, width, height, x, y, text, font):
+    if width != 256 or not 384 <= height <= 480 or len(pixels) != width * height * 3:
+        raise ValueError("Expected an unscaled vertical DS window")
+    y += height - 384  # Discard only the emulator's menu, not DS pixels.
+    if x < 0 or y < 0 or x + len(text) * 6 > width or y + 8 > height:
+        raise ValueError("Heading lies outside the captured DS screen")
+    for index, character in enumerate(text):
+        if not 32 <= ord(character) < 128:
+            raise ValueError("Unsupported heading character")
+        for row in range(8):
+            mask = font[(ord(character) - 32) * 8 + row]
+            for column in range(6):
+                at = ((y + row) * width + x + index * 6 + column) * 3
+                white = all(value >= 220 for value in pixels[at:at + 3])
+                if white != bool(mask & (1 << (5 - column))):
+                    raise ValueError(f"Expected rendered heading {text!r} was not found")
+
+def verify(directory, stages=None):
+    font = font_rows()
+    results = []
+    for name in (stages or STAGES):
+        x, y, text = STAGES[name]
+        path = Path(directory) / (name + ".png")
+        size = subprocess.run(["identify", "-format", "%w %h", str(path)],
+                              capture_output=True, text=True, check=True, timeout=12)
+        width, height = map(int, size.stdout.split())
+        if width != 256 or not 384 <= height <= 480:
+            raise ValueError(f"Unscaled DS capture required: {path.name}")
+        raw = subprocess.run(["convert", str(path), "-depth", "8", "rgb:-"],
+                             capture_output=True, check=True, timeout=12)
+        check_heading(raw.stdout, width, height, x, y, text, font)
+        results.append({"file": path.name, "recognized_heading": text})
+    return {"kind": "melonds-native-ds-navigation", "stages": results,
+            "limitations": ["DS mode only; no DSi camera or hardware proof",
+                            "Does not test cloud shooting, encounters, persistence or frame rate"]}
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("directory", type=Path)
+    parser.add_argument("--stage", choices=STAGES,
+                        help="Check one stage without writing a full navigation report")
+    parser.add_argument("--touch-verified", choices=("0", "1"), default="0")
+    args = parser.parse_args()
+    report = verify(args.directory, [args.stage] if args.stage else None)
+    if args.stage:
+        print(f"PASS: actual DS heading recognized for {args.stage}")
+        return
+    report["title_touch_verified"] = args.touch_verified == "1"
+    if not report["title_touch_verified"]:
+        report["limitations"].append("Stylus attempt did not enter intro; navigation used DS Start instead")
+    (args.directory / "navigation-report.json").write_text(json.dumps(report, indent=2) + "\n")
+    print(f"PASS: {len(report['stages'])} actual DS navigation headings recognized")
+
+if __name__ == "__main__":
+    main()
