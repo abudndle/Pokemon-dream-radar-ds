@@ -43,6 +43,8 @@
 static Game game;
 static DrUiScene *title_ui_scene;
 static uint32_t title_ui_started_frame;
+static DrUiScene *scan_ui_scene;
+static uint32_t scan_ui_started_frame;
 static TwilightSaveIndex sd_index;
 static SaveBackend save_backend;
 static int sd_selected;
@@ -765,6 +767,29 @@ static int title_live_rects(DrUiRect rows[4]) {
     }
     return 0;
 }
+/* 3DS ScanList Touch00..Touch03 is a four-row scroll viewport.
+ * Identical live rectangles drive drawing, highlighting, and stylus input.
+ * A missing, corrupt, or offscreen private clip falls back atomically. */
+static int scan_live_rects(DrUiRect rows[4]) {
+    if(scan_ui_scene &&
+       dr_ui_rows_rects(scan_ui_scene,
+           (float)(game.save.frames_played-scan_ui_started_frame),rows))
+        return 1;
+    for(int i=0;i<4;i++)
+        rows[i]=(DrUiRect){10,10+30*i,236,22};
+    return 0;
+}
+static void render_scan_row(const DrUiRect *r,const char *name,int selected) {
+    /* Placeholder DS window material until extracted original wnd1 sprites
+     * and alpha tags can be composed. Reuse the actual BCLYT touch geometry. */
+    rect(bottom,r->x,r->y,r->w,r->h,0xA512);
+    border(bottom,r->x,r->y,r->w,r->h,selected?WHITE:GRAY);
+    if(selected && r->w>8 && r->h>8)
+        border(bottom,r->x+2,r->y+2,r->w-4,r->h-4,CYAN);
+    int x=r->x+10;
+    int y=r->y+(r->h-8)/2;
+    print(bottom,x,y,WHITE,name);
+}
 static void render(void) {
     switch(game.screen) {
     case STATE_TITLE: {
@@ -903,11 +928,20 @@ static void render(void) {
             print(top,13,145,GOLD,desc);
         }
         load_bg("menu_bottom.raw",bottom,0x8424);
-        int base=(extension_row_of(game.ext_selection)/5)*5;
-        for(int row=base;row<base+5 && row<extension_visible_count();row++) {
-            int ext=extension_at_row(row);
-            button(bottom,10+(row-base)*30,game_extension_name(ext),game.ext_selection==ext);
+        /* Original MnIf_S_ScanList presents exactly four source Touch panes.
+           Paginate all unlocked/locked Extensions without losing any entry. */
+        DrUiRect scan_rows[4];scan_live_rects(scan_rows);
+        int selected_row=extension_row_of(game.ext_selection);
+        int base=(selected_row/4)*4;
+        int total=extension_visible_count();
+        for(int local=0;local<4 && base+local<total;local++) {
+            int ext=extension_at_row(base+local);
+            render_scan_row(&scan_rows[local],game_extension_name(ext),
+                            game.ext_selection==ext);
         }
+        char page[32];
+        snprintf(page,sizeof page,"PAGE %d/%d",base/4+1,(total+3)/4);
+        print(bottom,11,147,CYAN,page);
         print(bottom,10,170,GRAY,"UP/DOWN: SELECT  A: START");
         print(bottom,28,181,GRAY,"B: BACK");
         break;}
@@ -1392,6 +1426,7 @@ static void switch_screen(GameScreen next) {
     if(was_search && !is_search)camera_off();
     game.screen=next;game.selection=0;
     if(next==STATE_TITLE)title_ui_started_frame=game.save.frames_played;
+    if(next==STATE_EXTENSIONS)scan_ui_started_frame=game.save.frames_played;
     if(next!=STATE_TRANSFER)game.archive_confirm=0;
     if(!was_search && is_search)camera_on();
 }
@@ -1599,9 +1634,13 @@ static void handle_key(int keys,int down,touchPosition *touch) {
         int count=extension_visible_count();
         if(down&KEY_DOWN)game.ext_selection=extension_at_row((extension_row_of(game.ext_selection)+1)%count);
         if(down&KEY_UP)game.ext_selection=extension_at_row((extension_row_of(game.ext_selection)+count-1)%count);
-        if((down&KEY_TOUCH) && touch->px>=8 && touch->px<248 && touch->py>=10 && touch->py<160) {
-            int row=(extension_row_of(game.ext_selection)/5)*5+(touch->py-10)/30;
-            if(row<count)game.ext_selection=extension_at_row(row);
+        if(down&KEY_TOUCH) {
+            DrUiRect scan_rows[4];
+            scan_live_rects(scan_rows);
+            int local=dr_ui_rows_hit(scan_rows,touch->px,touch->py);
+            int row=(extension_row_of(game.ext_selection)/4)*4+local;
+            if(local>=0 && row<count)
+                game.ext_selection=extension_at_row(row);
         }
         if(down&KEY_A && validate_active_source()) {
             GameScreen prev=game.screen;
@@ -1894,10 +1933,25 @@ running_dsi=isDSiMode();
             }
         }
     }
+    /* Source-derived ScanList row hierarchy is distributed without private
+       animation tracks; owner-staged CLPA curves can override it from SD/FAT. */
+    if(have_romfs)scan_ui_scene=dr_ui_scene_load("nitro:/scan.drui");
+    if(have_storage && storage_root){
+        char scan_path[128];
+        int len=snprintf(scan_path,sizeof scan_path,"%sDreamRadarDSi/UI/scan.drui",storage_root);
+        if(len>0 && len<(int)sizeof scan_path){
+            DrUiScene *private_scan=dr_ui_scene_load(scan_path);
+            if(private_scan){
+                dr_ui_scene_free(scan_ui_scene);
+                scan_ui_scene=private_scan;
+            }
+        }
+    }
     time_t now=time(NULL);
     game_new(&game, ((uint32_t)now)^0xa15f009u);
     if(have_storage)save_backend_load(&save_backend,&game);
     title_ui_started_frame=game.save.frames_played;
+    scan_ui_started_frame=game.save.frames_played;
     restore_custom_background();
     game_regen_clouds(&game,(uint32_t)now);
     // Camera only starts when actively searching and the mode supports DSi.
