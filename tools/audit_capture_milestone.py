@@ -156,7 +156,13 @@ def _valid_png(data):
             return False
     except zlib.error:
         return False
-    return all(raw[row * (row_bytes + 1)] <= 4 for row in range(height))
+    if not all(raw[row * (row_bytes + 1)] <= 4 for row in range(height)):
+        return None
+    # Compare decoded scanlines rather than file hashes: PNG metadata and
+    # zlib compression settings must not make one frame count as many.
+    import hashlib
+    return hashlib.sha256(struct.pack(">IIBB", width, height, bit_depth, color_type) +
+                          raw).hexdigest()
 
 
 def audit_emulator_evidence(root, evidence_dir):
@@ -198,7 +204,7 @@ def audit_emulator_evidence(root, evidence_dir):
         data = _evidence_file(evidence, shot, ".png")
         if not data or not _valid_png(data):
             return {**base, "status": "invalid_capture", "failed_stage": stage}
-        fingerprints.add(shot["sha256"].lower())
+        fingerprints.add(_valid_png(data))
     if len(fingerprints) < 4:
         return {**base, "status": "reused_captures"}
     return {**base, "status": "evidence_bundle_complete", "passed": True,
