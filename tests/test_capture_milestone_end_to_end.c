@@ -48,8 +48,17 @@ int main(void) {
     game_fire(&g);
     assert(g.screen==STATE_SPHERE);
     assert(g.radar_resume_pending); /* Uncollected Orbs remain in the outing. */
+    /* Complete the encounter through actual beam hits, not a direct
+     * game_capture() shortcut that bypasses aiming and damage logic. */
     g.capture_timeout=120;
-    game_capture(&g);
+    g.projectile_active=0;
+    for(int i=0;i<MAX_EXTRA_PROJECTILES;i++)g.projectile_extra[i].active=0;
+    g.sphere_x=120;
+    g.sphere_y=85;
+    g.aim_x=120;
+    g.aim_y=85;
+    for(int shot=0;shot<100 && g.screen==STATE_SPHERE;shot++)
+        game_fire(&g);
     assert(g.screen==STATE_RESULTS);
     assert(g.save.searches==1);
     assert(g.save.orbs>=900);
