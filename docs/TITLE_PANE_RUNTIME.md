@@ -56,7 +56,7 @@ The stager rejects private-clip outputs inside the repository checkout.
 - The bundled title background is still a static converted bitmap; moved panes
   use readable DS-adapted overlays. Exact original image/material binding,
   opacity animation, source mask clipping and 3DS transforms are unfinished.
-- Only the title menu's 11 relevant hierarchy nodes and four interactive rows
+- Only the title menu's 15 relevant hierarchy nodes and four interactive rows
   are staged. The remaining BCLYT screens, windows, text panes and complex
   visual materials have not been integrated with this compositor.
 - Original alpha=0 row activation is intentionally overridden to ensure the
