@@ -156,13 +156,45 @@ def _valid_png(data):
             return False
     except zlib.error:
         return False
-    if not all(raw[row * (row_bytes + 1)] <= 4 for row in range(height)):
-        return None
-    # Compare decoded scanlines rather than file hashes: PNG metadata and
-    # zlib compression settings must not make one frame count as many.
+    # PNG scanlines are *filtered* byte streams. Hashing the decompressed
+    # stream directly allows one image to impersonate multiple screenshots by
+    # selecting different legal PNG filters. Reverse the filters first, then
+    # hash reconstructed samples. This is a byte-level pixel fingerprint;
+    # it is not a visual/gameplay recognition test.
     import hashlib
-    return hashlib.sha256(struct.pack(">IIBB", width, height, bit_depth, color_type) +
-                          raw).hexdigest()
+    bytes_per_pixel = max(1, (channels * bit_depth + 7) // 8)
+    previous = bytearray(row_bytes)
+    digest = hashlib.sha256()
+    digest.update(struct.pack(">IIBB", width, height, bit_depth, color_type))
+    for row in range(height):
+        start = row * (row_bytes + 1)
+        kind = raw[start]
+        if kind > 4:
+            return False
+        current = bytearray(raw[start + 1:start + 1 + row_bytes])
+        for index in range(row_bytes):
+            left = current[index - bytes_per_pixel] if index >= bytes_per_pixel else 0
+            above = previous[index]
+            upper_left = previous[index - bytes_per_pixel] if index >= bytes_per_pixel else 0
+            if kind == 1:
+                predictor = left
+            elif kind == 2:
+                predictor = above
+            elif kind == 3:
+                predictor = (left + above) // 2
+            elif kind == 4:
+                candidate = left + above - upper_left
+                dl = abs(candidate - left)
+                da = abs(candidate - above)
+                dul = abs(candidate - upper_left)
+                predictor = (left if dl <= da and dl <= dul else
+                             above if da <= dul else upper_left)
+            else:
+                predictor = 0
+            current[index] = (current[index] + predictor) & 255
+        digest.update(current)
+        previous = current
+    return digest.hexdigest()
 
 
 def audit_emulator_evidence(root, evidence_dir):
@@ -202,9 +234,10 @@ def audit_emulator_evidence(root, evidence_dir):
     for stage in required:
         shot = captures.get(stage)
         data = _evidence_file(evidence, shot, ".png")
-        if not data or not _valid_png(data):
+        fingerprint = _valid_png(data) if data else None
+        if not fingerprint:
             return {**base, "status": "invalid_capture", "failed_stage": stage}
-        fingerprints.add(_valid_png(data))
+        fingerprints.add(fingerprint)
     if len(fingerprints) < 4:
         return {**base, "status": "reused_captures"}
     return {**base, "status": "evidence_bundle_complete", "passed": True,
