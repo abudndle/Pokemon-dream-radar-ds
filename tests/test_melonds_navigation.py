@@ -3,7 +3,8 @@ from pathlib import Path
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 from verify_melonds_navigation import (check_heading, font_rows, read_radar_counters,
-                                       compare_radar_counters, compare_orb_counters)
+                                       compare_radar_counters, compare_orb_counters,
+                                       read_sphere_state, observe_search_state)
 
 font = font_rows()
 width, height = 256, 403
@@ -91,5 +92,56 @@ missed = compare_orb_counters({"clouds": 4, "orbs": 3},
                               {"clouds": 4, "orbs": 3})
 assert missed["status"] == "orb_count_not_decreased"
 assert not missed["orb_collection_observed"]
+
+# The dedicated sphere scene has a GOLD capture-class label and a WHITE timer.
+# Do not confuse a radar cloud hit with a successful Pokemon/item capture.
+def sphere_frame(label="DRIFTING", timer="90", color=(255, 255, 0)):
+    frame = bytearray(width * height * 3)
+    def draw(x, y, text, rgb):
+        for index, letter in enumerate(text):
+            for row in range(8):
+                mask = font[(ord(letter) - 32) * 8 + row]
+                for column in range(6):
+                    if mask & (1 << (5 - column)):
+                        at = ((19 + y + row) * width + x + index * 6 + column) * 3
+                        frame[at:at + 3] = bytes(rgb)
+    draw(10, 25, label, color)
+    draw(213, 7, timer, (255, 255, 255))
+    return frame
+
+for label in ("DRIFTING", "SWIFT", "ERRATIC", "LEGENDARY", "ITEM"):
+    actual = read_sphere_state(sphere_frame(label, "90"), width, height, font)
+    assert actual == {"capture_class": label.lower(), "remaining_seconds": 90}
+    observed = observe_search_state(sphere_frame(label, "90"), width, height, font)
+    assert observed["state"] == "sphere" and observed["encounter"] == actual
+
+assert observe_search_state(radar_frame("CLOUDS 5  ORBS 0"),
+                            width, height, font)["state"] == "radar"
+
+for invalid in (
+    sphere_frame("DRIFTING", "0"),
+    sphere_frame("DRIFTING", "000"),
+    sphere_frame("DRIFTING", "99999"),
+    sphere_frame("DRIFTING", ""),
+    sphere_frame("DRIFTING", "90", (255, 255, 255)),
+    sphere_frame("UNKNOWN", "90"),
+    radar_frame("CLOUDS 5  ORBS 0"),
+    bytearray(width * height * 3),
+):
+    try:
+        read_sphere_state(invalid, width, height, font)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("Malformed or wrong-stage sphere frame accepted")
+
+try:
+    observe_search_state(bytearray(width * height * 3), width, height, font)
+except ValueError:
+    pass
+else:
+    raise AssertionError("Blank screen accepted as radar or sphere")
+
+print("PASS: gold capture-class and white timer independently verify live sphere screens")
 
 print("PASS: emulator heading and radar-counter recognition reject blank, wrong-stage, shifted and scaled frames")
