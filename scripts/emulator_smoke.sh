@@ -63,10 +63,12 @@ snapshot 01-title
 # Hold keys across several VBlanks and send a release before the next press.
 send_ds_key() {
   local name="$1"
-  xdotool windowfocus "$window" 2>/dev/null || true
-  xdotool keydown --window "$window" "$name"
-  sleep 0.35
-  xdotool keyup --window "$window" "$name"
+  # SDL/DeSmuME reads keyboard state from the focused display. XTEST events
+  # (no --window) are delivered to SDL; XSendEvent can be ignored.
+  xdotool windowfocus --sync "$window"
+  xdotool keydown "$name"
+  sleep 0.45
+  xdotool keyup "$name"
 }
 # DeSmuME default key 's' maps to DS X. The quick menu is accessible
 # from the title only; we verify opening, closing and restoring the title.
