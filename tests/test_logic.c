@@ -83,7 +83,7 @@ int main(void) {
     g.save.total_orbs=3001;
     complete_sphere(&g,EXT_LANDORUS);
     assert(g.save.story_phase==3);
-    assert(g.save.pending_count==3);
+    assert(g.save.pending_count==0 && game_legendary_count(&g)==3);
     game_set_cart(&g,GAME_DIAMOND);
     assert(g.cart_source==CART_SOURCE_SLOT1);
     game_set_cart_source(&g,GAME_PEARL,CART_SOURCE_TWILIGHT_SD);
@@ -97,7 +97,7 @@ int main(void) {
     complete_sphere(&g,EXT_DIALGA);
     assert(g.save.legends_caught&1);
     assert(!game_extension_unlocked(&g,EXT_DIALGA));
-    /* Full storage must never consume one-time species or invent a transfer. */
+    /* Full ordinary storage must not block the separate legendary row. */
     g.save.pending_count=MAX_CAUGHT;
     game_set_cart(&g,GAME_HEARTGOLD);
     assert(game_extension_unlocked(&g,EXT_HOOH));
@@ -111,19 +111,18 @@ int main(void) {
     g.capture_timeout=100; /* Replacement is only valid while encounter is active. */
     uint8_t legends_before=g.save.legends_caught;
     game_capture(&g);
-    assert(g.screen==STATE_REPLACE && g.replace_kind==REPLACE_POKEMON);
+    assert(g.screen==STATE_RESULTS && g.session_caught==21);
     assert(g.save.pending_count==MAX_CAUGHT);
-    assert(g.save.legends_caught==legends_before);
-    assert(game_cancel_pending_replace(&g));
-    assert(g.screen==STATE_RESULTS && g.session_caught==-4);
-    assert(g.save.legends_caught==legends_before);
+    assert(game_legendary_count(&g)==5);
+    assert(g.save.legends_caught==(legends_before|(1u<<3)));
+    assert(!game_cancel_pending_replace(&g));
     g.save.pending_count=4;
     /* Clearing the single active game removes every cartridge-based unlock. */
     game_set_cart_source(&g,GAME_UNKNOWN,CART_SOURCE_NONE);
     assert(g.cart==GAME_UNKNOWN && g.cart_source==CART_SOURCE_NONE);
     assert(!game_extension_unlocked(&g,EXT_PALKIA));
     game_set_cart_source(&g,GAME_HEARTGOLD,CART_SOURCE_TWILIGHT_SD);
-    assert(game_extension_unlocked(&g,EXT_HOOH));
+    assert(!game_extension_unlocked(&g,EXT_HOOH));
     assert(!game_extension_unlocked(&g,EXT_PALKIA));
     g.save.orbs=3100;
     assert(game_buy(&g,0,0));assert(g.save.upgrades[0]==2);

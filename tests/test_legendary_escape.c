@@ -57,10 +57,10 @@ int main(void) {
     game_capture(&g);
     assert(g.screen==STATE_RESULTS);
     assert(g.save.story_phase==1 && g.session_caught==15);
-    assert(g.save.pending_count==1 && g.save.pending[0]==15);
+    assert(g.save.pending_count==0 && game_legendary_at(&g,0)==15);
     assert(g.save.caught_count==1);
 
-    /* Progress must wait for user acceptance when all storage is occupied. */
+    /* Original game: legendary row is independent of six regular slots. */
     game_new(&g,790);
     g.save.total_orbs=400;
     g.save.story_phase=0;
@@ -71,11 +71,10 @@ int main(void) {
     g.save.pending_count=MAX_CAUGHT;
     for(int i=0;i<MAX_CAUGHT;i++)g.save.pending[i]=(uint8_t)i;
     game_capture(&g);
-    assert(g.screen==STATE_REPLACE && g.save.story_phase==0);
-    assert(g.save.caught_count==0);
-    assert(game_replace_pending(&g,3));
     assert(g.screen==STATE_RESULTS && g.save.story_phase==1);
-    assert(g.save.pending[3]==15 && g.save.caught_count==1);
+    assert(g.save.caught_count==1 && game_legendary_at(&g,0)==15);
+    assert(g.save.pending_count==MAX_CAUGHT && g.save.pending[3]==3);
+    assert(!game_replace_pending(&g,3));
     /* Finish the three-story legendary chain through the real radar and
        capture state transitions, verifying each next unlock threshold. */
     game_new(&g,791);
@@ -92,8 +91,9 @@ int main(void) {
         game_capture(&g);
         assert(g.screen==STATE_RESULTS);
         assert(g.save.story_phase==(unsigned)(phase+1));
-        assert(g.save.pending_count==(unsigned)(phase+1));
-        assert(g.save.pending[phase]==15+phase);
+        assert(g.save.pending_count==0);
+        assert(game_legendary_count(&g)==phase+1);
+        assert(game_legendary_at(&g,phase)==15+phase);
         assert(g.save.caught_count==(unsigned)(phase+1));
         assert(!game_extension_unlocked(&g,extension));
     }
@@ -109,7 +109,8 @@ int main(void) {
     game_capture(&g);
     assert(g.screen==STATE_RESULTS && g.session_caught==18);
     assert((g.save.legends_caught & 1u)!=0);
-    assert(g.save.pending_count==4 && g.save.pending[3]==18);
+    assert(g.save.pending_count==0 && game_legendary_count(&g)==4);
+    assert(game_legendary_at(&g,3)==18);
     assert(!game_extension_unlocked(&g,EXT_DIALGA));
     /* A simulator must not capture a duplicate legendary or advance the
        story; it DOES award a research item from the Simulator's item pool. */
@@ -131,6 +132,6 @@ int main(void) {
     assert(g.save.story_phase==before_phase);
     assert(g.save.pending_items[0]==1);
     assert(game_item_slot_kind(&g,0)==simulator_item);
-    puts("PASS: legendary escape, captures, replacement and 3-stage story progression");
+    puts("PASS: separate legendary row, full regular inventory, escapes and progression");
     return 0;
 }

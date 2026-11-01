@@ -222,9 +222,14 @@
     {
       "id": "legendary_transfer_priority",
       "feature": "Separate special legendary row and priority on transfer",
-      "status": "unimplemented",
-      "gap": "Homebrew queue uses six ordinary Pokémon slots instead of original transfer ordering.",
-      "evidence": []
+      "status": "host_tested",
+      "gap": "Eight dedicated legendary slots, six-per-batch priority, overflow retention and migration from old v3 saves are implemented. The archive is a private text export, NOT a retail B2/W2 Unova Link transfer; no actual receive handshake or save integration.",
+      "evidence": [
+        "source/game.c",
+        "source/main.c",
+        "source/reference_layout.c",
+        "tests/test_legendary_storage.c"
+      ]
     },
     {
       "id": "private_saves",

@@ -29,7 +29,7 @@ int main(void) {
     uint32_t old_caught=g.save.caught_count;
     g.freeze_frames=180;
     g.slow_frames=120;
-    fake_capture(&g,0,21); /* Ho-Oh */
+    fake_capture(&g,0,12); /* Ordinary Smoochum */
     assert(g.freeze_frames==0 && g.slow_frames==0);
     assert(g.screen==STATE_REPLACE && g.replace_kind==REPLACE_POKEMON);
     assert(!game_replace_pending(&g,-1));
@@ -44,13 +44,20 @@ int main(void) {
     assert(g.save.legends_caught==old_legends);
     assert(game_extension_unlocked(&g,EXT_HOOH)); /* still available */
 
-    fake_capture(&g,0,21);
-    assert(g.screen==STATE_REPLACE && g.replace_value==21);
+    fake_capture(&g,0,12);
+    assert(g.screen==STATE_REPLACE && g.replace_value==12);
     assert(game_replace_pending(&g,2));
     assert(g.screen==STATE_RESULTS && g.replaced_slot==2);
-    assert(g.save.pending[2]==21 && g.save.pending_count==MAX_CAUGHT);
+    assert(g.save.pending[2]==12 && g.save.pending_count==MAX_CAUGHT);
     assert(g.save.caught_count==old_caught+1);
-    assert(g.save.legends_caught==(old_legends|(1<<3)));
+    assert(g.save.legends_caught==old_legends);
+    assert(game_extension_unlocked(&g,EXT_HOOH));
+    /* Special legendary storage bypasses full regular inventory entirely. */
+    fake_capture(&g,0,21); /* Ho-Oh */
+    assert(g.screen==STATE_RESULTS && game_legendary_count(&g)==1);
+    assert(game_legendary_at(&g,0)==21);
+    assert(g.save.pending_count==MAX_CAUGHT && g.save.pending[2]==12);
+    assert((g.save.legends_caught&(1u<<3))!=0);
     assert(!game_extension_unlocked(&g,EXT_HOOH));
     assert(!game_replace_pending(&g,0)); /* no duplicate resolution */
     for(int i=0;i<MAX_CAUGHT;i++)if(i!=2)assert(g.save.pending[i]==old_pokemon[i]);

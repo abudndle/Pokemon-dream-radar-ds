@@ -646,6 +646,16 @@ static void render_transfer_bottom(void) {
         dr_transfer_slot_rect(game.selection,&sx,&sy,&sw,&sh);
         border(bottom,sx,sy,sw,sh,GOLD);
     }
+    /* Original research data keeps these eight legendaries separate
+       from all six ordinary Pokemon slots. Empty cells stay visible. */
+    print(bottom,8,110,GOLD,"LEGENDS");
+    for(int i=0;i<MAX_LEGENDARY;i++) {
+        int x,y,w,h;
+        dr_legendary_slot_rect(i,&x,&y,&w,&h);
+        if(game.save.reserved[14]&(1u<<i))
+            draw_sprite(bottom,17+LEGEND_SPECIES_START+i,x+2,y+2);
+        if(game.selection==12+i)border(bottom,x,y,w,h,GOLD);
+    }
     print(bottom,12,167,WHITE,"A ARCHIVE");
     print(bottom,146,167,WHITE,"B BACK");
 }
@@ -1012,17 +1022,22 @@ static void render(void) {
         }
         print(top,10,103,GOLD,"Retail transfer not available.");
         print_wrapped(top,10,124,38,WHITE,"A saves a text archive only. No Pokemon retail save will be modified.",6);
-        if(game.selection>=0 && game.selection<12) {
+        if(game.selection>=0 && game.selection<20) {
             int selected=game.selection%6;
             const char *name=NULL;
             if(game.selection<6 && selected<game.save.pending_count)
                 name=game_species_name(game.save.pending[selected]);
-            else if(game.selection>=6) {
+            else if(game.selection<12) {
                 int kind=game_item_slot_kind(&game,selected);
                 if(kind>=0)name=game_item_name(kind);
+            } else {
+                int legendary=game.selection-12;
+                if(game.save.reserved[14]&(1u<<legendary))
+                    name=game_species_name(LEGEND_SPECIES_START+legendary);
             }
             if(name) {
-                char detail[43];snprintf(detail,sizeof detail,"SLOT %d: %.26s",game.selection+1,name);
+                char detail[43];
+                snprintf(detail,sizeof detail,"SLOT %d: %.26s",game.selection+1,name);
                 print(top,10,164,CYAN,detail);
             }
         }
@@ -1032,7 +1047,7 @@ static void render(void) {
             print(bottom,23,123,PINK,"START: clear archived queue");
             print(bottom,23,134,WHITE,"B: keep your Pokemon/items");
         } else if(game.pending_export_signature) {
-            print(bottom,18,135,CYAN,"SELECT: prepare queue clear");
+            print(top,10,181,CYAN,"SELECT: prepare archive clear");
         }
         break;}
     case STATE_SD_SAVES: {
@@ -1528,13 +1543,33 @@ static void handle_key(int keys,int down,touchPosition *touch) {
         return;
     }
     if(game.screen==STATE_TRANSFER){
-        if(down&KEY_LEFT)game.selection=(game.selection+11)%12;
-        if(down&KEY_RIGHT)game.selection=(game.selection+1)%12;
-        if(down&KEY_UP)game.selection=(game.selection+6)%12;
-        if(down&KEY_DOWN)game.selection=(game.selection+6)%12;
+        /* Rows 0/1 have six ordinary Pokemon/item cells; row 2 has
+           eight special legendary cells. Preserve row-based navigation. */
+        if(down&KEY_LEFT) {
+            if(game.selection<12)game.selection=
+                (game.selection/6)*6+(game.selection%6+5)%6;
+            else game.selection=12+(game.selection-12+7)%8;
+        }
+        if(down&KEY_RIGHT) {
+            if(game.selection<12)game.selection=
+                (game.selection/6)*6+(game.selection%6+1)%6;
+            else game.selection=12+(game.selection-12+1)%8;
+        }
+        if(down&KEY_UP) {
+            if(game.selection<6)game.selection=12+game.selection;
+            else if(game.selection<12)game.selection-=6;
+            else game.selection=6+(game.selection-12)%6;
+        }
+        if(down&KEY_DOWN) {
+            if(game.selection<6)game.selection+=6;
+            else if(game.selection<12)game.selection=12+game.selection-6;
+            else game.selection=(game.selection-12)%6;
+        }
         if(down&KEY_TOUCH) {
             int slot=dr_transfer_slot_at(touch->px,touch->py);
             if(slot>=0)game.selection=slot;
+            int special=dr_legendary_slot_at(touch->px,touch->py);
+            if(special>=0)game.selection=12+special;
         }
         if((down&KEY_TOUCH) && dr_transfer_button_at(touch->px,touch->py)==1){
             switch_screen(STATE_LAB);return;
@@ -1563,7 +1598,7 @@ static void handle_key(int keys,int down,touchPosition *touch) {
             int released=game_release_archived_pending(&game);
             game.archive_confirm=0;
             snprintf(game.message,sizeof game.message,released?
-                "Archived demo queue cleared; no retail data transferred.":
+                "Archived batch cleared; remaining Pokemon preserved.":
                 "Queue changed. Export again before clearing.");
             game.messages=180;
         }

@@ -10,8 +10,9 @@ int main(void) {
     Game g;game_new(&g,42);
     g.save.story_phase=3;
     g.save.pending_count=2;
-    g.save.pending[0]=18;  /* Dialga */
-    g.save.pending[1]=22;  /* Lugia */
+    g.save.pending[0]=0;  /* Ordinary Munna */
+    g.save.pending[1]=1;  /* Ordinary Swablu */
+    g.save.reserved[14]=(1u<<(18-15))|(1u<<(22-15)); /* Dialga/Lugia */
     g.save.legends_caught=(1<<0)|(1<<4);
     g.save.pending_items[2]=3;
     assert(!game_release_archived_pending(NULL));
@@ -28,7 +29,7 @@ int main(void) {
     g.pending_export_signature=0;
 
     assert(!game_export(&g,"/tmp/dr-invalid-species-export.txt"));
-    g.save.pending[0]=18;
+    g.save.pending[0]=0;
     g.save.pending_items[2]=3;
     g.save.reserved[4]=255;
     assert(!game_export(&g,"/tmp/dr-invalid-item-export.txt"));
@@ -52,14 +53,16 @@ int main(void) {
     FILE *f=fopen(filename,"rb");assert(f);
     char text[2048]={0};assert(fread(text,1,sizeof(text)-1,f)>80);fclose(f);
     assert(strstr(text,"not compatible with Unova Link"));
-    assert(strstr(text,"Dialga") && strstr(text,"Lugia"));
+    assert(strstr(text,"Pokemon 1: Dialga") && strstr(text,"Pokemon 2: Lugia"));
+    assert(strstr(text,"Pokemon 3: Munna") && strstr(text,"Pokemon 4: Swablu"));
     /* Queue changes AFTER archive invalidate the one-click release. */
-    g.save.pending[1]=21;
+    g.save.pending[1]=2;
     assert(!game_release_archived_pending(&g));
     assert(g.save.pending_count==2);
     assert(game_export(&g,filename));
     assert(game_release_archived_pending(&g));
     assert(g.save.pending_count==0 && g.save.pending_items[2]==0);
+    assert(game_legendary_count(&g)==0);
     assert(g.save.story_phase==3 && g.save.legends_caught==((1<<0)|(1<<4)));
     assert(g.requested_save && !game_release_archived_pending(&g));
 
@@ -68,7 +71,7 @@ int main(void) {
     char badpath[]="/tmp/dr_export_directory_XXXXXX";
     assert(mkdtemp(badpath));
     Game blocked;game_new(&blocked,17);
-    blocked.save.pending_count=1;blocked.save.pending[0]=18;
+    blocked.save.pending_count=1;blocked.save.pending[0]=0;
     assert(!game_export(&blocked,badpath));
     assert(blocked.pending_export_signature==0);
     char leftover[512];snprintf(leftover,sizeof leftover,"%s.tmp",badpath);
