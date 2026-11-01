@@ -1,3 +1,7 @@
+## Camera-free placeholder image and bottom-left settings icon
+
+The lower-screen **gear icon** opens a two-option camera menu on DS/DSi: toggle the DSi camera (unavailable on DS), or import a single 256x192 24-bit BMP from `sd:/DreamRadarDSi/placeholder.bmp` or `fat:/DreamRadarDSi/placeholder.bmp`. Imported images replace the camera-free radar background and persist in the homebrew save. Press Select to reset, B to return. See [camera settings/import guide](docs/CAMERA_QUICK_SETTINGS.md). This DS-specific addition is not a claim of original 3DS feature parity.
+
 ## Encounter-specific Sphere movement and attack profiles
 
 The DS/DSi capture implementation now has five bounded runtime difficulty

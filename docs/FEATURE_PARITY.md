@@ -30,6 +30,7 @@ The source-of-truth checklist is [`feature_parity.json`](feature_parity.json), c
 | Durable homebrew save/restore and recovery | host tested | Private save version/checksum and recovery tests; never equate with retail save data. |
 | Nintendo DS dual-screen and tactile/touch navigation | partial | Main controls and hitboxes exist; exact original touch layout is not proven. |
 | DSi outer camera live preview and optional album | partial | DSi camera API and fallback present; real DSi gameplay boot testing still pending. |
+| DS-only bottom-left camera settings and placeholder image import | host tested | Two-option camera toggle/import menu, fixed storage BMP, save restore and camera-free fallback are covered by host checks; end-to-end emulator/DSi camera tests pending. This is a user-requested new option, not an original 3DS menu. |
 | Original 3DS gyroscope aiming | hardware limited | DS/DSi has no built-in 3DS gyroscope; needs explicitly designed alternative. |
 | Original stereoscopic 3DS rendering | hardware limited | Nintendo DS/DSi has no autostereoscopic 3D display; 2D adaptation only. |
 | Original BCLIM graphics mapped to DS assets | partial | Conversion and SD override exist; wholesale original UI integration is incomplete. |
