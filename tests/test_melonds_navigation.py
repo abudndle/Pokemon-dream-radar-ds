@@ -6,6 +6,7 @@ import struct
 import subprocess
 import tempfile
 import zlib
+import shutil
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 from verify_melonds_navigation import (check_heading, font_rows, read_radar_counters,
                                        compare_radar_counters, compare_orb_counters,
@@ -200,25 +201,31 @@ def write_png(path, raw):
                      chunk(b"IDAT", zlib.compress(rows)) +
                      chunk(b"IEND", b""))
 
-with tempfile.TemporaryDirectory() as tmp:
-    png = Path(tmp) / "live.png"
-    command = [sys.executable, str(Path(__file__).resolve().parents[1] /
-                                   "tools" / "verify_melonds_navigation.py"), tmp]
-    write_png(png, results_reward_frame("pokemon", "Munna"))
-    reward = subprocess.run(command + ["--observe-reward-screenshot", str(png)],
-                            capture_output=True, text=True, check=True)
-    assert json.loads(reward.stdout)["reward_name"] == "Munna"
-    results = subprocess.run(command + ["--observe-results-screenshot", str(png)],
-                             capture_output=True, text=True, check=True)
-    assert json.loads(results.stdout)["state"] == "results"
-    write_png(png, meter)
-    progress_cli = subprocess.run(command + ["--observe-capture-progress", str(png)],
-                                  capture_output=True, text=True, check=True)
-    assert json.loads(progress_cli.stdout)["filled_pixels"] == 88
-    rejected = subprocess.run(command + ["--observe-reward-screenshot", str(png)],
-                              capture_output=True, text=True)
-    assert rejected.returncode != 0
-print("PASS: PNG-backed capture/reward CLI flags are registered and functional")
+if shutil.which("identify") and shutil.which("convert"):
+    with tempfile.TemporaryDirectory() as tmp:
+        png = Path(tmp) / "live.png"
+        command = [sys.executable, str(Path(__file__).resolve().parents[1] /
+                                       "tools" / "verify_melonds_navigation.py"), tmp]
+        write_png(png, results_reward_frame("pokemon", "Munna"))
+        reward = subprocess.run(command + ["--observe-reward-screenshot", str(png)],
+                                capture_output=True, text=True)
+        assert reward.returncode == 0, reward.stderr
+        assert json.loads(reward.stdout)["reward_name"] == "Munna"
+        results = subprocess.run(command + ["--observe-results-screenshot", str(png)],
+                                 capture_output=True, text=True)
+        assert results.returncode == 0, results.stderr
+        assert json.loads(results.stdout)["state"] == "results"
+        write_png(png, meter)
+        progress_cli = subprocess.run(command + ["--observe-capture-progress", str(png)],
+                                      capture_output=True, text=True)
+        assert progress_cli.returncode == 0, progress_cli.stderr
+        assert json.loads(progress_cli.stdout)["filled_pixels"] == 88
+        rejected = subprocess.run(command + ["--observe-reward-screenshot", str(png)],
+                                  capture_output=True, text=True)
+        assert rejected.returncode != 0
+    print("PASS: PNG-backed capture/reward CLI flags are registered and functional")
+else:
+    print("SKIP: PNG CLI integration requires ImageMagick; tested after installation in melonDS CI")
 
 for invalid in (
     sphere_frame("SWIFT", "90"),
