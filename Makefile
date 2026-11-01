@@ -146,6 +146,8 @@ test-host:
 	python3 tests/test_darc_inventory.py
 	python3 tests/test_darc_asset_kind_audit.py
 	python3 tests/test_darc_asset_report.py
+	python3 tests/test_ncch_exefs_audit.py
+	python3 tests/test_original_ncch_exefs_report.py
 	python3 tests/test_bclim_spr_converter.py
 	python3 tests/test_original_ui_layouts.py
 	python3 tests/test_feature_parity.py
