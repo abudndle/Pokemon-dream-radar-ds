@@ -136,9 +136,23 @@ fi
 # frame after firing; an input attempt alone is not a successful cloud hit.
 press_ds_key z
 snapshot 05-radar-postfire
+# A changed counter can indicate an Orb drop; a GOLD encounter label and
+# independent timer are required to assert a sphere transition.
+latest_radar="$out/05-radar-postfire.png"
+if python3 tools/verify_melonds_navigation.py "$out" \
+    --observe-search-screenshot "$latest_radar" >"$out/search-first-state.json"; then
+  if python3 -c 'import json,sys; sys.exit(json.load(open(sys.argv[1]))["state"] != "sphere")' \
+      "$out/search-first-state.json"; then
+    cp "$latest_radar" "$out/05-sphere-encounter.png"
+    echo "PASS: real sphere encounter screen recognized after cloud shot" | tee -a "$out/runtime.log"
+  fi
+else
+  echo "WARNING: postfire frame was neither a recognized radar nor encounter" | tee -a "$out/runtime.log"
+fi
 # Dream Orbs appear only after a cloud is hit. Attempt a separate Orb shot
 # from the actual post-fire screenshot; never infer collection from the input.
-if python3 tools/plan_melonds_aim.py "$out/05-radar-postfire.png" --target orb >"$out/orb-aim-plan.json"; then
+if [[ ! -f "$out/05-sphere-encounter.png" ]] && \
+   python3 tools/plan_melonds_aim.py "$out/05-radar-postfire.png" --target orb >"$out/orb-aim-plan.json"; then
   read -r horizontal horizontal_seconds vertical vertical_seconds < <(
     python3 -c 'import json,sys; p=json.load(open(sys.argv[1])); print(p["horizontal_key"], p["horizontal_seconds"], p["vertical_key"], p["vertical_seconds"])' "$out/orb-aim-plan.json"
   )
@@ -159,9 +173,66 @@ if python3 tools/plan_melonds_aim.py "$out/05-radar-postfire.png" --target orb >
   done
   press_ds_key z
   snapshot 05-radar-orb-postfire
+  latest_radar="$out/05-radar-orb-postfire.png"
 else
   echo "WARNING: no visible pink Dream Orb target; collection not verified" | tee -a "$out/runtime.log"
 fi
+# The initial pink cloud can produce Orbs instead of an encounter. Try at
+# most two additional clouds, always using fresh actual emulator screenshots.
+# Stop before clearing the entire search so the existing Results navigation
+# remains independently testable. Never assert a sphere without class+timer.
+for attempt in 1 2; do
+  [[ -f "$out/05-sphere-encounter.png" ]] && break
+  if ! python3 tools/verify_melonds_navigation.py "$out" \
+      --observe-search-screenshot "$latest_radar" >"$out/search-retry-$attempt-before.json"; then
+    echo "WARNING: cannot identify search state before retry $attempt" | tee -a "$out/runtime.log"
+    break
+  fi
+  read -r search_state clouds < <(
+    python3 -c 'import json,sys; s=json.load(open(sys.argv[1])); print(s["state"], s.get("radar_counters",{}).get("clouds",0))' \
+      "$out/search-retry-$attempt-before.json"
+  )
+  [[ "$search_state" == radar && "$clouds" -gt 1 ]] || break
+  if ! python3 tools/plan_melonds_aim.py "$latest_radar" >"$out/aim-retry-$attempt.json"; then
+    echo "WARNING: no recognizable cloud for retry $attempt" | tee -a "$out/runtime.log"
+    break
+  fi
+  read -r horizontal horizontal_seconds vertical vertical_seconds < <(
+    python3 -c 'import json,sys; p=json.load(open(sys.argv[1])); print(p["horizontal_key"],p["horizontal_seconds"],p["vertical_key"],p["vertical_seconds"])' \
+      "$out/aim-retry-$attempt.json"
+  )
+  aim_ds_key "$horizontal" "$horizontal_seconds"
+  aim_ds_key "$vertical" "$vertical_seconds"
+  snapshot "05-radar-retry-$attempt-aimed"
+  for correction in 1 2; do
+    if ! python3 tools/plan_melonds_aim.py "$out/05-radar-retry-$attempt-aimed.png" \
+        >"$out/aim-retry-$attempt-correction-$correction.json"; then
+      break
+    fi
+    read -r horizontal horizontal_seconds vertical vertical_seconds < <(
+      python3 -c 'import json,sys; p=json.load(open(sys.argv[1])); x=p["offset"]["x"];y=p["offset"]["y"];done=abs(x)<=7 and abs(y)<=7; print("none" if done else p["horizontal_key"],0 if done else round(min(0.3,p["horizontal_seconds"]*1.5),3),"none" if done else p["vertical_key"],0 if done else round(min(0.3,p["vertical_seconds"]*1.5),3))' \
+        "$out/aim-retry-$attempt-correction-$correction.json"
+    )
+    [[ "$horizontal" == none && "$vertical" == none ]] && break
+    aim_ds_key "$horizontal" "$horizontal_seconds"
+    aim_ds_key "$vertical" "$vertical_seconds"
+    snapshot "05-radar-retry-$attempt-aimed"
+  done
+  press_ds_key z
+  snapshot "05-radar-retry-$attempt-postfire"
+  latest_radar="$out/05-radar-retry-$attempt-postfire.png"
+  if ! python3 tools/verify_melonds_navigation.py "$out" \
+      --observe-search-screenshot "$latest_radar" >"$out/search-retry-$attempt-after.json"; then
+    echo "WARNING: unrecognized frame after retry $attempt" | tee -a "$out/runtime.log"
+    break
+  fi
+  if python3 -c 'import json,sys; sys.exit(json.load(open(sys.argv[1]))["state"] != "sphere")' \
+      "$out/search-retry-$attempt-after.json"; then
+    cp "$latest_radar" "$out/05-sphere-encounter.png"
+    echo "PASS: real sphere encounter screen recognized on retry $attempt" | tee -a "$out/runtime.log"
+    break
+  fi
+done
 press_ds_key x
 snapshot 06-results
 press_ds_key x
