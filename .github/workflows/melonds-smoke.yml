@@ -34,6 +34,7 @@ jobs:
       - name: Build latest DS/DSi ROM
         run: |
           python3 tools/stage_title_ui.py ui_mapping/original_pane_geometry.json nitrofs/title.drui
+          python3 tools/stage_scan_ui.py ui_mapping/original_pane_geometry.json nitrofs/scan.drui
           docker run --rm -v "$PWD:/workspace" -w /workspace \
             -e SKIP_HOST_TESTS=1 -e SKIP_ROM_CHECK=1 \
             skylyrac/blocksds@sha256:779f6193d1030c62e60d1f0f39c3e32cf4045c0bd224a45c0ceadf9d9ab01a51 sh scripts/build_both.sh
