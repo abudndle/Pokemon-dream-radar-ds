@@ -1435,10 +1435,14 @@ static void handle_key(int keys,int down,touchPosition *touch) {
         int back_touch = (down & KEY_TOUCH) && touch->px>=188 && touch->py>=174;
         /* Hardware controls work in BOTH cloud search and Pokémon/item encounters.
            No stylus aiming or synthetic joystick overrides the original touch UI. */
-        if(keys&KEY_LEFT) game.aim_x-=6;
-        if(keys&KEY_RIGHT)game.aim_x+=6;
-        if(keys&KEY_UP)   game.aim_y-=6;
-        if(keys&KEY_DOWN) game.aim_y+=6;
+        /* DSi camera aiming replaces the D-pad while live motion tracking
+           is active. DS and camera-disabled DSi retain D-pad aiming. */
+        if(!(running_dsi && game.camera_active && game.camera_ok)) {
+            if(keys&KEY_LEFT) game.aim_x-=6;
+            if(keys&KEY_RIGHT)game.aim_x+=6;
+            if(keys&KEY_UP)   game.aim_y-=6;
+            if(keys&KEY_DOWN) game.aim_y+=6;
+        }
         if(game.aim_x<6)game.aim_x=6;
         if(game.aim_x>249)game.aim_x=249;
         if(game.aim_y<6)game.aim_y=6;
