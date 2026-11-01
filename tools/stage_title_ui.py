@@ -137,6 +137,8 @@ def main():
     for source in (args.snapshot, args.clip, args.clip_json):
         if source and source.resolve() == args.output.resolve():
             parser.error("output must not overwrite any original input")
+    if (args.clip or args.clip_json) and args.output.resolve().is_relative_to(HERE.parent.resolve()):
+        parser.error("private BCLAN outputs must stay outside the public checkout")
     snapshot = json.loads(args.snapshot.read_text(encoding="utf-8"))
     clips = []
     if args.clip:
