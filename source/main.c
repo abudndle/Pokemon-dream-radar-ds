@@ -726,21 +726,6 @@ static int extension_row_of(int ext) {
 static void extension_ensure_selected(void) {
     if(!extension_visible(game.ext_selection)) game.ext_selection=EXT_BASIC;
 }
-static int camera_quick_icon_visible(void) {
-    /* Camera settings is a title-only DS option, never a gameplay overlay. */
-    return game.screen==STATE_TITLE;
-}
-static void render_camera_quick_icon(void) {
-    /* A gear-shaped 34x24 touch icon, anchored to bottom-left. */
-    rect(bottom,3,168,34,24,0x8421);
-    border(bottom,3,168,34,24,WHITE);
-    const int cx=20,cy=180;
-    rect(bottom,cx-2,cy-9,5,18,CYAN);
-    rect(bottom,cx-9,cy-2,19,5,CYAN);
-    rect(bottom,cx-6,cy-6,13,13,WHITE);
-    rect(bottom,cx-4,cy-4,9,9,0x8421);
-    rect(bottom,cx-2,cy-2,5,5,CYAN);
-}
 /* Render and touch use the identical resolved title panes. If the private
  * clip is unsupported, malformed or temporarily outside the viewport,
  * retain the established visible, source-derived title fallback. */
@@ -1196,7 +1181,7 @@ static void render(void) {
         print(bottom,12,181,GRAY,"B: LAB");
         break;}
     }
-    if(camera_quick_icon_visible())render_camera_quick_icon();
+    /* Title screen retains original 3DS menu imagery without a DS gear overlay. */
     if(game.messages>0) {
         rect(top,5,145,246,42,0x88C4);border(top,5,145,246,42,GOLD);
         print_wrapped(top,10,150,38,WHITE,game.message,3);
@@ -1403,8 +1388,7 @@ static void from_results(int continue_search) {
 }
 static void handle_key(int keys,int down,touchPosition *touch) {
     if(dr_camera_quick_open(game.screen==STATE_TITLE,
-                            (down&KEY_TOUCH)!=0,(down&KEY_X)!=0,
-                            touch->px,touch->py)) {
+                            keys,down,KEY_SELECT,KEY_X)) {
         camera_quick_return=game.screen;
         camera_quick_return_selection=game.selection;
         switch_screen(STATE_CAMERA_QUICK);
