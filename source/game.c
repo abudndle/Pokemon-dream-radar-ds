@@ -109,6 +109,37 @@ const char *game_species_name(int id) {
 }
 const char *game_cart_name(CartGame g) { return (g >= 0 && g <= GAME_UNKNOWN) ? cart_names[g] : "Unknown"; }
 const char *game_extension_name(int e) { return (e >= 0 && e < EXT_COUNT) ? ext_names[e] : "Unknown extension"; }
+/* The retail research tray has special slots outside the regular six. */
+static int is_legendary(int species) {
+    return species>=LEGEND_SPECIES_START && species<=LEGEND_SPECIES_END;
+}
+int game_legendary_count(const Game *g) {
+    if(!g || g->save.reserved[15]!=LEGEND_STORAGE_MARKER)return 0;
+    unsigned bits=g->save.reserved[14];int count=0;
+    for(int i=0;i<MAX_LEGENDARY;i++)if(bits&(1u<<i))count++;
+    return count;
+}
+int game_legendary_at(const Game *g,int index) {
+    if(!g || index<0 || index>=MAX_LEGENDARY ||
+       g->save.reserved[15]!=LEGEND_STORAGE_MARKER)return -1;
+    for(int i=0;i<MAX_LEGENDARY;i++)if(g->save.reserved[14]&(1u<<i)) {
+        if(index--==0)return LEGEND_SPECIES_START+i;
+    }
+    return -1;
+}
+int game_transfer_count(const Game *g) {
+    if(!g || g->save.pending_count>MAX_CAUGHT ||
+       g->save.reserved[15]!=LEGEND_STORAGE_MARKER)return 0;
+    int n=game_legendary_count(g)+(int)g->save.pending_count;
+    return n>MAX_CAUGHT?MAX_CAUGHT:n;
+}
+int game_transfer_species(const Game *g,int index) {
+    if(index<0 || index>=game_transfer_count(g))return -1;
+    int special=game_legendary_count(g);
+    if(index<special)return game_legendary_at(g,index);
+    index-=special;
+    return index>=0 && index<g->save.pending_count?g->save.pending[index]:-1;
+}
 
 CartGame game_identify_cart(const char *id) {
     // First three bytes match the NDS game-code prefix. Last is region.
@@ -136,6 +167,8 @@ void game_new(Game *g, uint32_t seed) {
     g->save.reserved[8]=ITEM_LAYOUT_MARKER;
     g->save.reserved[12]=ORB_PINK;
     g->save.reserved[13]=ORB_COLOR_LAYOUT_MARKER;
+    g->save.reserved[14]=0;
+    g->save.reserved[15]=LEGEND_STORAGE_MARKER;
     for(int i=0;i<MAX_ITEMS;i++)g->save.reserved[2+i]=(uint8_t)(i+1);
     g->replaced_slot=-1;
     /* No reward or encounter exists at startup. A valid ID of zero is
@@ -197,12 +230,30 @@ int game_load(Game *g, const char *file) {
             if(s.reserved[2+i]<1 || s.reserved[2+i]>RESEARCH_ITEM_TYPES)return 0;
         }
     }
+    /* Preserve v3 save size: migrate legacy legendary captures from the
+       regular six slots to an eight-bit special storage row. */
+    int migrated_legends=0;
+    if(s.reserved[15]!=LEGEND_STORAGE_MARKER) {
+        uint8_t mask=0,write=0;
+        for(int i=0;i<s.pending_count;i++) {
+            int species=s.pending[i];
+            if(is_legendary(species))
+                mask|=(uint8_t)(1u<<(species-LEGEND_SPECIES_START));
+            else s.pending[write++]=(uint8_t)species;
+        }
+        s.pending_count=write;
+        for(int i=write;i<MAX_CAUGHT;i++)s.pending[i]=0;
+        s.reserved[14]=mask;
+        s.reserved[15]=LEGEND_STORAGE_MARKER;
+        migrated_legends=1;
+    } else for(int i=0;i<s.pending_count;i++)
+        if(is_legendary(s.pending[i]))return 0;
     /* Any in-memory migration changes checksummed fields. Keep the live
        record internally consistent before the repaired snapshot is written. */
-    if(migrated_item_layout || repaired_background || migrated_orb_color)
+    if(migrated_item_layout || repaired_background || migrated_orb_color || migrated_legends)
         s.checksum=game_checksum(&s);
     g->save = s;
-    if(migrated_item_layout || repaired_background || migrated_orb_color)
+    if(migrated_item_layout || repaired_background || migrated_orb_color || migrated_legends)
         g->requested_save=1;
     /* The three secret research extensions persist in unused reserved bytes,
        preserving version 3 save compatibility with previous milestone builds. */
@@ -223,12 +274,13 @@ int game_save(Game *g, const char *file) {
        snapshot.intro_seen>1 || snapshot.optical_aim>1 ||
        snapshot.camera_enabled>1 || snapshot.reserved[0]>3 ||
        snapshot.reserved[1]>7 ||
-       snapshot.reserved[8]!=ITEM_LAYOUT_MARKER)return 0;
+       snapshot.reserved[8]!=ITEM_LAYOUT_MARKER ||
+       snapshot.reserved[15]!=LEGEND_STORAGE_MARKER)return 0;
     for(int i=0;i<3;i++)
         if(snapshot.upgrades[i]<1 || snapshot.upgrades[i]>5 ||
            snapshot.goods[i]>9)return 0;
     for(int i=0;i<snapshot.pending_count;i++)
-        if(snapshot.pending[i]>25)return 0;
+        if(snapshot.pending[i]>25 || is_legendary(snapshot.pending[i]))return 0;
     for(int i=0;i<MAX_ITEMS;i++)
         if(snapshot.reserved[2+i]<1 ||
            snapshot.reserved[2+i]>RESEARCH_ITEM_TYPES)return 0;
@@ -960,6 +1012,18 @@ void game_capture(Game *g) {
             conclude_capture(g);
             return;
         }
+        if(is_legendary(species)) {
+            unsigned bit=1u<<(species-LEGEND_SPECIES_START);
+            if(g->save.reserved[15]!=LEGEND_STORAGE_MARKER ||
+               (g->save.reserved[14]&bit)) {
+                g->session_caught=-4;conclude_capture(g);return;
+            }
+            invalidate_archive(g);
+            g->save.reserved[14]|=(uint8_t)bit;
+            accept_pokemon(g,species);
+            conclude_capture(g);
+            return;
+        }
         if(g->save.pending_count<MAX_CAUGHT) {
             invalidate_archive(g);
             g->save.pending[g->save.pending_count++]=(uint8_t)species;
@@ -986,7 +1050,8 @@ int game_replace_pending(Game *g, int slot) {
            six-element array, even when runtime state is damaged. */
         if(g->save.pending_count>MAX_CAUGHT ||
            slot<0 || slot>=MAX_CAUGHT || slot>=g->save.pending_count ||
-           g->replace_value<0 || g->replace_value>25)return 0;
+           g->replace_value<0 || g->replace_value>25 ||
+           is_legendary(g->replace_value))return 0;
         invalidate_archive(g);
         g->save.pending[slot]=(uint8_t)g->replace_value;
         accept_pokemon(g,g->replace_value);
@@ -1173,6 +1238,8 @@ int game_buy(Game *g, int kind, int idx) {
 }
 static uint32_t pending_signature(const Game *g) {
     uint32_t h=2166136261u;
+    h=(h ^ g->save.reserved[15])*16777619u;
+    h=(h ^ g->save.reserved[14])*16777619u;
     h=(h ^ g->save.pending_count)*16777619u;
     for(int i=0;i<g->save.pending_count && i<MAX_CAUGHT;i++)
         h=(h ^ g->save.pending[i])*16777619u;
@@ -1183,24 +1250,39 @@ static uint32_t pending_signature(const Game *g) {
     return h ? h : 1;
 }
 int game_release_archived_pending(Game *g) {
-    if(!g || g->save.pending_count>MAX_CAUGHT)return 0;
+    if(!g || g->save.pending_count>MAX_CAUGHT ||
+       g->save.reserved[15]!=LEGEND_STORAGE_MARKER)return 0;
     /* An archive signature must not authorize clearing data whose layout
        no longer matches the current private-save item format. */
     if(g->save.reserved[8]!=ITEM_LAYOUT_MARKER)return 0;
     for(int i=0;i<g->save.pending_count;i++)
-        if(g->save.pending[i]>25)return 0;
+        if(g->save.pending[i]>25 || is_legendary(g->save.pending[i]))return 0;
     for(int i=0;i<MAX_ITEMS;i++)
         if(g->save.pending_items[i] &&
            (g->save.reserved[2+i]<1 ||
             g->save.reserved[2+i]>RESEARCH_ITEM_TYPES))return 0;
     if(!g->pending_export_signature ||
        g->pending_export_signature!=pending_signature(g))return 0;
-    int have_pending=g->save.pending_count>0;
+    int batch=game_transfer_count(g);
+    int have_pending=batch>0;
     for(int i=0;i<MAX_ITEMS;i++)if(g->save.pending_items[i])have_pending=1;
     if(!have_pending)return 0;
+    int legendary_sent=0;
+    for(int i=0;i<batch;i++)
+        if(is_legendary(game_transfer_species(g,i)))legendary_sent++;
     invalidate_archive(g);
-    g->save.pending_count=0;
-    memset(g->save.pending,0,sizeof g->save.pending);
+    for(int i=0;i<legendary_sent;i++) {
+        int species=game_legendary_at(g,0);
+        if(species>=0)g->save.reserved[14]&=
+            (uint8_t)~(1u<<(species-LEGEND_SPECIES_START));
+    }
+    int regular_sent=batch-legendary_sent;
+    int remaining=(int)g->save.pending_count-regular_sent;
+    if(regular_sent)
+        memmove(g->save.pending,g->save.pending+regular_sent,
+                (size_t)remaining*sizeof g->save.pending[0]);
+    g->save.pending_count=(uint8_t)remaining;
+    for(int i=remaining;i<MAX_CAUGHT;i++)g->save.pending[i]=0;
     memset(g->save.pending_items,0,sizeof g->save.pending_items);
     g->requested_save=1;
     return 1;
@@ -1211,9 +1293,10 @@ int game_export(Game *g, const char *path) {
        cannot destroy the previous complete archive. */
     if (!g || !path || !*path) return 0;
     g->pending_export_signature=0;
-    if(g->save.pending_count>MAX_CAUGHT)return 0;
+    if(g->save.pending_count>MAX_CAUGHT ||
+       g->save.reserved[15]!=LEGEND_STORAGE_MARKER)return 0;
     for(int i=0;i<g->save.pending_count;i++)
-        if(g->save.pending[i]>25)return 0;
+        if(g->save.pending[i]>25 || is_legendary(g->save.pending[i]))return 0;
     for(int i=0;i<MAX_ITEMS;i++)
         if(g->save.pending_items[i] &&
            (g->save.reserved[2+i]<1 ||
@@ -1232,8 +1315,14 @@ int game_export(Game *g, const char *path) {
     if (fprintf(f,"DREAM_RADAR_DSI_PENDING_V1\nSource: unofficial demake\nTarget: Black 2 / White 2\n")<0) ok=0;
     if (fprintf(f,"WARNING: not compatible with Unova Link; do not inject into a cartridge save.\n")<0) ok=0;
     if (fprintf(f,"Orbs: %lu\n",(unsigned long)g->save.orbs)<0) ok=0;
-    for (int i=0;i<g->save.pending_count && ok;i++)
-        if (fprintf(f,"Pokemon %d: %s\n",i+1,game_species_name(g->save.pending[i]))<0) ok=0;
+    int batch=game_transfer_count(g);
+    if (fprintf(f,"Archive batch: %d Pokemon (legendary first, maximum 6)\n",batch)<0)ok=0;
+    for (int i=0;i<batch && ok;i++)
+        if (fprintf(f,"Pokemon %d: %s\n",i+1,
+                    game_species_name(game_transfer_species(g,i)))<0) ok=0;
+    int remaining=game_legendary_count(g)+(int)g->save.pending_count-batch;
+    if (remaining>0 && fprintf(f,
+        "Retained for the next archive: %d regular Pokemon\n",remaining)<0)ok=0;
     for (int i=0;i<MAX_ITEMS && ok;i++) if(g->save.pending_items[i])
         if (fprintf(f,"Item slot %d: %s x%d\n",i+1,
                     game_item_name(game_item_slot_kind(g,i)),g->save.pending_items[i])<0) ok=0;
