@@ -63,9 +63,18 @@ def parse_darc(data):
             raise DarcError('unknown DARC entry flags')
         is_dir = bool(raw_name & 0x01000000)
         name = read_name(data, names + (raw_name & 0x00ffffff), limit)
-        if not name or name in ('.', '..'):
+        if not name or name == '..':
             raise DarcError('invalid DARC path component')
-        path = (parent_path + '/' + name).lstrip('/')
+        # Some original Dream Radar DARCs use a leading '.' directory as
+        # a current-root marker. This is not a file path or traversal:
+        # allow it only as the first child of the root directory and
+        # normalize it away when constructing metadata/extraction paths.
+        if name == '.':
+            if not is_dir or index != 1 or val != 0:
+                raise DarcError('invalid DARC dot directory')
+            path = parent_path
+        else:
+            path = (parent_path + '/' + name).lstrip('/')
         if is_dir:
             if val != stack[-1][1] or size <= index or size > stack[-1][0]:
                 raise DarcError('invalid DARC folder range or parent')
