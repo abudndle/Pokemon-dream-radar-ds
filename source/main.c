@@ -1354,7 +1354,9 @@ static void handle_key(int keys,int down,touchPosition *touch) {
          dr_camera_quick_icon_hit(touch->px,touch->py)) ||
         (down&KEY_SELECT) ||
         ((down&KEY_X) && (game.screen==STATE_TITLE ||
-                          game.screen==STATE_INTRO)))) {
+                          game.screen==STATE_INTRO)) ||
+        dr_camera_intro_start_shortcut(game.screen==STATE_INTRO,
+                                       down,KEY_START))) {
         camera_quick_return=game.screen;
         camera_quick_return_selection=game.selection;
         switch_screen(STATE_CAMERA_QUICK);

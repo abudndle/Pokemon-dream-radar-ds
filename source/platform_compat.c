@@ -15,6 +15,9 @@ int dr_camera_quick_row_hit(int x,int y){
     if(y>=86 && y<114)return 1;
     return -1;
 }
+int dr_camera_intro_start_shortcut(int intro_screen,int down,int start_mask){
+    return intro_screen && start_mask!=0 && (down&start_mask)!=0;
+}
 int dr_placeholder_path(char *out,size_t cap,const char *storage_root){
     if(!out || !cap || !storage_root || !*storage_root)return 0;
     /* The UI intentionally offers no arbitrary path browsing: only this

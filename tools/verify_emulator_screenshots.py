@@ -58,7 +58,8 @@ def verify(paths):
         'count': len(results),
         'captures': results,
         'distinct_frame_hashes': len({entry['sha256'] for entry in results}),
-        'input_attempts': ['Return / DS Start', 'X / DS A'],
+        'input_attempts': ['Return / DS Start', 'Return / DS Start from intro',
+                           'Z / DS B', 'X / DS A'],
         'limitations': [
             'Live window and nonblank pixel validation are not a gameplay or performance test',
             'Input events were attempted but transition success must be visually reviewed',
