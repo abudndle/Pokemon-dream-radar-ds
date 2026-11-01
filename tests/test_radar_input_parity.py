@@ -8,6 +8,8 @@ source = (root / "source/main.c").read_text()
 block = source.split("if(game.screen==STATE_RADAR || game.screen==STATE_SPHERE){", 1)[1].split("if(game.screen==STATE_INTRO){", 1)[0]
 assert re.search(r"if\s*\(\s*\(keys\s*&\s*KEY_A\)\s*&&\s*\(game\.save\.frames_played\s*%\s*5\s*==\s*0\)\s*\)\s*game_fire\s*\(\s*&game\s*\)", block), "Shared radar/encounter A-button beam firing missing"
 assert block.count("game_fire(&game)") == 1, "Unexpected additional firing path"
+assert "save_photo(" not in block, "Radar/encounter input must not capture photos"
+assert "dr_photo_shortcut(" not in block, "Photo shortcut must not run during radar/encounter"
 assert "game.screen==STATE_SPHERE && (keys&KEY_A)" not in block, "Encounter-only A-button gate reintroduced"
 smoke = (root / "scripts/melonds_smoke.sh").read_text()
 radar = smoke.split("snapshot 05-radar", 1)[1].split("snapshot 06-results", 1)[0]
