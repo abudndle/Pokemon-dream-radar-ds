@@ -4,12 +4,12 @@
 #include <stddef.h>
 
 enum {DR_SETTING_CAMERA,DR_SETTING_OPTICAL,DR_SETTING_CART,DR_SETTING_SD,DR_SETTING_PLACEHOLDER};
-/* Bottom-left title-screen-only camera settings icon: fixed touch hitbox. */
-int dr_camera_quick_icon_hit(int x,int y);
+/* Hidden Select+X chord: both held and at least one newly pressed.
+ * Only the title menu may open camera options. No visible gear or X shortcut. */
+int dr_camera_quick_open(int is_title,int held,int down,
+                         int select_mask,int x_mask);
 /* Exactly two choices: 0=camera toggle, 1=import local placeholder BMP. */
 int dr_camera_quick_row_hit(int x,int y);
-/* Keyboard X or gear touch may open only from title; other screens reject both. */
-int dr_camera_quick_open(int is_title,int touched,int pressed_x,int x,int y);
 /* Only a fixed, storage-root-relative BMP path is accepted. */
 int dr_placeholder_path(char *out,size_t cap,const char *storage_root);
 int dr_lab_count(int dsi_mode);
