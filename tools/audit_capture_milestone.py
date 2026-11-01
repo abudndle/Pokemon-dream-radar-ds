@@ -55,8 +55,67 @@ def audit(root, run_host=False):
                 result["host_error"] = str(exc)
     return result
 
+def _evidence_file(root, entry, suffix):
+    """Verify a bundle-relative, hashed artifact without following paths outside root."""
+    if not isinstance(entry, dict):
+        return None
+    name, digest = entry.get("path"), entry.get("sha256")
+    if (not isinstance(name, str) or not name or
+            pathlib.PurePosixPath(name).is_absolute() or
+            "\\" in name or
+            not isinstance(digest, str) or len(digest) != 64 or
+            any(ch not in "0123456789abcdef" for ch in digest.lower())):
+        return None
+    candidate = (root / name).resolve()
+    try:
+        candidate.relative_to(root)
+    except ValueError:
+        return None
+    if candidate.suffix.lower() != suffix or not candidate.is_file():
+        return None
+    # Avoid accidentally reading enormous or private dumps as screenshot evidence.
+    if not 0 < candidate.stat().st_size <= 16 * 1024 * 1024:
+        return None
+    import hashlib
+    data = candidate.read_bytes()
+    if hashlib.sha256(data).hexdigest() != digest.lower():
+        return None
+    return data
+
+
+def _valid_png(data):
+    """Check a real PNG chunk stream and plausible dual-screen screenshot size."""
+    import struct
+    import zlib
+    if not data.startswith(b"\\x89PNG\\r\\n\\x1a\\n"):
+        return False
+    pos, width, height, saw_image, saw_end = 8, 0, 0, False, False
+    while pos + 12 <= len(data):
+        length = struct.unpack_from(">I", data, pos)[0]
+        if length > 16 * 1024 * 1024 or pos + 12 + length > len(data):
+            return False
+        kind = data[pos + 4:pos + 8]
+        body = data[pos + 8:pos + 8 + length]
+        crc = struct.unpack_from(">I", data, pos + 8 + length)[0]
+        if zlib.crc32(kind + body) & 0xffffffff != crc:
+            return False
+        if pos == 8:
+            if kind != b"IHDR" or length != 13:
+                return False
+            width, height = struct.unpack_from(">II", body)
+            if not (256 <= width <= 4096 and 192 <= height <= 4096):
+                return False
+        if kind == b"IDAT":
+            saw_image = True
+        pos += length + 12
+        if kind == b"IEND":
+            saw_end = length == 0 and pos == len(data)
+            break
+    return saw_image and saw_end
+
+
 def audit_emulator_evidence(root, evidence_dir):
-    """Only accept explicit end-to-end emulator evidence, not navigation screenshots."""
+    """Check artifact provenance/structure, not visual gameplay or retail parity."""
     evidence = pathlib.Path(evidence_dir).resolve()
     report = evidence / "capture-report.json"
     if not report.is_file():
@@ -65,18 +124,40 @@ def audit_emulator_evidence(root, evidence_dir):
         payload = json.loads(report.read_text())
     except (OSError, ValueError) as exc:
         return {"status": "invalid_report", "passed": False, "error": str(exc)}
-    # Require each independently verified stage and the actual emulator source.
     required = ("cloud_search", "cloud_shot", "orb_collected",
                 "sphere_encounter", "capture_reward", "results",
                 "resume_radar", "save", "restart", "restored_reward")
-    valid = (isinstance(payload, dict) and
-             payload.get("emulator") == "melonDS" and
-             payload.get("test_kind") == "live_emulator_capture" and
-             isinstance(payload.get("stages"), dict) and
-             all(payload["stages"].get(stage) is True for stage in required))
-    return {"status": "passed" if valid else "incomplete",
-            "passed": bool(valid), "path": str(report),
-            "required_stages": list(required)}
+    base = {"passed": False, "path": str(report),
+            "required_stages": list(required),
+            "note": "Artifact checks do not prove that a human verified gameplay in melonDS."}
+    if (not isinstance(payload, dict) or payload.get("emulator") != "melonDS" or
+            payload.get("test_kind") != "live_emulator_capture" or
+            not isinstance(payload.get("stages"), dict) or
+            not all(payload["stages"].get(s) is True for s in required)):
+        return {**base, "status": "incomplete_stages"}
+    import re
+    if (not isinstance(payload.get("commit_sha"), str) or
+            re.fullmatch(r"[0-9a-fA-F]{40}", payload["commit_sha"]) is None or
+            not isinstance(payload.get("rom_sha256"), str) or
+            re.fullmatch(r"[0-9a-fA-F]{64}", payload["rom_sha256"]) is None):
+        return {**base, "status": "missing_build_identity"}
+    log = _evidence_file(evidence, payload.get("runtime_log"), ".log")
+    if not log or b"Emulator: melonDS" not in log or b"Window XID:" not in log:
+        return {**base, "status": "invalid_emulator_log"}
+    captures = payload.get("captures")
+    if not isinstance(captures, dict):
+        return {**base, "status": "missing_captures"}
+    fingerprints = set()
+    for stage in required:
+        shot = captures.get(stage)
+        data = _evidence_file(evidence, shot, ".png")
+        if not data or not _valid_png(data):
+            return {**base, "status": "invalid_capture", "failed_stage": stage}
+        fingerprints.add(shot["sha256"].lower())
+    if len(fingerprints) < 4:
+        return {**base, "status": "reused_captures"}
+    return {**base, "status": "evidence_bundle_complete", "passed": True,
+            "distinct_screenshots": len(fingerprints)}
 
 def main():
     parser = argparse.ArgumentParser()
