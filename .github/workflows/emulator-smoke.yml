@@ -40,16 +40,16 @@ jobs:
       - name: Launch real DeSmuME emulator and capture both DS screens
         run: |
           xvfb-run -a -s '-screen 0 1024x900x24' \
-            bash scripts/emulator_smoke.sh dream_radar.nds build/emulator
+            bash scripts/emulator_smoke.sh dream_radar.nds emulator-results
       - name: Publish real emulator screenshot evidence and logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: linux-desmume-real-screenshots
           path: |
-            build/emulator/*.png
-            build/emulator/*.log
-            build/emulator/*.json
-            build/emulator/window-tree.txt
+            emulator-results/*.png
+            emulator-results/*.log
+            emulator-results/*.json
+            emulator-results/window-tree.txt
           if-no-files-found: warn
           retention-days: 30
