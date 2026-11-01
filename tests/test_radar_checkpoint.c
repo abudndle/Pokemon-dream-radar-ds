@@ -44,6 +44,29 @@ int main(void) {
     assert(loaded.save.orbs==900 && loaded.save.searches==0);
     assert(loaded.cart_source==CART_SOURCE_NONE && !loaded.camera_active);
 
+    /* Rotating the primary save must rotate its *matching* radar session.
+     * A corrupt new primary should recover the previous in-flight search,
+     * not an unrelated or newer sidecar. The backup session is distinct
+     * even when the stable SaveData checksum has not changed. */
+    char backup_sidecar[TW_MAX_PATH];
+    assert(snprintf(backup_sidecar,sizeof backup_sidecar,
+                    "%s.bak.radar",backend.active)<(int)sizeof backup_sidecar);
+    loaded.aim_x=101;
+    assert(save_backend_write(&backend,&loaded));
+    assert(stat(backup_sidecar,&st)==0 && st.st_size>(off_t)sizeof(SaveData));
+    FILE *broken=fopen(backend.active,"r+b");
+    assert(broken && fputc('X',broken)!=EOF && fclose(broken)==0);
+    reload(&backend,&loaded);
+    assert(backend.recovered_backup && loaded.requested_save);
+    assert(loaded.screen==STATE_RADAR && loaded.aim_x==128);
+    assert(loaded.active_clouds==2 && loaded.clouds[1].x==155);
+    assert(loaded.save.orbs==900 && loaded.save.searches==0);
+    assert(save_backend_write(&backend,&loaded));
+    assert(!backend.recovered_backup);
+    reload(&backend,&loaded);
+    assert(loaded.screen==STATE_RADAR && loaded.aim_x==128);
+    assert(loaded.save.orbs==900 && loaded.save.searches==0);
+
     loaded.aim_x=65;loaded.aim_y=85;
     game_fire(&loaded);
     assert(loaded.screen==STATE_SPHERE && loaded.radar_resume_pending);
