@@ -1,13 +1,13 @@
-# Camera settings icon and placeholder-image import (DS/DSi)
+# Title-screen-only camera settings and placeholder-image import (DS/DSi)
 
-This is an **additional DS-port setting**, deliberately separated from the original Pokémon Dream Radar menus. It does not replace the old Options page, photo album, or any original-game resource. The icon appears at the **bottom-left corner of the lower touch screen** (small gear, x=3–36, y=168–191) on normal gameplay/menu screens.
+This is an **additional DS-port setting**, deliberately separated from the original Pokémon Dream Radar menus. It does not replace the old Options page, photo album, or any original-game resource. The icon appears **only on the title screen**, at the **bottom-left corner of the lower touch screen** (small gear, x=3–36, y=168–191). No gear or camera-settings entry is displayed during gameplay, Professor Burnet's introduction, or in the Options list.
 
 Tap it to open a focused menu with **only two actions**:
 
 1. **Camera: ON/OFF** — toggles the real DSi camera. On DS/DS Lite and a standard DS emulator, this row displays **CAMERA: NOT AVAILABLE**. Gameplay remains camera-free, and the setting cannot enable an unsupported camera.
 2. **Import placeholder BMP** — reads a single user-provided image from removable storage. Import automatically turns off the live camera so the image is visible as the camera-free radar/capture background.
 
-You can also press **Select** on normal gameplay screens, **X on the title/intro screens**, or **Start during Professor Burnet's intro** to open the same camera menu; these shortcuts are useful when an emulator does not forward stylus events. Press **Up/Down** to select a row, **A** to activate, **B** to return to the exact previous game screen and selection, or touch a row directly. **Select** resets the background to the bundled default (without deleting files). In radar/sphere, opening the quick menu temporarily stops the camera and pauses encounter input; returning resumes the previous session.
+On the **title screen only**, tap the gear or press **X** (the emulator keyboard fallback) to open the menu. Press **Up/Down** to select a row, **A** to activate, **B** to return to the title with its previous selection, or touch a row directly. **Select** inside the camera menu resets the background to the bundled default without deleting files. Select/X/Start no longer open this menu from the intro or gameplay. The import/toggle selection still applies when a later research session starts.
 
 ## Prepare and import an image
 
@@ -37,10 +37,14 @@ The image selection persists in the existing homebrew save's previously reserved
 
 ## Verification
 
-The Linux host suite includes `tests/test_camera_quick.c` for hitboxes, safe paths, BMP decoding, and invalid-file protection, plus `tests/test_camera_quick_ui.py` to verify camera toggle, session restoration, and menu integration. The Nintendo DS ARM build validates the executable. A real emulator screenshot and gameplay test remain separate acceptance steps.
+The Linux host suite includes `tests/test_camera_quick.c` for title-only input gating, hitboxes, safe paths, BMP decoding, and invalid-file protection, plus `tests/test_camera_quick_ui.py` to verify title-only routing and camera/BMP persistence. The emulator smoke workflow now exercises title X → camera settings → B → title and checks that X in the intro does nothing. A real DSi camera and writable FAT BMP import remain separate end-to-end tests.
 
 ## Transactional BMP selection (milestone #21)
 
 The import and save selection now share a portable, host-tested transaction in `source/dr_background.c`. A missing, truncated, malformed or oversized BMP leaves the existing display pixels, saved background marker, camera toggle and current gameplay session unchanged. A successful import marks the file in the homebrew save, disables the DSi camera, and uses the same BMP for the camera-free radar and sphere backgrounds. Restoring the marker on reboot reads the file again without dirtying the save. If the file is unavailable on reboot, the bundled background remains the fallback; the saved preference is retained for when storage returns. Reset clears the selection without deleting the user's file.
 
 `tests/test_background_import.c` covers success, rollback, restore, reset and preservation of the active capture timeout. An actual end-to-end DSi/DeSmuME FAT import remains a separate hardware or emulator test; portable host tests do not prove SD mounting.
+
+## Milestone #22 — title-only camera access
+
+The camera settings gear and X shortcut exist exclusively on the title screen. The DS/DSi Options menu no longer offers camera or custom-photo entries; optical aim and DS cartridge/SD game pairing remain. Existing selected images and saves are still restored by the original background loader on launch. Camera toggling and BMP imports are unchanged once the title-only menu is open. Portable tests cover rejection from other states; real emulator smoke validation checks title entry/return and intro rejection.
