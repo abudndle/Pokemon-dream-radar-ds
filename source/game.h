@@ -13,6 +13,13 @@
 /* reserved[2..7] carry type+1 for occupied item slots; reserved[8] marks layout. */
 #define ITEM_LAYOUT_MARKER 0xA7u
 #define ORB_COLOR_LAYOUT_MARKER 0xD4u
+/* Reserved v3 bytes [14] = eight legendary occupancy bits (species 15..22),
+ * [15] = marker. Ordinary six slots never contain a legendary in this layout.
+ * Distinct from one-time story/Gen IV capture flags. */
+#define LEGEND_STORAGE_MARKER 0xE9u
+#define LEGEND_SPECIES_START 15
+#define LEGEND_SPECIES_END 22
+#define MAX_LEGENDARY 8
 /* reserved[12]=dominant color from last completed search;
  * reserved[13]=marker; session tallies are runtime-only. */
 #define SAVE_MAGIC 0x44525244u
@@ -129,6 +136,12 @@ void game_capture(Game *g);
 int game_replace_pending(Game *g, int slot);
 int game_cancel_pending_replace(Game *g);
 int game_item_slot_kind(const Game *g, int slot);
+/* Original-style separate legendary research row, independent of six ordinary
+ * slots. This is a private homebrew archive-order plan, NOT Unova Link. */
+int game_legendary_count(const Game *g);
+int game_legendary_at(const Game *g,int index);
+int game_transfer_count(const Game *g);
+int game_transfer_species(const Game *g,int index);
 const char *game_item_name(int item);
 int game_extension_unlocked(Game *g, int ext);
 int game_extension_price(int ext);
