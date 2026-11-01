@@ -95,9 +95,10 @@ press_ds_key z
 snapshot 04-extensions
 press_ds_key z
 snapshot 05-radar
-# Radar is a search/aiming scene, not an A-button action prompt.
-# Do not synthesize a shot here: input parity requires an original-game
-# control mapping and a separate verified cloud encounter sequence.
+# The original A button fires the beam in radar. Exercise that input before
+# leaving; a separate deterministic encounter test must still prove a hit.
+press_ds_key z
+snapshot 05-radar-after-shot
 press_ds_key x
 snapshot 06-results
 press_ds_key x
