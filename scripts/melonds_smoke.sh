@@ -291,11 +291,13 @@ if [[ -f "$out/05-sphere-encounter.png" ]]; then
     snapshot "05-sphere-sweep-$step"
     if python3 tools/verify_melonds_navigation.py "$out" \
         --observe-reward-screenshot "$capture_last" \
-        >"$out/sphere-reward.json" 2>/dev/null; then
+        >"$out/sphere-reward-attempt.json" 2>/dev/null; then
+      mv "$out/sphere-reward-attempt.json" "$out/sphere-reward.json"
       cp "$capture_last" "$out/05-capture-reward.png"
       echo "PASS: real emulator Results screen contains a catalog-backed capture reward" | tee -a "$out/runtime.log"
       break
     fi
+    rm -f "$out/sphere-reward-attempt.json"
     if python3 tools/verify_melonds_navigation.py "$out" \
         --observe-capture-progress "$capture_last" \
         >"$out/sphere-progress-$step.json" 2>/dev/null; then
