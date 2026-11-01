@@ -12,6 +12,14 @@
  * Y is inverted from 3DS pane coordinates to DS bitmap coordinates.
  */
 #include "dr_title_pane_nodes_generated.h"
+/* A privately staged source/private_title_clpa.h is optional. No original
+ * BCLAN keyframe payload is included in this public repository. */
+#if defined(__has_include)
+# if __has_include("private_title_clpa.h")
+#  include "private_title_clpa.h"
+#  define DR_HAS_PRIVATE_TITLE_CLPA 1
+# endif
+#endif
 #define title_nodes dr_title_source_nodes
 static DrUiFrame title_frames[5];
 static int title_ready;
@@ -20,6 +28,9 @@ int dr_title_runtime_frame(const DrUiAnimation *animation,float frame) {
     /* Atomically publish valid frames so a malformed private clip cannot
        move touch hitboxes independently of rendered menu elements. */
     DrUiFrame next[5];
+#ifdef DR_HAS_PRIVATE_TITLE_CLPA
+    if(!animation)animation=&dr_private_title_animation;
+#endif
     if(!dr_ui_evaluate(title_nodes,5,animation,frame,next,5))return 0;
     for(unsigned i=0;i<5;i++)title_frames[i]=next[i];
     title_ready=1;
