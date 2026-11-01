@@ -388,9 +388,14 @@
       "id": "device_and_emulator_tests",
       "feature": "Boot, input, performance, save tests on DS/DSi and emulator",
       "status": "unverified",
-      "gap": "CI compiles ROMs and runs portable tests; reliable end-to-end gameplay test still pending.",
+      "gap": "Linux DeSmuME screenshot/boot smoke workflow runs on relevant code changes, weekly, and manually; actual successful boot, menu navigation, DS/DSi hardware, save reload, and full gameplay still require verification.",
       "evidence": [
-        "Makefile"
+        "Makefile",
+        ".github/workflows/emulator-smoke.yml",
+        "scripts/emulator_smoke.sh",
+        "tools/verify_emulator_screenshots.py",
+        "tests/test_verify_emulator_screenshots.py",
+        "docs/LINUX_EMULATOR_SCREENSHOTS.md"
       ]
     }
   ]
