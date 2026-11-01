@@ -47,6 +47,7 @@ int main(void) {
     g.aim_y=85;
     game_fire(&g);
     assert(g.screen==STATE_SPHERE);
+    assert(g.session_species>=0 || g.session_item>=0);
     assert(g.radar_resume_pending); /* Uncollected Orbs remain in the outing. */
     /* Complete the encounter through actual beam hits, not a direct
      * game_capture() shortcut that bypasses aiming and damage logic. */
