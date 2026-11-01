@@ -74,35 +74,21 @@ assert_changed() {
 }
 sleep 10
 snapshot 01-title
-# Discover the active melonDS keyboard mapping instead of assuming a host
-# layout. Capture after each candidate and record pixel deltas for diagnosis.
-probe_key() {
-  local key="$1" before="$2" after="$3" diff
-  xdotool windowfocus --sync "$window" 2>/dev/null || true
-  xdotool key --clearmodifiers "$key"
-  sleep 1
-  snapshot "$after"
-  diff="$(compare -metric AE "$out/$before.png" "$out/$after.png" null: 2>&1 || true)"
-  echo "Key probe $key: changed pixels=$diff" | tee -a "$out/runtime.log"
-  awk -v n="$diff" 'BEGIN { exit !(n+0 > 500) }'
-}
-# First try the documented DS Start key, then common SDL/Qt keyboard mappings.
-# The first key that visibly changes the rendered screens becomes the active
-# input mapping for subsequent navigation.
-active_key=""
-previous="01-title"
-for key in Return KP_Enter x z a s space; do
-  if probe_key "$key" "$previous" "probe-$key"; then
-    active_key="$key"
-    cp "$out/probe-$key.png" "$out/02-intro.png"
-    break
-  fi
-  previous="probe-$key"
-done
-if [[ -z "$active_key" ]]; then
-  echo "No tested keyboard key changed the melonDS frame; input mapping/display needs investigation." >&2
+# melonDS renders a 20px desktop menu strip above its 384px DS display.
+# The Start button is on the lower screen at window-relative y≈249.
+# Tap the highlighted Start item using a stylus contact held across frames.
+xdotool windowactivate --sync "$window" 2>/dev/null || true
+xdotool mousemove --sync --window "$window" 128 249
+xdotool mousedown 1
+sleep 0.5
+xdotool mouseup 1
+sleep 4
+snapshot 02-after-start-touch
+diff="$(compare -metric AE "$out/01-title.png" "$out/02-after-start-touch.png" null: 2>&1 || true)"
+echo "Touch Start changed pixels=$diff" | tee -a "$out/runtime.log"
+if ! awk -v n="$diff" 'BEGIN { exit !(n+0 > 500) }'; then
+  echo "Touchscreen tap did not change the title screen; input path still needs diagnosis." >&2
   exit 1
 fi
-echo "Detected responsive keyboard key: $active_key" | tee -a "$out/runtime.log"
-echo "PASS: melonDS accepts host keyboard input and produces a visible frame transition" |
+echo "PASS: melonDS touchscreen input produced a visible title-screen transition" |
   tee -a "$out/runtime.log"
