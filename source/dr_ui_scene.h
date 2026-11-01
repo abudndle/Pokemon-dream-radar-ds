@@ -10,5 +10,7 @@ void dr_ui_scene_free(DrUiScene *scene);
 /* Returns 1 only if all four live Touch00..Touch03 panes resolve to visible,
  * non-overlapping DS rectangles. On failure, callers use the bundled layout. */
 int dr_ui_title_rects(const DrUiScene *scene,float frame,DrUiRect out[4]);
+/* Shared source-derived four-row menu evaluator (TitleList / ScanList). */
+int dr_ui_four_row_rects(const DrUiScene *scene,float frame,DrUiRect out[4]);
 int dr_ui_title_hit(const DrUiRect rects[4],int x,int y);
 #endif
