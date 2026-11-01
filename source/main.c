@@ -1524,15 +1524,7 @@ static void handle_key(int keys,int down,touchPosition *touch) {
             int best=dr_support_at(touch->px,touch->py);
             if(best>=0) game_use_support(&game,best);
         }
-        /* DSi-enhanced players can press L+R together to photograph the
-           current outer-camera view. Only trigger on a new shoulder press,
-           not every frame while both buttons remain held. */
-        if(running_dsi && ((down&KEY_X) ||
-           dr_photo_shortcut(running_dsi,keys,down,KEY_L,KEY_R))) {
-            if(save_photo())snprintf(game.message,sizeof game.message,"Photo saved on DSi SD card.");
-            else snprintf(game.message,sizeof game.message,"Camera photo unavailable.");
-            game.messages=120;
-        }
+        /* Radar and encounter controls never capture photos. */
         if((down&KEY_B) || ((down&KEY_TOUCH) && touch->px>=188 && touch->py>=174)){
             game_leave_search(&game);
         }
