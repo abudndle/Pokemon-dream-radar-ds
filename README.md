@@ -397,7 +397,7 @@ Do not treat the validation script as a substitute for testing in melonDS DSi mo
 
 ## Camera and data rules
 
-- **DS / DS Lite:** camera-independent gameplay and no camera menus. Filesystem writes require compatible DLDI/flashcart storage; these consoles do not have DSi internal SD access.
+- **DS / DS Lite:** camera-independent gameplay; the title-only camera settings screen permits BMP import but shows the hardware camera as unavailable. Filesystem writes require compatible DLDI/flashcart storage; these consoles do not have DSi internal SD access.
 - **DSi:** camera is optional. If disabled, absent or initialization fails, aim with stylus and D-pad. Experimental camera tracking cannot reproduce a missing gyroscope.
 - **Pokémon game recognition:** only one active game at a time, via inserted Slot-1 header (where hardware access allows) or one TWiLight `.nds` and `.sav[1..9]` pair; retail save files are read-only.
 - **Storage full:** replace a chosen Pokémon/item slot with a second confirmation or cancel. Legendary once-only flags set only on accepted capture.
