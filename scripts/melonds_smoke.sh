@@ -45,10 +45,15 @@ snapshot() {
 }
 press_ds_key() {
   local key="$1"
-  xdotool windowfocus "$window" 2>/dev/null || true
-  xdotool keydown --window "$window" "$key"
-  sleep 0.25
-  xdotool keyup --window "$window" "$key"
+  xdotool windowactivate --sync "$window" 2>/dev/null || true
+  xdotool key --clearmodifiers "$key"
+  sleep 2
+}
+touch_ds() {
+  local x="$1" y="$2"
+  xdotool windowactivate --sync "$window" 2>/dev/null || true
+  xdotool mousemove --window "$window" "$x" "$y"
+  xdotool click 1
   sleep 2
 }
 assert_changed() {
@@ -65,18 +70,28 @@ assert_changed() {
 }
 sleep 10
 snapshot 01-title
-# melonDS default keyboard mapping: Return=Start, z=B, x=A.
-press_ds_key Return
+# Use real touchscreen taps for deterministic menu navigation. The screenshot
+# window is 256x403: a 192px top screen followed by the 192px touch screen,
+# with the melonDS menu strip above it. Touch centers match runtime hitboxes.
+touch_ds 128 269
 snapshot 02-intro
 assert_changed 01-title 02-intro
-press_ds_key z
-snapshot 03-lab
-assert_changed 02-intro 03-lab
-# Lab's first option opens the extension list; its first entry is Basic.
+# melonDS default B mapping is X. B skips the intro directly to the lab.
 press_ds_key x
+snapshot 03-lab
+if compare -metric AE "$out/02-intro.png" "$out/03-lab.png" null: 2>&1 | awk 'BEGIN{n=0} {n=$1} END{exit !(n+0>500)}'; then
+  :
+else
+  # Touch advances any remaining Burnet intro pages; retry up to four times.
+  for _ in 1 2 3 4; do touch_ds 128 350; done
+  snapshot 03-lab
+  assert_changed 02-intro 03-lab
+fi
+# Lab row 0 is START SEARCH; extension row 0 is the Basic Extension.
+touch_ds 128 224
 snapshot 04-extensions
 assert_changed 03-lab 04-extensions
-press_ds_key x
+touch_ds 128 244
 snapshot 05-cloud-search
 assert_changed 04-extensions 05-cloud-search
 echo "PASS: real melonDS boot, title -> intro -> lab -> extensions -> radar navigation" |
