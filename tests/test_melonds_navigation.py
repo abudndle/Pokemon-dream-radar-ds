@@ -4,7 +4,8 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 from verify_melonds_navigation import (check_heading, font_rows, read_radar_counters,
                                        compare_radar_counters, compare_orb_counters,
-                                       read_sphere_state, observe_search_state)
+                                       read_sphere_state, observe_search_state,
+                                       read_capture_reward, read_capture_progress)
 
 font = font_rows()
 width, height = 256, 403
@@ -141,6 +142,57 @@ except ValueError:
     pass
 else:
     raise AssertionError("Blank screen accepted as radar or sphere")
+
+
+# A screenshot of an encounter is not a successful capture. Check the real
+# gold HP meter and recognize a reward only on the separate Results screen.
+meter = sphere_frame("SWIFT", "90")
+for x in range(11, 11 + 88):
+    for y in range(6, 15):
+        at = ((y + OFFSET) * width + x) * 3
+        meter[at:at + 3] = bytes((255, 255, 0))
+progress = read_capture_progress(meter, width, height, font)
+assert progress["filled_pixels"] == 88 and progress["bar_width"] == 177
+assert progress["encounter"]["capture_class"] == "swift"
+assert read_capture_progress(sphere_frame(), width, height, font)["filled_pixels"] == 0
+
+def results_reward_frame(kind, name):
+    result = bytearray(width * height * 3)
+    def draw_at(x, y, message, rgb):
+        for index, character in enumerate(message):
+            for row in range(8):
+                mask = font[(ord(character) - 32) * 8 + row]
+                for column in range(6):
+                    if mask & (1 << (5 - column)):
+                        at = ((y + OFFSET + row) * width + x + index * 6 + column) * 3
+                        result[at:at + 3] = bytes(rgb)
+    draw_at(10, 8, "RESEARCH RESULTS", (255, 255, 255))
+    prefix = "Caught: " if kind == "pokemon" else "Item: "
+    color = (255, 255, 0) if kind == "pokemon" else (255, 255, 255)
+    draw_at(16, 192 + 68, prefix + name, color)
+    return result
+
+assert read_capture_reward(results_reward_frame("pokemon", "Munna"),
+                           width, height, font) == {
+                               "reward_kind": "pokemon", "reward_name": "Munna"}
+assert read_capture_reward(results_reward_frame("item", "Rare Candy"),
+                           width, height, font) == {
+                               "reward_kind": "item", "reward_name": "Rare Candy"}
+for invalid in (
+    sphere_frame("SWIFT", "90"),
+    results_reward_frame("pokemon", "NotASpecies"),
+    results_reward_frame("item", "NotAnItem"),
+    results_reward_frame("pokemon", "Rare Candy"),
+    results_reward_frame("item", "Munna"),
+):
+    try:
+        read_capture_reward(invalid, width, height, font)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("Unverified or wrong-catalog reward accepted")
+
+print("PASS: capture meter and catalog-backed Pokemon/item results recognition")
 
 print("PASS: gold capture-class and white timer independently verify live sphere screens")
 
