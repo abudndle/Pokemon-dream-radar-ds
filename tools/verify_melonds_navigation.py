@@ -324,6 +324,12 @@ def main():
     parser.add_argument("--touch-verified", choices=("0", "1"), default="0")
     parser.add_argument("--observe-search-screenshot", type=Path,
                         help="Print verified radar/encounter state from one actual screenshot")
+    parser.add_argument("--observe-reward-screenshot", type=Path,
+                        help="Recognize a catalog-backed reward from a Results screenshot")
+    parser.add_argument("--observe-capture-progress", type=Path,
+                        help="Read the gold meter from a sphere screenshot")
+    parser.add_argument("--observe-results-screenshot", type=Path,
+                        help="Recognize a Results heading without assuming a reward")
     args = parser.parse_args()
     if sum(v is not None for v in
            (args.observe_search_screenshot, args.observe_reward_screenshot,
