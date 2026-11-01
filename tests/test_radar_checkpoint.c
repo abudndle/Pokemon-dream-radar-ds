@@ -140,7 +140,7 @@ int main(void) {
     /* A checksummed sidecar must not restore physically impossible entities.
      * In particular, a huge Orb velocity could overflow signed arithmetic
      * on the first radar tick after loading. The stable save remains usable. */
-    for(int invalid=0;invalid<6;invalid++) {
+    for(int invalid=0;invalid<7;invalid++) {
         Game malformed=g;
         DreamOrb *orb=&malformed.dream_orbs[0];
         orb->alive=1;orb->x=120;orb->y=80;
@@ -152,6 +152,7 @@ int main(void) {
             case 3: orb->color_phase=5;break;
             case 4: malformed.clouds[0].kind=2;break;
             case 5: orb->vx=0;break;
+            case 6: malformed.active_clouds=0;break;
         }
         assert(save_backend_write(&backend,&malformed));
         reload(&backend,&loaded);
