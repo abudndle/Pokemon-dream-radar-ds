@@ -156,7 +156,7 @@ def read_capture_reward(pixels, width, height, font):
     matches = []
     for kind, prefix, ink, filename, variable in catalogs:
         source = (ROOT / "source" / filename).read_text()
-        block = re.search(r"\\b" + variable + r"\\s*\\[[^]]*\\]\\s*=\\s*\\{(.*?)\\};",
+        block = re.search(r"\b" + variable + r"\s*\[[^]]*\]\s*=\s*\{(.*?)\};",
                           source, re.S)
         if not block:
             raise ValueError(f"Cannot locate {variable} catalog")
