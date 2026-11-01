@@ -60,33 +60,35 @@ snapshot() {
 # Capture actual emulator window, not simulated original UI images.
 sleep 7
 snapshot 01-title
+# DS X (DeSmuME CLI keyboard 's') opens the camera quick menu only on
+# title/intro. Exercise it BEFORE Start/A advance into the lab, where X is
+# reserved for another gameplay action. Do not conflate unrelated key input
+# with a camera-settings failure.
 xdotool windowfocus "$window" 2>/dev/null || true
-xdotool key --window "$window" Return 2>/dev/null || true
-sleep 6
-snapshot 02-after-start
-# DeSmuME default key binding for DS A is X.
-xdotool key --window "$window" x 2>/dev/null || true
-sleep 6
-snapshot 03-after-a
-# Keep the same focus path that successfully advanced Start and DS A above.
-# DeSmuME CLI maps keyboard 's' to DS X, which opens the added camera
-# quick menu on title/intro (without overriding search/photo controls).
-# Mouse/XTest stylus injection is NOT yet reliable under headless Xvfb.
-xdotool windowfocus "$window" 2>/dev/null || true
-xdotool key --clearmodifiers --window "$window" s
+xdotool key --window "$window" s
 sleep 3
 snapshot 04-camera-settings
 # Reject unchanged screenshots: a visible emulator window alone does not
 # demonstrate the newly added camera settings menu.
-python3 - "$outdir/03-after-a.png" "$outdir/04-camera-settings.png" <<'PY'
+python3 - "$outdir/01-title.png" "$outdir/04-camera-settings.png" <<'PY'
 import hashlib
 import pathlib
 import sys
 before, after=(pathlib.Path(p).read_bytes() for p in sys.argv[1:3])
 if hashlib.sha256(before).digest()==hashlib.sha256(after).digest():
     raise SystemExit("DS X did not open camera settings; unchanged real screenshot")
-print("PASS: emulator displayed a changed frame after DS X camera shortcut")
+print("PASS: emulator displayed a changed title frame after DS X camera shortcut")
 PY
+# DS B (keyboard 'z') returns to title without losing the normal smoke path.
+xdotool key --window "$window" z
+sleep 2
+xdotool key --window "$window" Return
+sleep 6
+snapshot 02-after-start
+# DeSmuME default key binding for DS A is X.
+xdotool key --window "$window" x
+sleep 6
+snapshot 03-after-a
 python3 tools/verify_emulator_screenshots.py \
   --output "$outdir/report.json" \
   "$outdir/01-title.png" "$outdir/02-after-start.png" \
