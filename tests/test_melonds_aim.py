@@ -3,7 +3,8 @@ from pathlib import Path
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
-from plan_melonds_aim import locate_clouds, locate_orbs, plan, plan_orb
+from plan_melonds_aim import (locate_clouds, locate_orbs, locate_spheres,
+                              plan, plan_orb, plan_sphere)
 
 WIDTH, HEIGHT = 256, 403
 OFFSET = HEIGHT - 384
@@ -74,5 +75,42 @@ except ValueError:
     pass
 else:
     raise AssertionError("Cloud pixels accepted as Dream Orbs")
+
+
+# Only the known flat-background, near-white DS encounter fallback can be
+# tracked. Never interpret an arbitrary textured frame as a capture target.
+def sphere_frame(with_target=True):
+    pixels = bytearray(bytes((203, 211, 219)) * (WIDTH * HEIGHT))
+    if with_target:
+        for y in range(70 + OFFSET, 130 + OFFSET):
+            for x in range(70, 170):
+                at = (y * WIDTH + x) * 3
+                pixels[at:at + 3] = bytes((243, 243, 243))
+        # A small near-white reticle must not become another sphere.
+        for y in range(78 + OFFSET, 96 + OFFSET):
+            for x in range(215, 233):
+                at = (y * WIDTH + x) * 3
+                pixels[at:at + 3] = bytes((255, 255, 255))
+    return pixels
+
+spheres = locate_spheres(sphere_frame(), WIDTH, HEIGHT)
+assert len(spheres) == 1
+assert spheres[0][:2] == (120, 100)
+guided = plan_sphere(sphere_frame(), WIDTH, HEIGHT)
+assert guided["target_screen"] == {"x": 120, "y": 100}
+assert guided["horizontal_key"] == "Left" and guided["vertical_key"] == "Down"
+assert guided["candidate_spheres"] == 1
+for invalid in (
+    sphere_frame(False),
+    bytes(WIDTH * HEIGHT * 3),
+    sphere_frame()[:-3],
+):
+    try:
+        plan_sphere(invalid, WIDTH, HEIGHT)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("Unverified encounter backdrop or blank frame accepted")
+print("PASS: conservative sphere silhouette planner ignores reticle and unknown scenes")
 
 print("PASS: screenshot-driven cloud/Orb aim planner handles nearest target and invalid frames")
