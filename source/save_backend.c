@@ -146,14 +146,22 @@ static int radar_checkpoint_restore(const char *save_path,Game *g) {
         const Cloud *cloud=&r.session.clouds[i];
         if(cloud->alive!=0 && cloud->alive!=1)return 0;
         if(cloud->alive && (cloud->x<0 || cloud->x>255 ||
-                            cloud->y<0 || cloud->y>191))return 0;
+                            cloud->y<0 || cloud->y>191 ||
+                            cloud->kind<0 || cloud->kind>1))return 0;
     }
     for(int i=0;i<MAX_DREAM_ORBS;i++) {
         const DreamOrb *orb=&r.session.dream_orbs[i];
         if(orb->alive>1)return 0;
-        if(orb->alive && (orb->ttl<=0 ||
+        /* Spawned Orbs move by exactly one pixel per axis, have at most
+         * 210 frames of life and use one of five color phases. Rejecting
+         * impossible velocities also prevents signed overflow in the next
+         * game_tick() position update after loading a damaged checkpoint. */
+        if(orb->alive && (orb->ttl<=0 || orb->ttl>210 ||
                           orb->x<0 || orb->x>255 ||
-                          orb->y<0 || orb->y>191))return 0;
+                          orb->y<0 || orb->y>191 ||
+                          (orb->vx!=-1 && orb->vx!=1) ||
+                          (orb->vy!=-1 && orb->vy!=1) ||
+                          orb->color_phase>4))return 0;
     }
     SaveData progress=g->save;
     *g=r.session;
