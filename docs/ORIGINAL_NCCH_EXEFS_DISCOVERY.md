@@ -10,11 +10,11 @@ logo animation files, audio, shaders, and ROM data remain private**.
 
 Run the bounded, read-only audit against your own decrypted image:
 
-\`\`\`sh
+```sh
 python3 tools/audit_ncch_exefs.py \
   "/private/Pokmon Dream Radar.0(1).ncch" \
   "/private/ncch_exefs_report.json"
-\`\`\`
+```
 
 The verified **metadata-only** aggregate snapshot is
 [ORIGINAL_NCCH_EXEFS_AUDIT.json](ORIGINAL_NCCH_EXEFS_AUDIT.json).
@@ -23,17 +23,17 @@ The verified **metadata-only** aggregate snapshot is
 
 | Area | Independently checked resources | Interpretation |
 | --- | --- | --- |
-| ExeFS \`banner\` | 14 valid LZ11-compressed **CGFX** containers, all with DATA sections and a CMDL signature | Original **Nintendo 3DS Home Menu banner graphics**; *not* confirmed Pokémon encounter meshes |
-| ExeFS \`banner\` | 1 original **CWAV** sound section | Home Menu banner sound, not the whole game audio set |
-| ExeFS \`logo\` | 1 separate LZ11-compressed **DARC**, 16 entries | Nintendo logo UI: 8 BCLIM, 6 BCLAN and 2 BCLYT |
-| ExeFS \`icon\` | SMDH | Home Menu icon metadata |
-| ExeFS \`.code\` | Executable section, 572,840 bytes | ARM executable; no game-model or bone layout decoded here |
+| ExeFS `banner` | 14 valid LZ11-compressed **CGFX** containers, all with DATA sections and a CMDL signature | Original **Nintendo 3DS Home Menu banner graphics**; *not* confirmed Pokémon encounter meshes |
+| ExeFS `banner` | 1 original **CWAV** sound section | Home Menu banner sound, not the whole game audio set |
+| ExeFS `logo` | 1 separate LZ11-compressed **DARC**, 16 entries | Nintendo logo UI: 8 BCLIM, 6 BCLAN and 2 BCLYT |
+| ExeFS `icon` | SMDH | Home Menu icon metadata |
+| ExeFS `.code` | Executable section, 572,840 bytes | ARM executable; no game-model or bone layout decoded here |
 | RomFS | 177 CARC archive files beginning with a validated compression header | Already independently decoded into DARC archives in Milestone #16 |
-| RomFS | 10 DVLB shader files (\`.shbin\`) | GPU shader programs, not direct 3D scene/skeleton files |
-| RomFS | 20 CSTM streams (\`.bcstm\`) and 1 CSAR sound archive (\`.bcsar\`) | Audio resources, not model/animation assets |
+| RomFS | 10 DVLB shader files (`.shbin`) | GPU shader programs, not direct 3D scene/skeleton files |
+| RomFS | 20 CSTM streams (`.bcstm`) and 1 CSAR sound archive (`.bcsar`) | Audio resources, not model/animation assets |
 
 **Confirmed extra original 3D container source:** The ExeFS banner uses
-Nintendo's \`CBMD\` format (3DS Home Menu banner model data). Its graphics
+Nintendo's `CBMD` format (3DS Home Menu banner model data). Its graphics
 slots are LZ11-compressed CGFX. All **14** present entries decoded within
 a 512 KiB limit and passed CGFX header, declared-size, section-count and
 DATA-section checks. Together these yielded **2,483,968 bytes of private
@@ -57,12 +57,12 @@ file is identified in this **top-level RomFS filename/signature** census.
 **Do not confuse these findings:** The existence of genuine CGFX/CMDL
 content inside a Home Menu banner does not establish that Pokémon gameplay
 models have been found or converted. The banner is a distinct application
-asset; the \`.code\` section and any unknown embedded data remain opaque.
+asset; the `.code` section and any unknown embedded data remain opaque.
 
 ## How the scanner works
 
 The portable, stdlib-only
-[\`audit_ncch_exefs.py\`](../tools/audit_ncch_exefs.py) checks the
+[`audit_ncch_exefs.py`](../tools/audit_ncch_exefs.py) checks the
 original NCCH content length, ExeFS section bounds/overlaps, required
 section names and SMDH icon. It then validates CBMD graphics offsets and
 CWAV size, decodes bounded LZ11 variants with strict backreference and
