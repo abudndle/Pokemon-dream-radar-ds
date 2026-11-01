@@ -122,6 +122,43 @@ int main(void) {
         assert(loaded.screen==STATE_EXTENSIONS);
         assert(loaded.save.orbs==g.save.orbs);
     }
+    /* A corrupted-but-checksummed session must not resurrect impossible
+     * Orb rewards or cloud hits. A tally mismatch can otherwise silently
+     * change the dominant color after resuming the hunt. */
+    for(int invalid=0;invalid<7;invalid++) {
+        Game malformed=g;
+        switch(invalid) {
+            case 0: malformed.session_orbs=-1;break;
+            case 1: malformed.session_orbs=MAX_CLOUDS*DREAM_ORB_CHAIN_LIMIT+1;break;
+            case 2: malformed.cloud_hit=-1;break;
+            case 3: malformed.cloud_hit=malformed.active_clouds+1;break;
+            case 4: malformed.session_color_counts[0]=1;break;
+            case 5: malformed.session_orbs=1;break;
+            case 6:
+                malformed.session_orbs=1;
+                malformed.session_color_counts[0]=2;
+                break;
+        }
+        assert(save_backend_write(&backend,&malformed));
+        reload(&backend,&loaded);
+        assert(loaded.screen==STATE_EXTENSIONS);
+        assert(loaded.save.orbs==g.save.orbs);
+    }
+    /* A genuine matching per-color tally remains resumable and the
+     * recovered search must not award or deduct an Orb on reload. */
+    Game valid_tally=g;
+    valid_tally.session_orbs=2;
+    valid_tally.session_color_counts[ORB_PINK]=1;
+    valid_tally.session_color_counts[ORB_GREEN]=1;
+    valid_tally.cloud_hit=valid_tally.active_clouds;
+    assert(save_backend_write(&backend,&valid_tally));
+    reload(&backend,&loaded);
+    assert(loaded.screen==STATE_RADAR);
+    assert(loaded.session_orbs==2 && loaded.cloud_hit==valid_tally.active_clouds);
+    assert(loaded.session_color_counts[ORB_PINK]==1);
+    assert(loaded.session_color_counts[ORB_GREEN]==1);
+    assert(loaded.save.orbs==g.save.orbs);
+
     /* A valid boundary state is still resumable. */
     Game valid_chain=g;
     valid_chain.search_orb_color=ORB_PINK;
