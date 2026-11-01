@@ -77,12 +77,25 @@ sleep 0.3
 xdotool mouseup 1 2>/dev/null || true
 sleep 3
 snapshot 04-after-touch-attempt
-# In the SDL CLI emulator touch XTest events may not be delivered. Right
-# Shift is DeSmuME's DS Select mapping; the game exposes SELECT as an
-# accessibility/test fallback to the same two-action camera menu.
-xdotool key --window "$window" Shift_R 2>/dev/null || true
+# Debian DeSmuME CLI maps Left Shift to DS Select (not Right Shift).
+# Hold the key for multiple VBlanks to avoid missing a short synthetic tap.
+# Touch XTest events may not be forwarded by this SDL CLI emulator.
+xdotool keydown --window "$window" Shift_L
+sleep 0.4
+xdotool keyup --window "$window" Shift_L
 sleep 3
 snapshot 05-camera-settings-select
+# A test screenshot must show an actual state change, not merely the same
+# 256x384 window after an input that the emulator silently ignored.
+python3 - "$outdir/03-after-a.png" "$outdir/05-camera-settings-select.png" <<'PY'
+import hashlib
+import pathlib
+import sys
+before, after=(pathlib.Path(p).read_bytes() for p in sys.argv[1:3])
+if hashlib.sha256(before).digest()==hashlib.sha256(after).digest():
+    raise SystemExit("DS Select did not open camera settings; unchanged real screenshot")
+print("PASS: emulator displayed a changed frame after DS Select")
+PY
 python3 tools/verify_emulator_screenshots.py \
   --output "$outdir/report.json" \
   "$outdir/01-title.png" "$outdir/02-after-start.png" \
