@@ -60,6 +60,14 @@ orb = plan_orb(orbs, WIDTH, HEIGHT)
 assert orb["target_screen"] == {"x": 65, "y": 54}
 assert orb["candidate_orbs"] == 3
 assert orb["horizontal_key"] == "Left" and orb["vertical_key"] == "Up"
+assert not orb["within_safe_fire_radius"]
+assert orb["reticle_distance_squared"] > 64
+aligned = plan_orb(orb_frame([(128, 96)]), WIDTH, HEIGHT)
+assert aligned["within_safe_fire_radius"] and aligned["reticle_distance_squared"] == 0
+near_edge = plan_orb(orb_frame([(136, 96)]), WIDTH, HEIGHT)
+assert near_edge["within_safe_fire_radius"]
+outside = plan_orb(orb_frame([(137, 96)]), WIDTH, HEIGHT)
+assert not outside["within_safe_fire_radius"]
 try:
     plan_orb(frame([(107, 83)]), WIDTH, HEIGHT)
 except ValueError:
