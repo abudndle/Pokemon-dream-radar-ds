@@ -116,3 +116,22 @@ with tempfile.TemporaryDirectory() as temporary:
     else:
         raise AssertionError("Zero-area DRM1 triangle accepted")
 print("PASS: degenerate mesh triangle rejection")
+
+with tempfile.TemporaryDirectory() as temporary:
+    root = pathlib.Path(temporary)
+    name = "pokemon_00.drm"
+    manifest = "model_manifest.json"
+    payload = bytearray(fixture("DRM1"))
+    payload[6:8] = bytes([2, 0])
+    payload.extend(bytes([2, 0, 0, 0, 1, 0]))
+    (root / name).write_bytes(payload)
+    (root / manifest).write_text(json.dumps({"format": "DRM1", "models": [
+        {"file": name, "bytes": len(payload),
+         "sha256": hashlib.sha256(payload).hexdigest()}]}))
+    try:
+        verify(root, manifest, "DRM1", ".drm")
+    except ValueError as exc:
+        assert "Duplicate" in str(exc), str(exc)
+    else:
+        raise AssertionError("Repeated DRM1 face accepted")
+print("PASS: duplicate mesh face rejection")

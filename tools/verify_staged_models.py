@@ -40,12 +40,17 @@ def verify(directory: Path, manifest: str, expected_format: str, extension: str)
                     and len(payload) == expected_length):
                 raise ValueError("Invalid DRM1 geometry layout: " + name)
             offset = 8 + 6 * vertices
+            seen_faces = set()
             for index in range(triangles):
                 base = offset + 6 * index
                 a, b, c = (int.from_bytes(payload[base + j:base + j + 2], "little")
                            for j in (0, 2, 4))
                 if max(a, b, c) >= vertices or len({a, b, c}) != 3:
                     raise ValueError("Invalid DRM1 triangle: " + name)
+                face = tuple(sorted((a, b, c)))
+                if face in seen_faces:
+                    raise ValueError("Duplicate DRM1 triangle: " + name)
+                seen_faces.add(face)
                 def point(vertex):
                     at = 8 + 6 * vertex
                     return tuple(int.from_bytes(payload[at + k:at + k + 2],
