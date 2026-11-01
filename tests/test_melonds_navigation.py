@@ -2,7 +2,8 @@
 from pathlib import Path
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
-from verify_melonds_navigation import check_heading, font_rows, read_radar_counters
+from verify_melonds_navigation import (check_heading, font_rows, read_radar_counters,
+                                       compare_radar_counters)
 
 font = font_rows()
 width, height = 256, 403
@@ -63,5 +64,22 @@ for label in (
         pass
     else:
         raise AssertionError(f"Invalid radar counters accepted: {label!r}")
+
+# A fire input is not equivalent to a successful hit. Report only observed
+# changes in actual on-screen counters, including a no-hit result.
+before = {"clouds": 5, "orbs": 0}
+same = compare_radar_counters(before, {"clouds": 5, "orbs": 0})
+assert same["status"] == "no_counter_change"
+assert not same["cloud_removal_observed"]
+hit = compare_radar_counters(before, {"clouds": 4, "orbs": 3})
+assert hit["status"] == "cloud_count_decreased"
+assert hit["clouds_removed"] == 1 and hit["orb_count_change"] == 3
+assert hit["cloud_removal_observed"]
+unexpected = compare_radar_counters(before, {"clouds": 6, "orbs": 0})
+assert unexpected["status"] == "counters_changed_without_confirmed_cloud_removal"
+assert not unexpected["cloud_removal_observed"]
+orb_only = compare_radar_counters(before, {"clouds": 5, "orbs": 1})
+assert orb_only["status"] == "counters_changed_without_confirmed_cloud_removal"
+assert not orb_only["cloud_removal_observed"]
 
 print("PASS: emulator heading and radar-counter recognition reject blank, wrong-stage, shifted and scaled frames")
