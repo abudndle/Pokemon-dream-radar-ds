@@ -60,6 +60,8 @@ static const char *const bg_files[] = {
 };
 static u16 bg_cache[11][PIXELS] __attribute__((aligned(32)));
 static u8 bg_valid[11];
+/* True only after both private original title backgrounds validate. */
+static int original_title_art_loaded;
 static u16 *top_vram, *bottom_vram;
 static int have_storage, have_romfs, camera_busy, camera_frames, photo_index;
 static int running_dsi, camera_failed_this_run;
@@ -771,7 +773,9 @@ static void render(void) {
         char tx[45];
         int max_clouds=5*(game.save.upgrades[2]+1);
         snprintf(tx,sizeof tx,"CLOUDS %d/%d",game.save.cloud_count,max_clouds);
-        print(bottom,29,19,WHITE,tx);
+        /* Preserve the original cloud icon embedded in the private title
+           backdrop. The recreated public fallback has no source icon. */
+        print(bottom,original_title_art_loaded?117:29,19,WHITE,tx);
         const char *opts[]={"Start","Send Research Data","Credits","Records"};
         DrUiRect title_rows[4];
         title_live_rects(title_rows);
@@ -1860,6 +1864,7 @@ running_dsi=isDSiMode();
        dr_title_art_load(storage_root,bg_cache[7],bg_cache[5],PIXELS)){
         bg_valid[7]=1;
         bg_valid[5]=1;
+        original_title_art_loaded=1;
     }
 
     for(int i=0;i<68;i++)load_sprite(i);
