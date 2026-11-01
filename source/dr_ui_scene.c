@@ -185,11 +185,14 @@ static int compute(const DrUiScene *s,float frame,DrUiRect out[4]){
     }
     return 1;
 }
-int dr_ui_title_rects(const DrUiScene *s,float frame,DrUiRect out[4]){
+int dr_ui_four_row_rects(const DrUiScene *s,float frame,DrUiRect out[4]){
     if(!s||!out)return 0;
     DrUiRect temp[4];
     if(!compute(s,frame,temp))return 0;
     memcpy(out,temp,sizeof temp);return 1;
+}
+int dr_ui_title_rects(const DrUiScene *s,float frame,DrUiRect out[4]){
+    return dr_ui_four_row_rects(s,frame,out);
 }
 int dr_ui_title_hit(const DrUiRect r[4],int x,int y){
     if(!r || x<0 || x>=256 || y<0 || y>=192)return -1;
