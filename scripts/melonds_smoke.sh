@@ -74,15 +74,11 @@ assert_changed() {
 }
 sleep 10
 snapshot 01-title
-# Explicit keyboard mappings are written by the workflow before launch.
-# The title menu advertises A: SELECT; melonDS maps DS A to the Z key below.
-press_ds_key z
-snapshot 02-after-a
-diff="$(compare -metric AE "$out/01-title.png" "$out/02-after-a.png" null: 2>&1 || true)"
-echo "Mapped DS A (Z) changed pixels=$diff" | tee -a "$out/runtime.log"
-if ! awk -v n="$diff" 'BEGIN { exit !(n+0 > 500) }'; then
-  echo "Mapped DS A did not change the title screen." >&2
-  exit 1
-fi
-echo "PASS: melonDS mapped DS A input produced a visible title-screen transition" |
+# The captured client window is 256x403: its menu bar occupies y=0..19,
+# top DS screen y=20..211, and touchscreen y=211..402. Tap the center of
+# the highlighted Start button (x=128, y≈269), not the cloud-count label.
+touch_ds 128 269
+snapshot 02-after-start-touch
+assert_changed 01-title 02-after-start-touch
+echo "PASS: melonDS touchscreen activated the highlighted Start menu item" |
   tee -a "$out/runtime.log"
