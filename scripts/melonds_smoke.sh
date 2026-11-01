@@ -52,8 +52,12 @@ press_ds_key() {
 touch_ds() {
   local x="$1" y="$2"
   xdotool windowactivate --sync "$window" 2>/dev/null || true
-  xdotool mousemove --window "$window" "$x" "$y"
-  xdotool click 1
+  xdotool mousemove --sync --window "$window" "$x" "$y"
+  # Hold the stylus contact across several DS frames; a short X11 click can
+  # fall entirely between melonDS touch-sampling VBlanks.
+  xdotool mousedown 1
+  sleep 0.35
+  xdotool mouseup 1
   sleep 2
 }
 assert_changed() {
