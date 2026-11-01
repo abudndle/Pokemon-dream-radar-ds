@@ -84,12 +84,21 @@ def _evidence_file(root, entry, suffix):
 
 
 def _valid_png(data):
-    """Check a real PNG chunk stream and plausible dual-screen screenshot size."""
+    """Validate native-size screenshot pixels, not merely PNG chunk checksums.
+
+    A well-formed IDAT chunk can still contain arbitrary bytes, a truncated
+    deflate stream or a decompression bomb. Only complete non-interlaced PNG
+    scanlines with valid filters are accepted as screenshot evidence.
+    """
     import struct
     import zlib
-    if not data.startswith(b"\x89PNG\r\n\x1a\n"):
+    if not data.startswith(b"\\x89PNG\\r\\n\\x1a\\n"):
         return False
-    pos, width, height, saw_image, saw_end = 8, 0, 0, False, False
+    pos = 8
+    width = height = bit_depth = color_type = None
+    image_data = bytearray()
+    seen_idat = seen_end = seen_palette = False
+    after_idat = False
     while pos + 12 <= len(data):
         length = struct.unpack_from(">I", data, pos)[0]
         if length > 16 * 1024 * 1024 or pos + 12 + length > len(data):
@@ -99,19 +108,55 @@ def _valid_png(data):
         crc = struct.unpack_from(">I", data, pos + 8 + length)[0]
         if zlib.crc32(kind + body) & 0xffffffff != crc:
             return False
-        if pos == 8:
+        pos += length + 12
+        if width is None:
             if kind != b"IHDR" or length != 13:
                 return False
-            width, height = struct.unpack_from(">II", body)
-            if not (256 <= width <= 4096 and 192 <= height <= 4096):
+            width, height, bit_depth, color_type, compression, filtering, interlace = (
+                struct.unpack(">IIBBBBB", body))
+            if (width != 256 or not 384 <= height <= 480 or
+                    compression != 0 or filtering != 0 or interlace != 0):
                 return False
-        if kind == b"IDAT":
-            saw_image = True
-        pos += length + 12
-        if kind == b"IEND":
-            saw_end = length == 0 and pos == len(data)
+            allowed_depths = {0: (1, 2, 4, 8, 16), 2: (8, 16),
+                              3: (1, 2, 4, 8), 4: (8, 16), 6: (8, 16)}
+            if bit_depth not in allowed_depths.get(color_type, ()):
+                return False
+        elif kind == b"IHDR":
+            return False
+        elif kind == b"PLTE":
+            if seen_idat or seen_palette or length == 0 or length % 3 or length > 768:
+                return False
+            seen_palette = True
+        elif kind == b"IDAT":
+            if after_idat or (color_type == 3 and not seen_palette):
+                return False
+            seen_idat = True
+            image_data.extend(body)
+            if len(image_data) > 16 * 1024 * 1024:
+                return False
+        elif kind == b"IEND":
+            seen_end = length == 0 and pos == len(data)
             break
-    return saw_image and saw_end
+        elif seen_idat:
+            after_idat = True
+        # Unknown critical PNG chunks cannot be interpreted safely.
+        if kind not in (b"IHDR", b"PLTE", b"IDAT", b"IEND") and kind[0] & 32 == 0:
+            return False
+    if not (seen_idat and seen_end):
+        return False
+    channels = {0: 1, 2: 3, 3: 1, 4: 2, 6: 4}[color_type]
+    row_bytes = (width * channels * bit_depth + 7) // 8
+    expected = height * (row_bytes + 1)
+    try:
+        decoder = zlib.decompressobj()
+        raw = decoder.decompress(bytes(image_data), expected + 1)
+        if (len(raw) != expected or not decoder.eof or
+                decoder.unused_data or decoder.unconsumed_tail or
+                decoder.flush()):
+            return False
+    except zlib.error:
+        return False
+    return all(raw[row * (row_bytes + 1)] <= 4 for row in range(height))
 
 
 def audit_emulator_evidence(root, evidence_dir):
