@@ -47,16 +47,16 @@ with tempfile.TemporaryDirectory() as temp:
     except ValueError:pass
     else:raise AssertionError("same image accepted for both screens")
     assert (folder/"title_top.raw").read_bytes()==old[0]
-    png(bottom,320,240,(0,0,0),127)
-    try:stage(top,bottom,out)
+    bad_png=tmp/"bottom.png"
+    png(bad_png,320,240,(0,0,0),127)
+    try:stage(top,bad_png,out)
     except ValueError as exc:assert "transparent" in str(exc)
     else:raise AssertionError("transparent texture treated as opaque background")
     assert (folder/"title_bottom.raw").read_bytes()==old[1]
-    png(bottom,400,240,(1,2,3))
-    try:stage(top,bottom,out)
+    png(bad_png,400,240,(1,2,3))
+    try:stage(top,bad_png,out)
     except ValueError as exc:assert "screen size" in str(exc)
     else:raise AssertionError("wrong original source dimensions accepted")
-    png(bottom,320,240,(12,34,56))
     try:stage(top,bottom,ROOT/"nitrofs")
     except ValueError as exc:assert "public repo" in str(exc)
     else:raise AssertionError("allowed proprietary art into public checkout")
