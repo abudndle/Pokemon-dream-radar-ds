@@ -60,6 +60,12 @@ int main(void) {
     for(int shot=0;shot<100 && g.screen==STATE_SPHERE;shot++)
         game_fire(&g);
     assert(g.screen==STATE_RESULTS);
+    /* A results screen alone is not proof of a successful capture. */
+    assert(g.session_caught>=0 || g.session_item>=0);
+    assert(g.save.caught_count>0 || g.save.pending_count>0 ||
+           g.save.pending_items[0]>0 || g.save.pending_items[1]>0 ||
+           g.save.pending_items[2]>0 || g.save.pending_items[3]>0 ||
+           g.save.pending_items[4]>0 || g.save.pending_items[5]>0);
     assert(g.save.searches==1);
     assert(g.save.orbs>=900);
     assert(game_resume_radar(&g));
