@@ -726,20 +726,24 @@ static int extension_row_of(int ext) {
 static void extension_ensure_selected(void) {
     if(!extension_visible(game.ext_selection)) game.ext_selection=EXT_BASIC;
 }
-static int camera_quick_icon_visible(void) {
-    /* Camera settings is a title-only DS option, never a gameplay overlay. */
-    return game.screen==STATE_TITLE;
-}
-static void render_camera_quick_icon(void) {
-    /* A gear-shaped 34x24 touch icon, anchored to bottom-left. */
-    rect(bottom,3,168,34,24,0x8421);
-    border(bottom,3,168,34,24,WHITE);
-    const int cx=20,cy=180;
-    rect(bottom,cx-2,cy-9,5,18,CYAN);
-    rect(bottom,cx-9,cy-2,19,5,CYAN);
-    rect(bottom,cx-6,cy-6,13,13,WHITE);
-    rect(bottom,cx-4,cy-4,9,9,0x8421);
-    rect(bottom,cx-2,cy-2,5,5,CYAN);
+/* The camera menu is an intentionally hidden DS-specific utility. The
+ * original 3DS title art must not receive a visible camera-settings icon. */
+static int camera_combo_menu_allowed(GameScreen screen) {
+    switch(screen) {
+    case STATE_TITLE:
+    case STATE_LAB:
+    case STATE_SHOP:
+    case STATE_EXTENSIONS:
+    case STATE_RECORDS:
+    case STATE_STORAGE:
+    case STATE_TRANSFER:
+    case STATE_SETTINGS:
+    case STATE_TIPS:
+    case STATE_ALBUM:
+        return 1;
+    default:
+        return 0;
+    }
 }
 /* Render and touch use the identical resolved title panes. If the private
  * clip is unsupported, malformed or temporarily outside the viewport,
@@ -1174,7 +1178,7 @@ static void render(void) {
         print(bottom,11,138,WHITE,"256x192 / 24-BIT BMP ONLY");
         print(bottom,11,152,custom_background_loaded?GOLD:GRAY,
               custom_background_loaded?"BACKGROUND: LOADED":"BACKGROUND: BUILT-IN");
-        print(bottom,11,173,GRAY,"SELECT: RESET   B: BACK");
+        print(bottom,11,173,GRAY,"SEL: RESET  B: BACK");
         break;
     }
     case STATE_SETTINGS: {
@@ -1196,7 +1200,6 @@ static void render(void) {
         print(bottom,12,181,GRAY,"B: LAB");
         break;}
     }
-    if(camera_quick_icon_visible())render_camera_quick_icon();
     if(game.messages>0) {
         rect(top,5,145,246,42,0x88C4);border(top,5,145,246,42,GOLD);
         print_wrapped(top,10,150,38,WHITE,game.message,3);
@@ -1402,9 +1405,8 @@ static void from_results(int continue_search) {
     } else switch_screen(STATE_LAB);
 }
 static void handle_key(int keys,int down,touchPosition *touch) {
-    if(dr_camera_quick_open(game.screen==STATE_TITLE,
-                            (down&KEY_TOUCH)!=0,(down&KEY_X)!=0,
-                            touch->px,touch->py)) {
+    if(dr_camera_quick_open(camera_combo_menu_allowed(game.screen),
+                            keys,down,KEY_SELECT,KEY_X)) {
         camera_quick_return=game.screen;
         camera_quick_return_selection=game.selection;
         switch_screen(STATE_CAMERA_QUICK);
@@ -1444,7 +1446,8 @@ static void handle_key(int keys,int down,touchPosition *touch) {
                      "Original camera-free background restored.");
             game.messages=120;
         }
-        if(down&KEY_B) {
+        if((down&KEY_B) ||
+           dr_camera_quick_open(1,keys,down,KEY_SELECT,KEY_X)) {
             switch_screen(camera_quick_return);
             game.selection=camera_quick_return_selection;
         }
