@@ -206,6 +206,10 @@ int save_backend_load(SaveBackend *backend,Game *g) {
     }
     char bak[TW_MAX_PATH];
     if(snprintf(bak,sizeof bak,"%s.bak",backend->active) < (int)sizeof bak && game_load(g,bak)) {
+        /* The previous valid primary and its sidecar are backed up as a
+         * pair. Restore the interrupted search when both match; an absent
+         * or damaged sidecar safely falls back to the saved menu. */
+        radar_checkpoint_restore(bak,g);
         backend->recovered_backup=1;
         g->requested_save=1; /* Repair the failed primary automatically. */
         return 1;
@@ -225,10 +229,16 @@ int save_backend_load(SaveBackend *backend,Game *g) {
 int save_backend_write(SaveBackend *backend,Game *g) {
     if(!backend || !g || !backend->active[0])return 0;
     char temp[TW_MAX_PATH],bak[TW_MAX_PATH];
+    char sidecar[TW_MAX_PATH],bak_sidecar[TW_MAX_PATH];
     size_t len=strlen(backend->active);
-    if(len+sizeof(".tmp")>sizeof temp || len+sizeof(".bak")>sizeof bak)return 0;
+    if(len+sizeof(".tmp")>sizeof temp || len+sizeof(".bak")>sizeof bak ||
+       len+sizeof(".radar")>sizeof sidecar ||
+       len+sizeof(".bak.radar")>sizeof bak_sidecar)return 0;
     snprintf(temp,sizeof temp,"%s.tmp",backend->active);
     snprintf(bak,sizeof bak,"%s.bak",backend->active);
+    snprintf(sidecar,sizeof sidecar,"%s.radar",backend->active);
+    snprintf(bak_sidecar,sizeof bak_sidecar,"%s.bak.radar",backend->active);
+    int rotated_primary=0;
     if(!game_save(g,temp)) {remove(temp);return 0;}
     /* We only rotate the current save AFTER the replacement is complete. */
     struct stat st;
@@ -248,6 +258,15 @@ int save_backend_write(SaveBackend *backend,Game *g) {
             /* Only a checksum- and semantics-valid primary may replace .bak. */
             remove(bak);
             if(rename(backend->active,bak)!=0){remove(temp);return 0;}
+            rotated_primary=1;
+            /* The old radar session belongs to the old primary. Move it
+             * alongside .bak before the new main save can replace it.
+             * If no sidecar exists, discard the previous backup's sidecar.
+             * Failure to preserve an optional session must not invalidate
+             * the fully recoverable stable .bak progress. */
+            remove(bak_sidecar);
+            if(rename(sidecar,bak_sidecar)!=0 && errno!=ENOENT)
+                remove(sidecar);
         }
     }
     if(rename(temp,backend->active)==0){
@@ -255,7 +274,13 @@ int save_backend_write(SaveBackend *backend,Game *g) {
         return radar_checkpoint_write(backend->active,g);
     }
     /* In recovery mode we deliberately leave the known-good .bak untouched. */
-    if(!backend->recovered_backup && stat(bak,&st)==0)rename(bak,backend->active);
+    if(!backend->recovered_backup && stat(bak,&st)==0) {
+        if(rename(bak,backend->active)==0 && rotated_primary) {
+            /* Roll back the matching session if installing the new main
+             * save failed; otherwise the old session would be stranded. */
+            rename(bak_sidecar,sidecar);
+        }
+    }
     remove(temp);
     return 0;
 }
