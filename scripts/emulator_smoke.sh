@@ -87,13 +87,17 @@ if ! cmp -s "$outdir/01-title.png" "$outdir/05-title-no-gear.png"; then
   echo "Removed gear touch region unexpectedly changed the title" >&2
   exit 1
 fi
-# Best-effort Select+X chord: host Select mapping unverified under Xvfb.
-xdotool windowfocus "$window" 2>/dev/null || true
-xdotool keydown --window "$window" BackSpace
-xdotool keydown --window "$window" s
-sleep 0.5
-xdotool keyup --window "$window" s
-xdotool keyup --window "$window" BackSpace
+# Best-effort Select+X chord: headless Select mapping is not yet verified.
+send_camera_chord() {
+  xdotool windowfocus "$window" 2>/dev/null || true
+  xdotool keydown --window "$window" BackSpace
+  sleep 0.20
+  xdotool keydown --window "$window" s
+  sleep 0.5
+  xdotool keyup --window "$window" s
+  xdotool keyup --window "$window" BackSpace
+}
+send_camera_chord
 sleep 2
 snapshot 06-title-select-x-attempt
 camera_menu_opened=0
@@ -122,11 +126,11 @@ if cmp -s "$outdir/01-title.png" "$outdir/02-after-start.png"; then
   echo "DS Start did not advance from the title" >&2
   exit 1
 fi
-send_ds_key s
+send_camera_chord
 sleep 2
-snapshot 08-intro-X-blocked
-if ! cmp -s "$outdir/02-after-start.png" "$outdir/08-intro-X-blocked.png"; then
-  echo "DS X changed intro screen; title-only camera shortcut not verified" >&2
+snapshot 08-intro-combo-blocked
+if ! cmp -s "$outdir/02-after-start.png" "$outdir/08-intro-combo-blocked.png"; then
+  echo "Select+X changed Burnet intro; hidden menu must reject gameplay/story" >&2
   exit 1
 fi
 # DS B skips intro; DS A enters extensions for another real emulator shot.
@@ -136,7 +140,7 @@ send_ds_key x
 sleep 5
 snapshot 03-after-a
 screenshots=("$outdir/01-title.png" "$outdir/02-after-start.png"
-             "$outdir/08-intro-X-blocked.png" "$outdir/03-after-a.png"
+             "$outdir/08-intro-combo-blocked.png" "$outdir/03-after-a.png"
              "$outdir/04-title-x-alone.png" "$outdir/05-title-no-gear.png"
              "$outdir/06-title-select-x-attempt.png")
 if ((camera_menu_opened)); then screenshots+=("$outdir/07-title-after-camera-back.png"); fi
@@ -150,6 +154,7 @@ p=Path(sys.argv[1])
 camera_opened=sys.argv[2]=="1"
 report=json.loads(p.read_text())
 report["title_x_alone_blocked"]=True
+report["intro_select_x_chord_blocked"]=True
 report["removed_title_gear_touch_blocked"]=True
 report["select_x_chord_frame_transition_and_return"]=camera_opened
 report["camera_settings_verification"]=(
