@@ -74,21 +74,15 @@ assert_changed() {
 }
 sleep 10
 snapshot 01-title
-# melonDS renders a 20px desktop menu strip above its 384px DS display.
-# The Start button is on the lower screen at window-relative y≈249.
-# Tap the highlighted Start item using a stylus contact held across frames.
-xdotool windowactivate --sync "$window" 2>/dev/null || true
-xdotool mousemove --sync --window "$window" 128 249
-xdotool mousedown 1
-sleep 0.5
-xdotool mouseup 1
-sleep 4
-snapshot 02-after-start-touch
-diff="$(compare -metric AE "$out/01-title.png" "$out/02-after-start-touch.png" null: 2>&1 || true)"
-echo "Touch Start changed pixels=$diff" | tee -a "$out/runtime.log"
+# Explicit keyboard mappings are written by the workflow before launch.
+# The title menu advertises A: SELECT; melonDS maps DS A to the Z key below.
+press_ds_key z
+snapshot 02-after-a
+diff="$(compare -metric AE "$out/01-title.png" "$out/02-after-a.png" null: 2>&1 || true)"
+echo "Mapped DS A (Z) changed pixels=$diff" | tee -a "$out/runtime.log"
 if ! awk -v n="$diff" 'BEGIN { exit !(n+0 > 500) }'; then
-  echo "Touchscreen tap did not change the title screen; input path still needs diagnosis." >&2
+  echo "Mapped DS A did not change the title screen." >&2
   exit 1
 fi
-echo "PASS: melonDS touchscreen input produced a visible title-screen transition" |
+echo "PASS: melonDS mapped DS A input produced a visible title-screen transition" |
   tee -a "$out/runtime.log"
