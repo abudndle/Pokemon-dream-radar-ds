@@ -192,10 +192,11 @@ else
   fi
 fi
 # The initial pink cloud can produce Orbs instead of an encounter. Try at
-# most three additional clouds, always using fresh actual emulator screenshots.
-# Stop before clearing the entire search so the existing Results navigation
-# remains independently testable. Never assert a sphere without class+timer.
-for attempt in 1 2 3; do
+# most four additional clouds, always using fresh actual emulator screenshots.
+# The last cloud can finish the outing; recognize a genuine Results heading
+# instead of assuming a B-button press is still in radar. Never assert a
+# sphere without its class label and active timer.
+for attempt in 1 2 3 4; do
   [[ -f "$out/05-sphere-encounter.png" ]] && break
   if ! python3 tools/verify_melonds_navigation.py "$out" \
       --observe-search-screenshot "$latest_radar" >"$out/search-retry-$attempt-before.json"; then
@@ -206,7 +207,7 @@ for attempt in 1 2 3; do
     python3 -c 'import json,sys; s=json.load(open(sys.argv[1])); print(s["state"], s.get("radar_counters",{}).get("clouds",0))' \
       "$out/search-retry-$attempt-before.json"
   )
-  [[ "$search_state" == radar && "$clouds" -gt 1 ]] || break
+  [[ "$search_state" == radar && "$clouds" -gt 0 ]] || break
   if ! python3 tools/plan_melonds_aim.py "$latest_radar" >"$out/aim-retry-$attempt.json"; then
     echo "WARNING: no recognizable cloud for retry $attempt" | tee -a "$out/runtime.log"
     break
@@ -237,7 +238,13 @@ for attempt in 1 2 3; do
   latest_radar="$out/05-radar-retry-$attempt-postfire.png"
   if ! python3 tools/verify_melonds_navigation.py "$out" \
       --observe-search-screenshot "$latest_radar" >"$out/search-retry-$attempt-after.json"; then
-    echo "WARNING: unrecognized frame after retry $attempt" | tee -a "$out/runtime.log"
+    if python3 tools/verify_melonds_navigation.py "$out" \
+        --observe-results-screenshot "$latest_radar" >/dev/null 2>&1; then
+      cp "$latest_radar" "$out/06-results.png"
+      echo "INFO: final cloud led directly to verified Results heading" | tee -a "$out/runtime.log"
+    else
+      echo "WARNING: unrecognized frame after retry $attempt" | tee -a "$out/runtime.log"
+    fi
     break
   fi
   if python3 -c 'import json,sys; sys.exit(json.load(open(sys.argv[1]))["state"] != "sphere")' \
@@ -315,6 +322,8 @@ if [[ -f "$out/05-sphere-encounter.png" ]]; then
 fi
 if [[ -f "$out/05-capture-reward.png" ]]; then
   cp "$out/05-capture-reward.png" "$out/06-results.png"
+elif [[ -f "$out/06-results.png" ]]; then
+  echo "INFO: Results already observed after the final cloud" >>"$out/runtime.log"
 elif [[ -n "$capture_last" ]] &&
      python3 tools/verify_melonds_navigation.py "$out" \
        --observe-reward-screenshot "$capture_last" >/dev/null 2>&1; then
