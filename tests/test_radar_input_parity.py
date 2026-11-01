@@ -1,23 +1,12 @@
 #!/usr/bin/env python3
-"""Regression guard: DS radar cannot fire through the A-button fallback.
-
-This is a source-level contract, not proof of original 3DS input parity.
-"""
+"""Regression guard: A fires the beam on both radar and encounter screens."""
 from pathlib import Path
 import re
 
 root = Path(__file__).resolve().parents[1]
 source = (root / "source/main.c").read_text()
 block = source.split("if(game.screen==STATE_RADAR || game.screen==STATE_SPHERE){", 1)[1].split("if(game.screen==STATE_INTRO){", 1)[0]
-assert re.search(r"if\s*\(\s*game\.screen\s*==\s*STATE_SPHERE\s*&&\s*\(keys\s*&\s*KEY_A\)", block), "Encounter-only fallback guard missing"
-# Every firing call in the shared input handler must be encounter-gated.
-for match in re.finditer(r"game_fire\s*\(\s*&game\s*\)", block):
-    prefix = block[:match.start()]
-    statement = prefix[prefix.rfind(";") + 1:]
-    assert re.search(r"if\s*\(\s*game\.screen\s*==\s*STATE_SPHERE\s*&&", statement), "Ungated radar firing call"
-    assert re.search(r"keys\s*&\s*KEY_A", statement), "Unreviewed firing control"
-assert block.count("game_fire(&game)") == 1, "Unexpected firing path"
-smoke = (root / "scripts/melonds_smoke.sh").read_text()
-radar = smoke.split("snapshot 05-radar", 1)[1].split("snapshot 06-results", 1)[0]
-assert "press_ds_key z" not in radar, "Smoke test incorrectly presses A on radar"
-print("PASS: radar A-button firing disabled; smoke navigation does not fake a shot")
+assert re.search(r"if\s*\(\s*\(keys\s*&\s*KEY_A\)\s*&&\s*\(game\.save\.frames_played\s*%\s*5\s*==\s*0\)\s*\)\s*game_fire\s*\(\s*&game\s*\)", block), "Shared radar/encounter A-button beam firing missing"
+assert block.count("game_fire(&game)") == 1, "Unexpected additional firing path"
+assert "game.screen==STATE_SPHERE && (keys&KEY_A)" not in block, "Encounter-only A-button gate reintroduced"
+print("PASS: A-button beam firing available in radar and sphere")
