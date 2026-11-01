@@ -101,11 +101,50 @@ static int radar_checkpoint_restore(const char *save_path,Game *g) {
        r.session.radar_resume_pending<0 || r.session.radar_resume_pending>1 ||
        r.session.search_counted<0 || r.session.search_counted>1 ||
        r.session.replace_kind<REPLACE_NONE ||
-       r.session.replace_kind>REPLACE_ITEM)return 0;
-    for(int i=0;i<MAX_CLOUDS;i++)
-        if(r.session.clouds[i].alive!=0 && r.session.clouds[i].alive!=1)return 0;
-    for(int i=0;i<MAX_DREAM_ORBS;i++)
-        if(r.session.dream_orbs[i].alive>1)return 0;
+       r.session.replace_kind>REPLACE_ITEM ||
+       r.session.session_type<0 || r.session.session_type>1 ||
+       r.session.session_species<-1 || r.session.session_species>25 ||
+       r.session.session_item<-1 ||
+       r.session.session_item>=RESEARCH_ITEM_TYPES ||
+       r.session.capture_hp<0 || r.session.capture_hp>240)return 0;
+    /* A full-storage prompt must have an actionable, bounded replacement.
+     * Without these checks a checksummed but inconsistent sidecar can
+     * restore a screen from which the player cannot complete the reward. */
+    if(r.session.screen==STATE_REPLACE) {
+        if(r.session.replace_selected<0 ||
+           r.session.replace_selected>=MAX_CAUGHT ||
+           r.session.replace_confirm<0 || r.session.replace_confirm>1)
+            return 0;
+        if(r.session.replace_kind==REPLACE_POKEMON) {
+            if(r.session.save.pending_count!=MAX_CAUGHT ||
+               r.session.replace_value<0 ||
+               r.session.replace_value>25 ||
+               (r.session.replace_value>=LEGEND_SPECIES_START &&
+                r.session.replace_value<=LEGEND_SPECIES_END))return 0;
+        } else if(r.session.replace_kind==REPLACE_ITEM) {
+            if(r.session.replace_value<0 ||
+               r.session.replace_value>=RESEARCH_ITEM_TYPES)return 0;
+            for(int i=0;i<MAX_ITEMS;i++)
+                if(!r.session.save.pending_items[i])return 0;
+        } else return 0;
+    }
+    if(r.session.screen==STATE_SPHERE &&
+       (r.session.capture_timeout<=0 ||
+        r.session.sphere_x<0 || r.session.sphere_x>255 ||
+        r.session.sphere_y<0 || r.session.sphere_y>191))return 0;
+    for(int i=0;i<MAX_CLOUDS;i++) {
+        const Cloud *cloud=&r.session.clouds[i];
+        if(cloud->alive!=0 && cloud->alive!=1)return 0;
+        if(cloud->alive && (cloud->x<0 || cloud->x>255 ||
+                            cloud->y<0 || cloud->y>191))return 0;
+    }
+    for(int i=0;i<MAX_DREAM_ORBS;i++) {
+        const DreamOrb *orb=&r.session.dream_orbs[i];
+        if(orb->alive>1)return 0;
+        if(orb->alive && (orb->ttl<=0 ||
+                          orb->x<0 || orb->x>255 ||
+                          orb->y<0 || orb->y>191))return 0;
+    }
     SaveData progress=g->save;
     *g=r.session;
     g->save=progress;
