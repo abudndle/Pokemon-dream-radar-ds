@@ -26,7 +26,7 @@ int main(void) {
     g.ext_selection=EXT_RETRIEVAL;
     game_capture(&g);
     assert(g.screen==STATE_RESULTS);
-    assert(g.save.pending_count==1 && g.save.pending[0]==15);
+    assert(g.save.pending_count==0 && game_legendary_at(&g,0)==15);
     assert(g.save.pending_items[0]==1);
     assert(game_item_slot_kind(&g,0)==7);
     uint32_t searches=g.save.searches;
@@ -35,7 +35,7 @@ int main(void) {
     assert(game_load(&loaded,path));
     assert(loaded.save.story_phase==1);
     assert(loaded.save.caught_count==1);
-    assert(loaded.save.pending_count==1 && loaded.save.pending[0]==15);
+    assert(loaded.save.pending_count==0 && game_legendary_at(&loaded,0)==15);
     assert(loaded.save.pending_items[0]==1);
     assert(game_item_slot_kind(&loaded,0)==7);
     assert(loaded.save.searches==searches);
@@ -65,7 +65,7 @@ int main(void) {
     }
     game_new(&loaded,98765);
     assert(game_load(&loaded,path));
-    assert(loaded.save.pending_count==1 && loaded.save.pending[0]==15);
+    assert(loaded.save.pending_count==0 && game_legendary_at(&loaded,0)==15);
     assert(game_item_slot_kind(&loaded,0)==7);
     /* Corrupt the stored Pokémon ID without updating its checksum.
        A second load must reject it and leave a fresh game unchanged. */
