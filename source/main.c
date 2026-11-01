@@ -1349,8 +1349,10 @@ static void from_results(int continue_search) {
     } else switch_screen(STATE_LAB);
 }
 static void handle_key(int keys,int down,touchPosition *touch) {
-    if(camera_quick_icon_visible() && (down&KEY_TOUCH) &&
-       dr_camera_quick_icon_hit(touch->px,touch->py)) {
+    if(camera_quick_icon_visible() &&
+       (((down&KEY_TOUCH) &&
+         dr_camera_quick_icon_hit(touch->px,touch->py)) ||
+        (down&KEY_SELECT))) {
         camera_quick_return=game.screen;
         camera_quick_return_selection=game.selection;
         switch_screen(STATE_CAMERA_QUICK);

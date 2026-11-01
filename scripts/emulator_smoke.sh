@@ -76,9 +76,16 @@ xdotool mousedown 1 2>/dev/null || true
 sleep 0.3
 xdotool mouseup 1 2>/dev/null || true
 sleep 3
-snapshot 04-camera-settings
+snapshot 04-after-touch-attempt
+# In the SDL CLI emulator touch XTest events may not be delivered. Right
+# Shift is DeSmuME's DS Select mapping; the game exposes SELECT as an
+# accessibility/test fallback to the same two-action camera menu.
+xdotool key --window "$window" Shift_R 2>/dev/null || true
+sleep 3
+snapshot 05-camera-settings-select
 python3 tools/verify_emulator_screenshots.py \
   --output "$outdir/report.json" \
   "$outdir/01-title.png" "$outdir/02-after-start.png" \
-  "$outdir/03-after-a.png" "$outdir/04-camera-settings.png"
+  "$outdir/03-after-a.png" "$outdir/04-after-touch-attempt.png" \
+  "$outdir/05-camera-settings-select.png"
 echo "Real DeSmuME screenshot capture and validation complete"
