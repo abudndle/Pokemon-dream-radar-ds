@@ -54,6 +54,8 @@ test-host:
 	./build/test_gameplay_save_roundtrip
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c tests/test_scene_checkpoint.c -o build/test_scene_checkpoint
 	./build/test_scene_checkpoint
+	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c source/twilight_saves.c source/save_backend.c tests/test_radar_checkpoint.c -o build/test_radar_checkpoint
+	./build/test_radar_checkpoint
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c tests/test_capture_expiry.c -o build/test_capture_expiry
 	./build/test_capture_expiry
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c tests/test_legendary_escape.c -o build/test_legendary_escape
