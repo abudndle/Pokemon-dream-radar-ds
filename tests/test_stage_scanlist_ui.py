@@ -18,7 +18,7 @@ clip = {"frames": 12, "loops": False, "tracks": [{
     "pane": "L00", "property": "translate_y", "curve": 0,
     "keys": [
         {"frame": 0, "value": 157, "slope": 0},
-        {"frame": 10, "value": 147, "slope": 0}
+        {"frame": 10, "value": 167, "slope": 0}
     ]
 }]}
 moving = stage(snapshot, [clip], target=SCAN_TARGET)
