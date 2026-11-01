@@ -88,30 +88,71 @@ def read_radar_counters(pixels, width, height, font):
     return {"clouds": clouds, "orbs": orbs}
 
 
+def compare_radar_counters(before, after):
+    """Describe visible counter changes; never infer a successful capture."""
+    removed = before["clouds"] - after["clouds"]
+    orb_change = after["orbs"] - before["orbs"]
+    if removed > 0:
+        status = "cloud_count_decreased"
+    elif removed or orb_change:
+        status = "counters_changed_without_confirmed_cloud_removal"
+    else:
+        status = "no_counter_change"
+    return {"status": status, "before": before, "after": after,
+            "clouds_removed": max(0, removed), "orb_count_change": orb_change,
+            "cloud_removal_observed": removed > 0,
+            "limitations": "A counter change alone does not prove a sphere encounter, capture, reward, or save."}
+
+
+def decode_native_capture(path):
+    size = subprocess.run(["identify", "-format", "%w %h", str(path)],
+                          capture_output=True, text=True, check=True, timeout=12)
+    width, height = map(int, size.stdout.split())
+    if width != 256 or not 384 <= height <= 480:
+        raise ValueError(f"Unscaled DS capture required: {path.name}")
+    raw = subprocess.run(["convert", str(path), "-depth", "8", "rgb:-"],
+                         capture_output=True, check=True, timeout=12)
+    return raw.stdout, width, height
+
+
 def verify(directory, stages=None):
     font = font_rows()
     results = []
+    radar_before = None
     for name in (stages or STAGES):
         x, y, text = STAGES[name]
         path = Path(directory) / (name + ".png")
-        size = subprocess.run(["identify", "-format", "%w %h", str(path)],
-                              capture_output=True, text=True, check=True, timeout=12)
-        width, height = map(int, size.stdout.split())
-        if width != 256 or not 384 <= height <= 480:
-            raise ValueError(f"Unscaled DS capture required: {path.name}")
-        raw = subprocess.run(["convert", str(path), "-depth", "8", "rgb:-"],
-                             capture_output=True, check=True, timeout=12)
-        check_heading(raw.stdout, width, height, x, y, text, font)
+        pixels, width, height = decode_native_capture(path)
+        check_heading(pixels, width, height, x, y, text, font)
         entry = {"file": path.name, "recognized_heading": text}
         if name == "05-radar":
-            counters = read_radar_counters(raw.stdout, width, height, font)
+            counters = read_radar_counters(pixels, width, height, font)
             if counters["clouds"] == 0:
                 raise ValueError("Radar opened without any searchable clouds")
             entry["radar_counters"] = counters
+            radar_before = counters
         results.append(entry)
-    return {"kind": "melonds-native-ds-navigation", "stages": results,
-            "limitations": ["DS mode only; no DSi camera or hardware proof",
-                            "Does not test cloud shooting, encounters, persistence or frame rate"]}
+    report = {"kind": "melonds-native-ds-navigation", "stages": results,
+              "limitations": ["DS mode only; no DSi camera or hardware proof",
+                              "A screenshot does not establish encounters, rewards, saves or frame rate"]}
+    if radar_before is not None:
+        post_path = Path(directory) / "05-radar-postfire.png"
+        if post_path.is_file():
+            pixels, width, height = decode_native_capture(post_path)
+            try:
+                after = read_radar_counters(pixels, width, height, font)
+            except ValueError:
+                report["postfire_observation"] = {
+                    "file": post_path.name, "status": "radar_not_recognized",
+                    "cloud_removal_observed": False,
+                    "limitations": "Could be a scene transition or unreadable frame; not proof of a capture."}
+            else:
+                report["postfire_observation"] = {
+                    "file": post_path.name, **compare_radar_counters(radar_before, after)}
+        else:
+            report["postfire_observation"] = {
+                "status": "not_captured", "cloud_removal_observed": False}
+    return report
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
