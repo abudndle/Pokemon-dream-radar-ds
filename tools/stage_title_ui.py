@@ -16,6 +16,7 @@ sys.path.insert(0, str(HERE))
 TARGET = "MnIf_S_TitleList.bclyt"
 SCAN_TARGET = "MnIf_S_ScanList.bclyt"
 MAINMENU_TARGET = "MnIf_S_MainMenuList.bclyt"
+SHOP_TARGET = "MnIf_S_ShopList.bclyt"
 ROOT_NAME = "RootPane"
 PANE_NAMES = {ROOT_NAME, "Pos", "SRT00"} | {f"L{i:02d}" for i in range(4)} | {f"List{i:02d}" for i in range(4)} | {f"Touch{i:02d}" for i in range(4)}
 PROPERTIES = ("translate_x", "translate_y", "translate_z", "rotate_x", "rotate_y",
@@ -29,7 +30,7 @@ def finite(value):
 
 def stage(snapshot, clips=(), *, offset_y=80, target=TARGET):
     """Create bounded four-row BCLYT scene bytes; 80px Y is provisional."""
-    if target not in (TARGET, SCAN_TARGET, MAINMENU_TARGET):
+    if target not in (TARGET, SCAN_TARGET, MAINMENU_TARGET, SHOP_TARGET):
         raise ValueError("unsupported original BCLYT layout")
     layouts = snapshot["layouts"]
     matched = [item for item in layouts if Path(item["file"]).name == target]
@@ -137,7 +138,7 @@ def main():
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--clip", type=Path, help="private original BCLAN file")
     group.add_argument("--clip-json", type=Path, help="private JSON from decode_bclan_panes.py")
-    parser.add_argument("--layout", choices=(TARGET, SCAN_TARGET, MAINMENU_TARGET), default=TARGET,
+    parser.add_argument("--layout", choices=(TARGET, SCAN_TARGET, MAINMENU_TARGET, SHOP_TARGET), default=TARGET,
                         help="original four-row menu to stage")
     parser.add_argument("--offset-y", type=int, default=80,
                         help="provisional visible DS title calibration in pixels")
