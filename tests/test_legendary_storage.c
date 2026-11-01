@@ -39,7 +39,7 @@ int main(void) {
     assert(strstr(buf,"Pokemon 1: Tornadus"));
     assert(strstr(buf,"Pokemon 6: Giratina"));
     assert(!strstr(buf,"Pokemon 7:"));
-    assert(strstr(buf,"Retained for the next archive: 8 regular Pokemon"));
+    assert(strstr(buf,"Retained for the next archive: 8 Pokemon"));
     assert(game_release_archived_pending(&g));
     assert(g.save.reserved[14]==0xC0);
     assert(g.save.pending_count==6 && g.save.pending[0]==0);
