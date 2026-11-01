@@ -78,7 +78,7 @@ int dr_ui_evaluate(const DrUiPane *panes,size_t count,
     for(size_t i=0;i<count;i++) {
         const DrUiPane *p=&nodes[i];
         DrUiFrame *f=&result[i];
-        if(p->parent>=0 && (size_t)p->parent>=i)return 0;
+        if(p->parent < -1 || (p->parent>=0 && (size_t)p->parent>=i))return 0;
         if(p->origin>8 || p->visible>1 || p->clip_children>1 ||
            !valid_float(p->x) || !valid_float(p->y) ||
            !valid_float(p->width) || !valid_float(p->height) ||
@@ -117,7 +117,8 @@ int dr_ui_evaluate(const DrUiPane *panes,size_t count,
             minx=minimum(minx,wx);miny=minimum(miny,wy);
             maxx=maximum(maxx,wx);maxy=maximum(maxy,wy);
         }
-        if(maxx-minx>100000.0f || maxy-miny>100000.0f)return 0;
+        if(minx < -100000.0f || miny < -100000.0f ||
+           maxx > 100000.0f || maxy > 100000.0f)return 0;
         int left=(int)floorf(minx+0.0001f),top=(int)floorf(miny+0.0001f);
         int right=left+(int)floorf(maxx-minx+0.5f);
         int bottom=top+(int)floorf(maxy-miny+0.5f);
