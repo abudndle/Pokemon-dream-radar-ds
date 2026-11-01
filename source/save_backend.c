@@ -6,6 +6,118 @@
 #include <unistd.h>
 #include <errno.h>
 
+
+/* Optional versioned radar-session sidecar. The stable v3 SaveData file
+ * remains unchanged, so older builds can still load progress. No pointers
+ * occur in Game; the size/version guards reject incompatible builds. */
+#define RADAR_CHECKPOINT_MAGIC 0x52534350u
+#define RADAR_CHECKPOINT_VERSION 1u
+typedef struct {
+    uint32_t magic, version, game_size, save_checksum, checksum;
+    Game session;
+} RadarCheckpoint;
+
+static int radar_checkpoint_screen(GameScreen screen) {
+    return screen==STATE_RADAR || screen==STATE_SPHERE ||
+           screen==STATE_RESULTS || screen==STATE_REPLACE;
+}
+static uint32_t radar_checkpoint_checksum(const RadarCheckpoint *r) {
+    const unsigned char *bytes=(const unsigned char *)r;
+    uint32_t hash=2166136261u;
+    for(size_t i=0;i<sizeof *r;i++) {
+        if(i>=offsetof(RadarCheckpoint,checksum) &&
+           i<offsetof(RadarCheckpoint,checksum)+sizeof r->checksum)continue;
+        hash=(hash^bytes[i])*16777619u;
+    }
+    return hash;
+}
+static SaveData checkpoint_save_image(const Game *g) {
+    SaveData s=g->save;
+    s.reserved[16]=SAVE_UI_CHECKPOINT_MARKER;
+    s.reserved[17]=(uint8_t)g->screen;
+    s.reserved[18]=(uint8_t)((g->ext_selection>=0 && g->ext_selection<EXT_COUNT)
+                              ? g->ext_selection:0);
+    s.reserved[19]=(uint8_t)((g->page>=0 && g->page<16)?g->page:0);
+    s.checksum=game_checksum(&s);
+    return s;
+}
+static int radar_checkpoint_path(char *dst,size_t cap,const char *save_path,
+                                 const char *suffix) {
+    int n=snprintf(dst,cap,"%s%s",save_path,suffix);
+    return n>=0 && (size_t)n<cap;
+}
+static int radar_checkpoint_write(const char *save_path,const Game *g) {
+    char sidecar[TW_MAX_PATH],temp[TW_MAX_PATH];
+    if(!radar_checkpoint_path(sidecar,sizeof sidecar,save_path,".radar") ||
+       !radar_checkpoint_path(temp,sizeof temp,save_path,".radar.tmp"))return 0;
+    if(!radar_checkpoint_screen(g->screen)) {
+        /* Never resume a stale encounter after saving a stable menu. */
+        if(remove(sidecar)!=0 && errno!=ENOENT)return 0;
+        return 1;
+    }
+    RadarCheckpoint r;
+    memset(&r,0,sizeof r);
+    r.magic=RADAR_CHECKPOINT_MAGIC;
+    r.version=RADAR_CHECKPOINT_VERSION;
+    r.game_size=(uint32_t)sizeof(Game);
+    r.session=*g;
+    SaveData image=checkpoint_save_image(g);
+    r.save_checksum=image.checksum;
+    r.checksum=radar_checkpoint_checksum(&r);
+    FILE *f=fopen(temp,"wb");
+    if(!f)return 0;
+    int ok=fwrite(&r,1,sizeof r,f)==sizeof r;
+    if(fclose(f)!=0)ok=0;
+    if(!ok){remove(temp);return 0;}
+    /* FAT rename cannot necessarily replace an existing target. A stale
+     * sidecar is harmless: it is tied to the exact main-save checksum. */
+    if(remove(sidecar)!=0 && errno!=ENOENT){remove(temp);return 0;}
+    if(rename(temp,sidecar)!=0){remove(temp);return 0;}
+    return 1;
+}
+static int radar_checkpoint_restore(const char *save_path,Game *g) {
+    char path[TW_MAX_PATH];
+    if(!radar_checkpoint_path(path,sizeof path,save_path,".radar"))return 0;
+    FILE *f=fopen(path,"rb");
+    if(!f)return 0;
+    RadarCheckpoint r;
+    int ok=fread(&r,1,sizeof r,f)==sizeof r;
+    if(ok && fgetc(f)!=EOF)ok=0;
+    if(fclose(f)!=0)ok=0;
+    if(!ok || r.magic!=RADAR_CHECKPOINT_MAGIC ||
+       r.version!=RADAR_CHECKPOINT_VERSION ||
+       r.game_size!=sizeof(Game) ||
+       r.checksum!=radar_checkpoint_checksum(&r) ||
+       !radar_checkpoint_screen(r.session.screen) ||
+       r.save_checksum!=g->save.checksum)return 0;
+    /* Verify all progress bytes, not merely a hash provided by the sidecar.
+     * Never let a transient session replace authoritative saved rewards. */
+    SaveData image=checkpoint_save_image(&r.session);
+    if(memcmp(&image,&g->save,sizeof image)!=0 ||
+       r.session.ext_selection<0 || r.session.ext_selection>=EXT_COUNT ||
+       r.session.active_clouds<0 || r.session.active_clouds>MAX_CLOUDS ||
+       r.session.aim_x<0 || r.session.aim_x>255 ||
+       r.session.aim_y<0 || r.session.aim_y>191 ||
+       r.session.radar_resume_pending<0 || r.session.radar_resume_pending>1 ||
+       r.session.search_counted<0 || r.session.search_counted>1 ||
+       r.session.replace_kind<REPLACE_NONE ||
+       r.session.replace_kind>REPLACE_ITEM)return 0;
+    for(int i=0;i<MAX_CLOUDS;i++)
+        if(r.session.clouds[i].alive!=0 && r.session.clouds[i].alive!=1)return 0;
+    for(int i=0;i<MAX_DREAM_ORBS;i++)
+        if(r.session.dream_orbs[i].alive>1)return 0;
+    SaveData progress=g->save;
+    *g=r.session;
+    g->save=progress;
+    /* Hardware and cartridge detection must be performed again on boot. */
+    g->camera_ok=0;g->camera_active=0;g->camera_tracking=0;g->camera_error=0;
+    g->cart=GAME_UNKNOWN;g->cart_source=CART_SOURCE_NONE;
+    g->cart_read_attempted=0;
+    g->pending_export_signature=0;g->archive_confirm=0;
+    g->messages=0;g->message[0]=0;g->requested_save=0;
+    return 1;
+}
+
 static int path_append(char *dst,size_t cap,const char *a,const char *b) {
     const size_t len=strlen(a), sep=(len && a[len-1]=='/')?0:1;
     if (len+sep+strlen(b)+1>cap)return 0;
@@ -49,7 +161,10 @@ int save_backend_load(SaveBackend *backend,Game *g) {
     if(!backend || !g)return 0;
     backend->recovered_backup=0;
     backend->migrated_legacy=0;
-    if(game_load(g,backend->active))return 1;
+    if(game_load(g,backend->active)){
+        radar_checkpoint_restore(backend->active,g);
+        return 1;
+    }
     char bak[TW_MAX_PATH];
     if(snprintf(bak,sizeof bak,"%s.bak",backend->active) < (int)sizeof bak && game_load(g,bak)) {
         backend->recovered_backup=1;
@@ -96,7 +211,10 @@ int save_backend_write(SaveBackend *backend,Game *g) {
             if(rename(backend->active,bak)!=0){remove(temp);return 0;}
         }
     }
-    if(rename(temp,backend->active)==0){backend->recovered_backup=0;return 1;}
+    if(rename(temp,backend->active)==0){
+        backend->recovered_backup=0;
+        return radar_checkpoint_write(backend->active,g);
+    }
     /* In recovery mode we deliberately leave the known-good .bak untouched. */
     if(!backend->recovered_backup && stat(bak,&st)==0)rename(bak,backend->active);
     remove(temp);
