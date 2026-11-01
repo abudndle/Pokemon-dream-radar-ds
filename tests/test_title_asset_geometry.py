@@ -14,7 +14,11 @@ for i,(x,y,w,h) in enumerate(rects):
     assert 0<w<=256-x and 0<h<=192-y
     for xx,yy,ww,hh in rects[:i]:
         assert x+w<=xx or xx+ww<=x or y+h<=yy or yy+hh<=y
-assert "const DrPaneRect *r=&dr_title_panes[i];" in renderer
+assert "const DrUiRect *r=&title_rows[i];" in renderer
+assert "title_live_rects(title_rows);" in renderer
+assert "dr_ui_title_rects(title_ui_scene," in renderer
+assert "dr_ui_title_hit(title_rows,touch->px,touch->py)" in renderer
+assert "dr_ui_scene_load(\"nitro:/title.drui\")" in renderer
 assert "dr_title_hit(touch->px,touch->py)" in renderer
 assert "for xx,yy,ww,hh in title_rects:" in generator
 assert "title_header=(root/'source/title_panes_generated.h').read_text()" in generator
