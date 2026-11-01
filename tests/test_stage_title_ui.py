@@ -17,7 +17,7 @@ def pane(name, children=(), *, y=0, size=(30, 40), flags=3, alpha=255):
                 translation=[0.0, float(y), 0.0], rotation=[0.0, 0.0, 0.0],
                 scale=[1.0, 1.0], size=list(size), children=list(children))
 
-rows = [pane(f"L{i:02d}", [pane(f"Touch{i:02d}", size=(286, 34))],
+rows = [pane(f"L{i:02d}", [pane(f"List{i:02d}", [pane(f"Touch{i:02d}", size=(286, 34))], size=(290, 38))],
              y=130 - i * 40, alpha=0) for i in range(4)]
 snapshot = {"layouts": [dict(file="MnIf_S_TitleList.bclyt", sections=17, panes=[
     pane("RootPane", [pane("Pos", [pane("SRT00", rows, y=16)])], size=(320, 240), flags=1)
