@@ -178,10 +178,53 @@ def plan_sphere(pixels, width, height):
             "candidate_spheres": len(targets),
             "limitations": "White-silhouette DS fallback tracking only; moving target and capture are unverified."}
 
+
+def plan_sphere_motion(previous_pixels, pixels, width, height):
+    """Lead a moving DS fallback encounter silhouette using two real frames.
+
+    The gap between screenshots is not a known number of DS frames. A small,
+    bounded fraction of observed displacement is therefore only a heuristic,
+    not an assertion of a hit or an original 3DS tracking algorithm.
+    """
+    current = plan_sphere(pixels, width, height)
+    observed = current["target_screen"].copy()
+    current["observed_target_screen"] = observed
+    current["motion_prediction"] = "unavailable"
+    try:
+        previous = plan_sphere(previous_pixels, width, height)
+    except ValueError:
+        current["motion_prediction"] = "previous_frame_unrecognized"
+        return current
+    dx = observed["x"] - previous["target_screen"]["x"]
+    dy = observed["y"] - previous["target_screen"]["y"]
+    # Scene changes, teleports and erratic turns cannot be extrapolated safely.
+    if abs(dx) > 60 or abs(dy) > 60:
+        current["motion_prediction"] = "discontinuity"
+        return current
+    lead_x = max(-18, min(18, round(dx * 0.5)))
+    lead_y = max(-18, min(18, round(dy * 0.5)))
+    x = max(20, min(236, observed["x"] + lead_x))
+    y = max(30, min(164, observed["y"] + lead_y))
+    offset_x, offset_y = x - 128, y - 96
+    current.update({
+        "target_screen": {"x": x, "y": y},
+        "offset": {"x": offset_x, "y": offset_y},
+        "horizontal_key": "Right" if offset_x > 0 else "Left" if offset_x < 0 else "none",
+        "vertical_key": "Down" if offset_y > 0 else "Up" if offset_y < 0 else "none",
+        "horizontal_seconds": round(min(0.22, abs(offset_x) / 360), 3),
+        "vertical_seconds": round(min(0.22, abs(offset_y) / 360), 3),
+        "motion_prediction": "bounded",
+        "observed_displacement": {"x": dx, "y": dy},
+    })
+    return current
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("screenshot", type=Path)
     parser.add_argument("--target", choices=("cloud", "orb", "sphere"), default="cloud")
+    parser.add_argument("--previous-screenshot", type=Path,
+                        help="Earlier sphere frame for bounded motion lead")
     args = parser.parse_args()
     size = subprocess.run(["identify", "-format", "%w %h", str(args.screenshot)],
                           capture_output=True, text=True, check=True, timeout=12)
@@ -189,7 +232,20 @@ def main():
     raw = subprocess.run(["convert", str(args.screenshot), "-depth", "8", "rgb:-"],
                          capture_output=True, check=True, timeout=12)
     planner = {"cloud": plan, "orb": plan_orb, "sphere": plan_sphere}[args.target]
-    result = planner(raw.stdout, width, height)
+    if args.previous_screenshot:
+        if args.target != "sphere":
+            parser.error("--previous-screenshot is only valid with --target sphere")
+        previous_size = subprocess.run(
+            ["identify", "-format", "%w %h", str(args.previous_screenshot)],
+            capture_output=True, text=True, check=True, timeout=12)
+        if tuple(map(int, previous_size.stdout.split())) != (width, height):
+            raise ValueError("Sphere frames have different dimensions")
+        previous_raw = subprocess.run(
+            ["convert", str(args.previous_screenshot), "-depth", "8", "rgb:-"],
+            capture_output=True, check=True, timeout=12)
+        result = plan_sphere_motion(previous_raw.stdout, raw.stdout, width, height)
+    else:
+        result = planner(raw.stdout, width, height)
     print(json.dumps(result, indent=2))
 
 
