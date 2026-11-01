@@ -3,7 +3,7 @@ from pathlib import Path
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 from verify_melonds_navigation import (check_heading, font_rows, read_radar_counters,
-                                       compare_radar_counters)
+                                       compare_radar_counters, compare_orb_counters)
 
 font = font_rows()
 width, height = 256, 403
@@ -81,5 +81,15 @@ assert not unexpected["cloud_removal_observed"]
 orb_only = compare_radar_counters(before, {"clouds": 5, "orbs": 1})
 assert orb_only["status"] == "counters_changed_without_confirmed_cloud_removal"
 assert not orb_only["cloud_removal_observed"]
+
+collected = compare_orb_counters({"clouds": 4, "orbs": 3},
+                                 {"clouds": 4, "orbs": 2})
+assert collected["status"] == "orb_count_decreased"
+assert collected["orbs_collected"] == 1
+assert collected["orb_collection_observed"]
+missed = compare_orb_counters({"clouds": 4, "orbs": 3},
+                              {"clouds": 4, "orbs": 3})
+assert missed["status"] == "orb_count_not_decreased"
+assert not missed["orb_collection_observed"]
 
 print("PASS: emulator heading and radar-counter recognition reject blank, wrong-stage, shifted and scaled frames")
