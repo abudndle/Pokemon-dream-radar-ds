@@ -300,7 +300,7 @@
       "id": "original_3d_models",
       "feature": "Original Pokémon 3D geometry and animations",
       "status": "partial",
-      "gap": "Optional DRM1 models support depth-tested flat/DRT1 textures, DRA1 vertex keys, DRB1 rigid parts, and DRK1 parented two-influence skinning; original 3DS rig extraction, materials, and authentic animation remain absent.",
+      "gap": "Optional DRM1 models support DRA1 vertex keys, DRB1 rigid parts, and DRK1 two-influence skinning; strict private glTF-to-DRK1 retargeting now verifies matching geometry/joints, but original 3DS asset decoding and animation fidelity remain absent.",
       "evidence": [
         "source/dr_mesh.c",
         "source/dr_texture.c",
@@ -323,6 +323,11 @@
         "tests/test_dr_skin.c",
         "tests/test_pack_drk1.py",
         "docs/DRK1_SKINNING.md",
+        "tools/convert_gltf_skin.py",
+        "tools/stage_gltf_animations.py",
+        "tests/test_gltf_skin_converter.py",
+        "tests/test_stage_gltf_animations.py",
+        "docs/GLTF_TO_DRK1.md",
         "source/main.c"
       ]
     },

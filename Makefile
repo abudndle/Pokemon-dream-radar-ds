@@ -135,6 +135,8 @@ test-host:
 	python3 tests/test_pack_dra1.py
 	python3 tests/test_pack_drb1.py
 	python3 tests/test_pack_drk1.py
+	python3 tests/test_gltf_skin_converter.py
+	python3 tests/test_stage_gltf_animations.py
 	python3 tests/test_original_model_inventory.py
 	python3 tests/test_extracted_obj_converter.py
 	python3 tests/test_stage_pokemon_models.py

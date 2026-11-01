@@ -35,7 +35,7 @@ The source-of-truth checklist is [`feature_parity.json`](feature_parity.json), c
 | Original BCLIM graphics mapped to DS assets | partial | Conversion and SD override exist; wholesale original UI integration is incomplete. |
 | Original BCLYT screen positions and pane hierarchy | investigation only | 135 original layouts inventoried; runtime compositor retargeting not integrated. |
 | Original BCLAN animation keyframes and playback | investigation only | Clip lengths and loop flags identified; actual keyframe decoding and rendering pending. |
-| Original Pokémon 3D geometry and animations | partial | Optional DRM1 models support depth-tested flat/DRT1 textures, DRA1 vertex keys, DRB1 rigid parts, and DRK1 parented two-influence skinning; original 3DS rig extraction, materials, and authentic animation remain absent. |
+| Original Pokémon 3D geometry and animations | partial | Optional DRM1 models support DRA1 vertex keys, DRB1 rigid parts, and DRK1 two-influence skinning; strict private glTF-to-DRK1 retargeting now verifies matching geometry/joints, but original 3DS asset decoding and animation fidelity remain absent. |
 | Original music, sound effects and timing | unimplemented | No verified original 3DS audio conversion and playback across scenes. |
 | Real Black 2/White 2 Nintendo 3DS Link transfers | unimplemented | Only a safe text archive is exported; no retail transfer, save injection or handshake. |
 | Unova Link receiving Pokémon/items into Black 2/White 2 | unimplemented | No compatible send/receive implementation or save-verified integration. |
@@ -47,7 +47,7 @@ The source-of-truth checklist is [`feature_parity.json`](feature_parity.json), c
 
 1. Validate all original modes, encounter pools, orb colors, drop tables, upgrades, support effects, secrets, tutorial progression, and per-session rewards against the original gameplay—not merely that each function exists.
 2. Integrate original user-provided UI graphics with accurate BCLYT layout transforms and BCLAN keyframe playback; verify touch targets and dual-screen presentation in a real emulator.
-3. Integrate genuine model/animation assets where DS hardware permits, with explicit 2D fallbacks and memory/performance profiling. The DRM1 preview supports depth-tested solid color, small UV textures, DRA1 vertex motion, DRB1 rigid parts and DRK1 two-weight hierarchies; it still lacks original 3DS skeletal rig decoding, multi-axis bone rotation and material fidelity.
+3. Integrate genuine model/animation assets where DS hardware permits, with explicit 2D fallbacks and memory/performance profiling. The DRM1 preview supports depth-tested solid color, small UV textures, DRA1/DRB1/DRK1 motion and verified user-owned glTF-to-DRK1 export; native 3DS rig decoding, multi-axis bone rotation and material fidelity are still missing.
 4. Test original music, effects, and localization across all reachable states.
 5. Address original motion-controlled AR with an explicit DS/DSi alternative; document incompatible 3DS gyroscope and stereoscopic features rather than pretending they exist.
 6. Implement and safely test authentic Black 2/White 2 transfer compatibility **before** representing private text-archive export as genuine Unova Link. Never modify a user's retail save to claim this feature works.

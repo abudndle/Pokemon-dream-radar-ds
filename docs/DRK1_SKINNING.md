@@ -86,3 +86,7 @@ Converted model files, original texture files and genuine original game animatio
 Host tests cover strict file length, hierarchy integrity, invalid parents, invalid influences, two-weight interpolation, inherited transforms, looping, rotation wrap, signed coordinate clamping, atomic replacement, file IO, and compatibility with both model renderers. A successful BlocksDS build proves **compilation only**, not hardware speed, DS emulator boot or original 3DS feature parity.
 
 **Unfinished:** Original 3DS skeletal asset decoding, genuine joint and weight extraction, quaternion/multi-axis interpolation, real material animation, performance profiling on DS/DSi, and end-to-end original-game accuracy.
+
+## User-exported glTF 2.0 retargeting (Milestone #15)
+
+An optional, strict converter can produce this DRK1 file directly from a **privately exported glTF 2.0** rig and matching DRM1 mesh. See [GLTF_TO_DRK1.md](GLTF_TO_DRK1.md) for commands, matching vertex requirements, safeguards and limitations. This bridge is not native Nintendo 3DS archive decoding.
