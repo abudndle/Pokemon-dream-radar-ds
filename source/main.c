@@ -555,6 +555,11 @@ static void render_search_bottom(void) {
     /* Original bottom-screen art only. D-pad aims and A fires; no new joystick. */
     /* Keep the original Back hotspot at the bottom right. */
 }
+/* Keep the complete target near the visible playfield. The clamped edge
+ * marker is a direction cue; firing still uses the true world position. */
+static int sandbox_edge(int value,int low,int high) {
+    return value<low ? low : (value>high ? high : value);
+}
 static void draw_floating_dream_orbs(void) {
     static const u16 colors[ORB_COLOR_COUNT]={
         0xC1DF, /* pink */ 0x83E0, /* green */
@@ -565,7 +570,12 @@ static void draw_floating_dream_orbs(void) {
         if(!orb->alive)continue;
         int sx=orb->x-game.aim_x+128;
         int sy=orb->y-game.aim_y+96;
-        if(sx<7 || sx>=249 || sy<7 || sy>=185)continue;
+        int edge=(sx<7 || sx>=249 || sy<7 || sy>=185);
+        if(edge) {
+            int ex=sandbox_edge(sx,7,248),ey=sandbox_edge(sy,7,184);
+            border(top,ex-3,ey-3,7,7,GOLD);
+            continue;
+        }
         OrbColor color=game_dream_orb_color(&game,i);
         if(color<0 || color>=ORB_COLOR_COUNT)color=ORB_PINK;
         rect(top,sx-4,sy-4,9,9,colors[color]);
@@ -594,6 +604,9 @@ static void render_ds_search_sandbox(int show_clouds) {
         if(!c->alive)continue;
         const int sx=c->x-game.aim_x+128;
         const int sy=c->y-game.aim_y+96;
+        if(sx < 16 || sx > SW-17 || sy < 16 || sy > SH-17)
+            border(top,sandbox_edge(sx,16,SW-17)-5,
+                   sandbox_edge(sy,16,SH-17)-5,11,11,GOLD);
         if(sx>=-32 && sx<SW && sy>=-32 && sy<SH)
             draw_sprite(top,c->kind ? S_CLOUD_PINK : S_CLOUD_WHITE,
                         sx-16,sy-16+dr_cloud_bob(game.save.frames_played,i));
