@@ -21,6 +21,7 @@ REQUIRED = {
     "tools/verify_melonds_navigation.py": "recognize native DS emulator frames",
     ".github/workflows/capture-host-acceptance.yml": "CI acceptance evidence",
     "docs/feature_parity.json": "feature parity tracking",
+    "source/main.c": "real DS input and display integration",
 }
 
 def audit(root, run_host=False):
@@ -53,17 +54,49 @@ def audit(root, run_host=False):
                 result["host_error"] = str(exc)
     return result
 
+def audit_emulator_evidence(root, evidence_dir):
+    """Only accept explicit end-to-end emulator evidence, not navigation screenshots."""
+    evidence = pathlib.Path(evidence_dir).resolve()
+    report = evidence / "capture-report.json"
+    if not report.is_file():
+        return {"status": "missing_report", "passed": False, "path": str(report)}
+    try:
+        payload = json.loads(report.read_text())
+    except (OSError, ValueError) as exc:
+        return {"status": "invalid_report", "passed": False, "error": str(exc)}
+    # Require each independently verified stage and the actual emulator source.
+    required = ("cloud_search", "cloud_shot", "orb_collected",
+                "sphere_encounter", "capture_reward", "results",
+                "resume_radar", "save", "restart", "restored_reward")
+    valid = (isinstance(payload, dict) and
+             payload.get("emulator") == "melonDS" and
+             payload.get("test_kind") == "live_emulator_capture" and
+             isinstance(payload.get("stages"), dict) and
+             all(payload["stages"].get(stage) is True for stage in required))
+    return {"status": "passed" if valid else "incomplete",
+            "passed": bool(valid), "path": str(report),
+            "required_stages": list(required)}
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("repository", nargs="?", default=".")
     parser.add_argument("--run-host", action="store_true",
                         help="Run make test-host test-syntax (up to 5 minutes)")
+    parser.add_argument("--emulator-evidence", metavar="DIR",
+                        help="Inspect a live emulator capture-report.json; navigation alone is insufficient")
     args = parser.parse_args()
     result = audit(args.repository, args.run_host)
+    if args.emulator_evidence:
+        evidence = audit_emulator_evidence(args.repository, args.emulator_evidence)
+        result["capture_emulator_test_passed"] = evidence["passed"]
+        result["capture_emulator_test_status"] = evidence["status"]
+        result["capture_emulator_evidence"] = evidence
     print(json.dumps(result, indent=2))
     if not result["prerequisites_present"]:
         return 2
     if args.run_host and result["host_tests"] != "passed":
+        return 1
+    if args.emulator_evidence and not result["capture_emulator_test_passed"]:
         return 1
     return 0
 
