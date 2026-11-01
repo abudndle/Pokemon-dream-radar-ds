@@ -154,6 +154,53 @@ int main(void) {
     assert(loaded.screen==STATE_EXTENSIONS);
     assert(loaded.save.pending[2]==8);
 
+    /* Launcher-adjacent save migration must also migrate an in-flight
+     * session, both from a healthy legacy primary and from its .bak pair.
+     * No Dream Orbs may be charged twice when the migrated hunt resumes. */
+    for(int from_backup=0;from_backup<2;from_backup++) {
+        char migration_root[]="/tmp/dr_radar_legacy_XXXXXX";
+        assert(mkdtemp(migration_root));
+        char migration_rom[TW_MAX_PATH];
+        assert(snprintf(migration_rom,sizeof migration_rom,
+                        "%s/DreamRadarDSi.nds",migration_root)<(int)sizeof migration_rom);
+        SaveBackend migration;
+        assert(save_backend_init(&migration,migration_root,migration_rom));
+        assert(migration.using_twilight_path);
+        SaveBackend old_writer=migration;
+        strcpy(old_writer.active,migration.legacy);
+        Game old_session;
+        game_new(&old_session,73);
+        old_session.save.orbs=1000;
+        old_session.save.total_orbs=1000;
+        old_session.save.story_phase=1;
+        old_session.save.cloud_count=2;
+        game_begin_search(&old_session,EXT_DOWSING);
+        assert(old_session.screen==STATE_RADAR && old_session.save.orbs==900);
+        old_session.aim_x=97;
+        assert(save_backend_write(&old_writer,&old_session));
+        if(from_backup) {
+            old_session.aim_x=155;
+            assert(save_backend_write(&old_writer,&old_session));
+            FILE *damaged=fopen(old_writer.active,"r+b");
+            assert(damaged && fputc('X',damaged)!=EOF && fclose(damaged)==0);
+        }
+        Game migrated;
+        game_new(&migrated,12);
+        assert(save_backend_load(&migration,&migrated));
+        assert(migration.migrated_legacy && migrated.requested_save);
+        assert(migrated.screen==STATE_RADAR && migrated.aim_x==97);
+        assert(migrated.active_clouds==2 && migrated.save.orbs==900);
+        assert(migrated.save.searches==0);
+        assert(save_backend_write(&migration,&migrated));
+        Game reread;
+        game_new(&reread,13);
+        assert(save_backend_load(&migration,&reread));
+        assert(!migration.migrated_legacy);
+        assert(reread.screen==STATE_RADAR && reread.aim_x==97);
+        assert(reread.active_clouds==2 && reread.save.orbs==900);
+        assert(reread.save.searches==0);
+    }
+
     puts("PASS: radar/sphere/results/replacement resume, exactly-once rewards, invalid checkpoint fallback");
     return 0;
 }
