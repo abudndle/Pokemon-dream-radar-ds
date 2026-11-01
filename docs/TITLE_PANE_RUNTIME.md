@@ -157,3 +157,10 @@ available, but exact 3DS nine-slice stretching, CLAN material/visibility
 animation, font/material settings, original top-screen backdrop and
 stereoscopic 3D are not yet reproduced. A frame-accurate 3DS screenshot
 comparison and physical DS/DSi performance test remain outstanding.
+
+## Four-row Search Extensions pane follow-up
+
+The original `MnIf_S_ScanList.bclyt` is now staged and evaluated by the
+same bounded four-row pane runtime; see [ScanList integration](SCANLIST_RUNTIME.md).
+Title and Extensions each have their own animation clock and optional private
+BCLAN override; neither claims full wnd1 materials or text effects.
