@@ -48,9 +48,9 @@ def verify_pairs(skin_directory: Path, mesh_directory: Path):
     verify(skin_directory, "gltf_animation_manifest.json", "DRK1", ".drk")
     verify(mesh_directory, "model_manifest.json", "DRM1", ".drm")
     count = 0
-    for skin in sorted(skin_directory.glob("pokemon_*.drk")):
-        if not NAME.fullmatch(skin.name):
-            continue
+    manifest = json.loads((skin_directory / "gltf_animation_manifest.json").read_text(encoding="utf-8"))
+    for entry in manifest["models"]:
+        skin = skin_directory / entry["file"]
         mesh = mesh_directory / (skin.stem + ".drm")
         if mesh.is_symlink() or not mesh.is_file():
             raise ValueError("No matching DRM1 mesh for " + skin.name)
