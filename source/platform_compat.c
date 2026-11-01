@@ -51,6 +51,11 @@ int dr_camera_allowed(int dsi_mode,int camera_enabled){return dsi_mode && camera
 int dr_camera_retry_latch(int camera_enabled,int previous_failure){
     return camera_enabled?0:previous_failure;
 }
+int dr_search_fire_gate(int a_held,int *armed){
+    if(!armed)return 0;
+    if(!a_held){*armed=1;return 0;}
+    return *armed!=0;
+}
 int dr_photo_shortcut(int dsi_mode,int held,int down,int l_mask,int r_mask){
     return dsi_mode && (held & (l_mask|r_mask))==(l_mask|r_mask) &&
            (down & (l_mask|r_mask))!=0;
