@@ -48,6 +48,13 @@ def target_info(name, property_name):
     return None
 
 
+def cfloat(value):
+    token = f"{value:.8g}"
+    if "." not in token and "e" not in token:
+        token += ".0"
+    return token + "f"
+
+
 def stage(source):
     if not isinstance(source, dict):
         raise ValueError("BCLAN decoder report must be an object")
@@ -111,7 +118,7 @@ def stage(source):
     for i, (_, _, _, keys) in enumerate(result):
         lines.append(f"static const DrUiKey dr_private_keys_{i}[]={{")
         for frame, value, slope in keys:
-            lines.append(f"    {{{frame:.8g}f,{value:.8g}f,{slope:.8g}f}},")
+            lines.append(f"    {{{cfloat(frame)},{cfloat(value)},{cfloat(slope)}}},")
         lines.append("};")
     lines.append("static const DrUiTrack dr_private_title_tracks[]={")
     for i, (pane, property_index, curve, keys) in enumerate(result):
@@ -119,7 +126,7 @@ def stage(source):
     lines.append("};")
     lines.append(
         f"static const DrUiAnimation dr_private_title_animation={{"
-        f"dr_private_title_tracks,{len(result)},{float(duration):.8g}f,{int(loop)}}};")
+        f"dr_private_title_tracks,{len(result)},{cfloat(float(duration))},{int(loop)}}};")
     lines.extend(["#endif", ""])
     return "\n".join(lines), len(result), total_keys
 
