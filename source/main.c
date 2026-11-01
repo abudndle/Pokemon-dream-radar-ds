@@ -727,6 +727,25 @@ static int extension_row_of(int ext) {
 static void extension_ensure_selected(void) {
     if(!extension_visible(game.ext_selection)) game.ext_selection=EXT_BASIC;
 }
+/* Keep this DS-only utility off the original 3DS title art and outside
+ * gameplay, captures and Burnet story/dialogue scenes. */
+static int camera_combo_menu_allowed(GameScreen screen) {
+    switch(screen) {
+    case STATE_TITLE:
+    case STATE_LAB:
+    case STATE_SHOP:
+    case STATE_EXTENSIONS:
+    case STATE_RECORDS:
+    case STATE_STORAGE:
+    case STATE_TRANSFER:
+    case STATE_SETTINGS:
+    case STATE_TIPS:
+    case STATE_ALBUM:
+        return 1;
+    default:
+        return 0;
+    }
+}
 /* Render and touch use the identical resolved title panes. If the private
  * clip is unsupported, malformed or temporarily outside the viewport,
  * retain the established visible, source-derived title fallback. */
@@ -1388,7 +1407,7 @@ static void from_results(int continue_search) {
     } else switch_screen(STATE_LAB);
 }
 static void handle_key(int keys,int down,touchPosition *touch) {
-    if(dr_camera_quick_open(game.screen==STATE_TITLE,
+    if(dr_camera_quick_open(camera_combo_menu_allowed(game.screen),
                             keys,down,KEY_SELECT,KEY_X)) {
         camera_quick_return=game.screen;
         camera_quick_return_selection=game.selection;
@@ -1396,6 +1415,14 @@ static void handle_key(int keys,int down,touchPosition *touch) {
         return;
     }
     if(game.screen==STATE_CAMERA_QUICK) {
+        /* Handle return before Select's BMP reset action. Both B and the
+         * hidden chord restore the exact previous menu and selected row. */
+        if((down&KEY_B) ||
+           dr_camera_quick_open(1,keys,down,KEY_SELECT,KEY_X)) {
+            switch_screen(camera_quick_return);
+            game.selection=camera_quick_return_selection;
+            return;
+        }
         if(down&(KEY_UP|KEY_DOWN))game.selection^=1;
         int tapped=(down&KEY_TOUCH)?
             dr_camera_quick_row_hit(touch->px,touch->py):-1;
@@ -1428,10 +1455,6 @@ static void handle_key(int keys,int down,touchPosition *touch) {
             snprintf(game.message,sizeof game.message,
                      "Original camera-free background restored.");
             game.messages=120;
-        }
-        if(down&KEY_B) {
-            switch_screen(camera_quick_return);
-            game.selection=camera_quick_return_selection;
         }
         return;
     }
