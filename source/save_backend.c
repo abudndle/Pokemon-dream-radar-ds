@@ -215,11 +215,16 @@ int save_backend_load(SaveBackend *backend,Game *g) {
         return 1;
     }
     if(backend->using_twilight_path && game_load(g,backend->legacy)) {
+        /* A legacy save can have an active radar session too. Carry its
+         * matching checkpoint into the new launcher-adjacent location. */
+        radar_checkpoint_restore(backend->legacy,g);
         backend->migrated_legacy=1;
         g->requested_save=1; /* Safely move old progress into the active path. */
         return 1;
     }
     if(backend->using_twilight_path && snprintf(bak,sizeof bak,"%s.bak",backend->legacy) < (int)sizeof bak && game_load(g,bak)) {
+        /* Match the backup's own checkpoint, never the damaged primary's. */
+        radar_checkpoint_restore(bak,g);
         backend->migrated_legacy=1;
         g->requested_save=1; /* Safely move old progress into the active path. */
         return 1;
