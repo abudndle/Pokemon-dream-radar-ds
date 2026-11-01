@@ -92,7 +92,7 @@ def _valid_png(data):
     """
     import struct
     import zlib
-    if not data.startswith(b"\\x89PNG\\r\\n\\x1a\\n"):
+    if not data.startswith(b"\x89PNG\r\n\x1a\n"):
         return False
     pos = 8
     width = height = bit_depth = color_type = None
