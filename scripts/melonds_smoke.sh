@@ -285,7 +285,7 @@ if [[ -f "$out/05-sphere-encounter.png" ]]; then
         --observe-capture-progress "$capture_last" \
         >"$out/sphere-progress-$step.json" 2>/dev/null; then
       echo "INFO: sphere sweep $step meter observed" >>"$out/runtime.log"
-    elif python3 tools/verify_melonds_navigation.py "$out" --stage 06-results \
+    elif python3 tools/verify_melonds_navigation.py "$out" --observe-results-screenshot "$capture_last" \
         >/dev/null 2>&1; then
       echo "INFO: encounter ended without a verified capture reward" | tee -a "$out/runtime.log"
       break
@@ -303,7 +303,7 @@ elif [[ -n "$capture_last" ]] &&
        --observe-reward-screenshot "$capture_last" >/dev/null 2>&1; then
   cp "$capture_last" "$out/06-results.png"
 elif [[ -n "$capture_last" ]] &&
-     python3 tools/verify_melonds_navigation.py "$out" --stage 06-results >/dev/null 2>&1; then
+     python3 tools/verify_melonds_navigation.py "$out" --observe-results-screenshot "$capture_last" >/dev/null 2>&1; then
   cp "$capture_last" "$out/06-results.png"
 else
   press_ds_key x
