@@ -108,6 +108,8 @@ test-host:
 	./build/test_platform_compat
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/platform_compat.c source/photo_album.c tests/test_camera_quick.c -o build/test_camera_quick
 	./build/test_camera_quick
+	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/platform_compat.c source/photo_album.c source/dr_background.c tests/test_background_import.c -o build/test_background_import
+	./build/test_background_import
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/dr_mesh.c tests/test_dr_mesh.c -o build/test_dr_mesh
 	./build/test_dr_mesh
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/dr_mesh.c tests/test_mesh_extremes.c -o build/test_mesh_extremes

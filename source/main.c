@@ -17,6 +17,7 @@
 #include "twilight_saves.h"
 #include "save_backend.h"
 #include "photo_album.h"
+#include "dr_background.h"
 #include "platform_compat.h"
 #include "dialogue_generated.h"
 #include "story_dialogue.h"
@@ -70,23 +71,13 @@ static int placeholder_preview_slot=-1;
 static u16 placeholder_preview[PIXELS] __attribute__((aligned(32)));
 static int placeholder_preview_loaded;
 #define CUSTOM_BG_MARKER 0xB6
-#define IMPORTED_BG_MARKER 0xB7
-/* A single user-provided 24-bit BMP, never an arbitrary storage filename. */
+/* Import is an atomic operation: BMP decoding must succeed before saving
+ * selection/camera state. The portable helper is directly host-tested. */
 static int load_imported_placeholder(void) {
-    char filename[128];
-    if(!have_storage || !storage_root ||
-       !dr_placeholder_path(filename,sizeof filename,storage_root))return 0;
-    if(!dr_photo_read(filename,custom_background,PIXELS))return 0;
-    custom_background_loaded=1;
-    custom_background_slot=-2;
-    return 1;
-}
-static void select_imported_placeholder(void) {
-    game.save.reserved[9]=0;
-    game.save.reserved[10]=0;
-    game.save.reserved[11]=IMPORTED_BG_MARKER;
-    game.save.camera_enabled=0;
-    game.requested_save=1;
+    return have_storage && storage_root &&
+        dr_background_import(storage_root,custom_background,PIXELS,
+                             &game,&custom_background_loaded,
+                             &custom_background_slot);
 }
 static int load_custom_background(int slot) {
     char filename[128];
@@ -109,8 +100,11 @@ static int preview_custom_background(int slot) {
     return 1;
 }
 static void restore_custom_background(void) {
-    if(game.save.reserved[11]==IMPORTED_BG_MARKER) {
-        load_imported_placeholder();
+    if(game.save.reserved[11]==DR_BACKGROUND_IMPORT_MARKER) {
+        if(have_storage && storage_root)
+            dr_background_restore(storage_root,custom_background,PIXELS,
+                                  &game,&custom_background_loaded,
+                                  &custom_background_slot);
         return;
     }
     if(game.save.reserved[11]!=CUSTOM_BG_MARKER)return;
@@ -1382,7 +1376,6 @@ static void handle_key(int keys,int down,touchPosition *touch) {
                 game.messages=120;
             } else {
                 if(load_imported_placeholder()) {
-                    select_imported_placeholder();
                     snprintf(game.message,sizeof game.message,
                              "Placeholder imported; camera turned OFF.");
                 } else snprintf(game.message,sizeof game.message,
@@ -1391,12 +1384,8 @@ static void handle_key(int keys,int down,touchPosition *touch) {
             }
         }
         if(down&KEY_SELECT) {
-            custom_background_loaded=0;
-            custom_background_slot=-1;
-            game.save.reserved[9]=0;
-            game.save.reserved[10]=0;
-            game.save.reserved[11]=0;
-            game.requested_save=1;
+            dr_background_reset(&game,&custom_background_loaded,
+                                &custom_background_slot);
             snprintf(game.message,sizeof game.message,
                      "Original camera-free background restored.");
             game.messages=120;

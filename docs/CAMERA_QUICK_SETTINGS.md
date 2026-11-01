@@ -38,3 +38,9 @@ The image selection persists in the existing homebrew save's previously reserved
 ## Verification
 
 The Linux host suite includes `tests/test_camera_quick.c` for hitboxes, safe paths, BMP decoding, and invalid-file protection, plus `tests/test_camera_quick_ui.py` to verify camera toggle, session restoration, and menu integration. The Nintendo DS ARM build validates the executable. A real emulator screenshot and gameplay test remain separate acceptance steps.
+
+## Transactional BMP selection (milestone #21)
+
+The import and save selection now share a portable, host-tested transaction in `source/dr_background.c`. A missing, truncated, malformed or oversized BMP leaves the existing display pixels, saved background marker, camera toggle and current gameplay session unchanged. A successful import marks the file in the homebrew save, disables the DSi camera, and uses the same BMP for the camera-free radar and sphere backgrounds. Restoring the marker on reboot reads the file again without dirtying the save. If the file is unavailable on reboot, the bundled background remains the fallback; the saved preference is retained for when storage returns. Reset clears the selection without deleting the user's file.
+
+`tests/test_background_import.c` covers success, rollback, restore, reset and preservation of the active capture timeout. An actual end-to-end DSi/DeSmuME FAT import remains a separate hardware or emulator test; portable host tests do not prove SD mounting.

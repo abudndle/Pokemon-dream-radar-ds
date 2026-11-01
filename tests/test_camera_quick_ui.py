@@ -11,6 +11,7 @@ root=Path(__file__).resolve().parents[1]
 main=(root/'source/main.c').read_text()
 game=(root/'source/game.h').read_text()
 platform=(root/'source/platform_compat.c').read_text()
+background=(root/'source/dr_background.c').read_text()
 
 assert 'STATE_CAMERA_QUICK } GameScreen;' in game
 assert 'case STATE_CAMERA_QUICK:' in main
@@ -32,15 +33,16 @@ assert 'if(down&KEY_SELECT)' in main
 assert 'if(running_dsi)' in main
 assert 'dr_camera_retry_latch' in main
 assert 'game.save.camera_enabled=!game.save.camera_enabled;' in main
-assert 'game.save.camera_enabled=0;' in main
+assert 'game->save.camera_enabled=0;' in background
 assert 'if(load_imported_placeholder())' in main
-assert 'select_imported_placeholder();' in main
-assert 'dr_photo_read(filename,custom_background,PIXELS)' in main
-assert 'dr_placeholder_path(filename,sizeof filename,storage_root)' in main
-assert 'IMPORTED_BG_MARKER 0xB7' in main
-assert 'if(game.save.reserved[11]==IMPORTED_BG_MARKER)' in main
-assert 'load_imported_placeholder();' in main
-assert 'game.requested_save=1;' in main
+assert 'dr_background_import(storage_root,custom_background,PIXELS,' in main
+assert 'dr_photo_read(path,pixels,count)' in background
+assert 'dr_placeholder_path(path,sizeof path,root)' in background
+assert 'DR_BACKGROUND_IMPORT_MARKER 0xB7' in (root/'source/dr_background.h').read_text()
+assert 'if(game.save.reserved[11]==DR_BACKGROUND_IMPORT_MARKER)' in main
+assert 'dr_background_restore(storage_root,custom_background,PIXELS,' in main
+assert 'game->requested_save=1;' in background
+assert 'dr_background_reset(&game,&custom_background_loaded,' in main
 assert 'CUSTOM_BG_MARKER 0xB6' in main
 assert 'STATE_RADAR' in main and 'STATE_SPHERE' in main
 assert 'if(was_search && !is_search)camera_off();' in main
