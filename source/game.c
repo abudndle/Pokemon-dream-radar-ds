@@ -1322,7 +1322,7 @@ int game_export(Game *g, const char *path) {
                     game_species_name(game_transfer_species(g,i)))<0) ok=0;
     int remaining=game_legendary_count(g)+(int)g->save.pending_count-batch;
     if (remaining>0 && fprintf(f,
-        "Retained for the next archive: %d regular Pokemon\n",remaining)<0)ok=0;
+        "Retained for the next archive: %d Pokemon\n",remaining)<0)ok=0;
     for (int i=0;i<MAX_ITEMS && ok;i++) if(g->save.pending_items[i])
         if (fprintf(f,"Item slot %d: %s x%d\n",i+1,
                     game_item_name(game_item_slot_kind(g,i)),g->save.pending_items[i])<0) ok=0;
