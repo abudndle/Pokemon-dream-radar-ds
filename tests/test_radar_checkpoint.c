@@ -108,16 +108,14 @@ int main(void) {
     /* Checksum-valid but impossible orb-chain state must never resume.
      * Each invalid sidecar is written through the normal persistence path
      * so these cases exercise semantic validation, not checksum failure. */
-    for(int invalid=0;invalid<6;invalid++) {
+    for(int invalid=0;invalid<5;invalid++) {
         Game malformed=g;
         switch(invalid) {
             case 0: malformed.search_orb_color=ORB_COLOR_COUNT;break;
             case 1: malformed.orb_chain_valid=2;break;
             case 2: malformed.orb_chain_stage=6;break;
             case 3: malformed.orb_group_target=6;break;
-            case 4: malformed.orb_group_target=1;
-                    malformed.orb_group_collected=2;break;
-            case 5: malformed.orb_total_collected=DREAM_ORB_CHAIN_LIMIT+1;break;
+            case 4: malformed.orb_total_collected=DREAM_ORB_CHAIN_LIMIT+1;break;
         }
         assert(save_backend_write(&backend,&malformed));
         reload(&backend,&loaded);
@@ -130,7 +128,9 @@ int main(void) {
     valid_chain.orb_chain_valid=1;
     valid_chain.orb_chain_stage=5;
     valid_chain.orb_group_target=5;
-    valid_chain.orb_group_collected=5;
+    /* Overlapping cloud groups may leave more collected than the last
+     * group's target; that is a valid state and must remain resumable. */
+    valid_chain.orb_group_collected=6;
     valid_chain.orb_total_collected=DREAM_ORB_CHAIN_LIMIT;
     assert(save_backend_write(&backend,&valid_chain));
     reload(&backend,&loaded);
