@@ -4,7 +4,7 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 from plan_melonds_aim import (locate_clouds, locate_orbs, locate_spheres,
-                              plan, plan_orb, plan_sphere)
+                              plan, plan_orb, plan_sphere, plan_sphere_motion)
 
 WIDTH, HEIGHT = 256, 403
 OFFSET = HEIGHT - 384
@@ -111,6 +111,51 @@ for invalid in (
         pass
     else:
         raise AssertionError("Unverified encounter backdrop or blank frame accepted")
+
+# A fresh screenshot and an earlier one permit only bounded motion lead.
+# The planner must never claim a hit or predict from a missing/unknown frame.
+def shifted_sphere_frame(dx=0, dy=0):
+    pixels = bytearray(bytes((203, 211, 219)) * (WIDTH * HEIGHT))
+    for y in range(70 + OFFSET + dy, 130 + OFFSET + dy):
+        for x in range(70 + dx, 170 + dx):
+            at = (y * WIDTH + x) * 3
+            pixels[at:at + 3] = bytes((243, 243, 243))
+    return pixels
+
+previous = shifted_sphere_frame()
+current = shifted_sphere_frame(20, -10)
+predicted = plan_sphere_motion(previous, current, WIDTH, HEIGHT)
+assert predicted["observed_target_screen"] == {"x": 140, "y": 89}
+assert predicted["target_screen"] == {"x": 150, "y": 84}
+assert predicted["observed_displacement"] == {"x": 20, "y": -10}
+assert predicted["motion_prediction"] == "bounded"
+assert predicted["horizontal_key"] == "Right"
+assert predicted["vertical_key"] == "Up"
+assert predicted["candidate_spheres"] == 1
+
+stationary = plan_sphere_motion(previous, previous, WIDTH, HEIGHT)
+assert stationary["target_screen"] == stationary["observed_target_screen"]
+assert stationary["motion_prediction"] == "bounded"
+
+unknown_previous = plan_sphere_motion(bytes(WIDTH * HEIGHT * 3),
+                                      current, WIDTH, HEIGHT)
+assert unknown_previous["motion_prediction"] == "previous_frame_unrecognized"
+assert unknown_previous["target_screen"] == {"x": 140, "y": 89}
+
+# A discontinuity is not a trustworthy velocity estimate.
+teleport = plan_sphere_motion(shifted_sphere_frame(-60),
+                              shifted_sphere_frame(30), WIDTH, HEIGHT)
+assert teleport["motion_prediction"] == "discontinuity"
+assert teleport["target_screen"] == teleport["observed_target_screen"]
+
+try:
+    plan_sphere_motion(previous, bytes(WIDTH * HEIGHT * 3), WIDTH, HEIGHT)
+except ValueError:
+    pass
+else:
+    raise AssertionError("Blank current sphere frame accepted as a target")
+print("PASS: two-frame sphere motion lead is bounded and fails closed")
+
 print("PASS: conservative sphere silhouette planner ignores reticle and unknown scenes")
 
 print("PASS: screenshot-driven cloud/Orb aim planner handles nearest target and invalid frames")
