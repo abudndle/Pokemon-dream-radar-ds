@@ -80,6 +80,7 @@ static void hierarchy_and_animation(void) {
     assert(dr_ui_evaluate(nodes,3,0,0,frames,3));
     assert(!frames[1].visible && !frames[2].visible);
     nodes[0].visible=1;
+    nodes[1].clip_children=1;
     nodes[2].x=100;
     assert(dr_ui_evaluate(nodes,3,0,0,frames,3));
     assert(!frames[2].visible || frames[2].w==0); /* clipped to parent */
