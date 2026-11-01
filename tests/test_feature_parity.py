@@ -17,9 +17,10 @@ for entry in features:
         assert (root/path).is_file(), f"Missing source evidence: {path}"
 
 by_id={entry["id"]:entry for entry in features}
-for key in ("black2_white2_transfer","unova_link_receive","hidden_abilities",
-            "legendary_transfer_priority"):
+for key in ("black2_white2_transfer","unova_link_receive","hidden_abilities"):
     assert by_id[key]["status"]=="unimplemented"
+assert by_id["legendary_transfer_priority"]["status"]=="host_tested"
+assert "tests/test_legendary_storage.c" in by_id["legendary_transfer_priority"]["evidence"]
 assert by_id["orb_colors"]["status"]=="partial"
 assert by_id["sphere_projectiles"]["status"]=="partial"
 assert by_id["color_encounter_bias"]["status"]=="partial"
