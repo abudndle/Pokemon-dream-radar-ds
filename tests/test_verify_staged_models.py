@@ -202,3 +202,15 @@ with tempfile.TemporaryDirectory() as temporary:
         else:
             raise AssertionError("Non-object staged manifest accepted")
 print("PASS: non-object manifest roots rejected")
+
+with tempfile.TemporaryDirectory() as temporary:
+    root = pathlib.Path(temporary)
+    (root / "model_manifest.json").write_text(
+        '{"format":"DRM1","format":"DRK1","models":[]}')
+    try:
+        verify(root, "model_manifest.json", "DRM1", ".drm")
+    except ValueError as exc:
+        assert "Duplicate staged manifest JSON key" in str(exc), str(exc)
+    else:
+        raise AssertionError("Duplicate manifest JSON keys accepted")
+print("PASS: duplicate manifest JSON keys rejected")

@@ -13,11 +13,21 @@ from pathlib import Path
 NAME = re.compile(r"pokemon_(0[0-9]|1[0-9]|2[0-5])\.(drm|drk)\Z")
 
 
+def reject_duplicate_keys(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("Duplicate staged manifest JSON key: " + key)
+        result[key] = value
+    return result
+
+
 def verify(directory: Path, manifest: str, expected_format: str, extension: str):
     manifest_path = directory / manifest
     if manifest_path.is_symlink() or not manifest_path.is_file():
         raise ValueError("Missing or symlinked staged manifest: " + manifest)
-    report = json.loads(manifest_path.read_text(encoding="utf-8"))
+    report = json.loads(manifest_path.read_text(encoding="utf-8"),
+                        object_pairs_hook=reject_duplicate_keys)
     if (not isinstance(report, dict) or report.get("format") != expected_format
             or not isinstance(report.get("models"), list)):
         raise ValueError("Invalid staged asset manifest format")
