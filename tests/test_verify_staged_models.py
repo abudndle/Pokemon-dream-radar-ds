@@ -76,3 +76,24 @@ with tempfile.TemporaryDirectory() as temporary:
     else:
         raise AssertionError("Incompatible mesh and skeleton accepted")
 print("PASS: matching mesh/skeleton pair validation")
+
+with tempfile.TemporaryDirectory() as temporary:
+    root = pathlib.Path(temporary)
+    name = "pokemon_00.drk"
+    manifest = "gltf_animation_manifest.json"
+    valid = fixture("DRK1")
+    for mutation, error in ((lambda p: p.__setitem__(16, 0), "bone hierarchy"),
+                            (lambda p: p.__setitem__(18, 1), "skin influence")):
+        payload = bytearray(valid)
+        mutation(payload)
+        (root / name).write_bytes(payload)
+        (root / manifest).write_text(json.dumps({"format": "DRK1", "models": [
+            {"file": name, "bytes": len(payload),
+             "sha256": hashlib.sha256(payload).hexdigest()}]}))
+        try:
+            verify(root, manifest, "DRK1", ".drk")
+        except ValueError as exc:
+            assert error in str(exc), str(exc)
+        else:
+            raise AssertionError("Invalid DRK1 " + error + " accepted")
+print("PASS: malformed skeletal hierarchy and influence rejection")

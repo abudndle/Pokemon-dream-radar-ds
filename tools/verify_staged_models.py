@@ -55,6 +55,17 @@ def verify(directory: Path, manifest: str, expected_format: str, extension: str)
                     and 2 <= frames <= 8 and 1 <= ticks <= 60
                     and reserved == 0 and len(payload) == expected_length):
                 raise ValueError("Invalid DRK1 animation layout: " + name)
+            bone_offset = 10
+            for index in range(bones):
+                parent = payload[bone_offset + index * 8 + 6]
+                reserved_bone = payload[bone_offset + index * 8 + 7]
+                if reserved_bone != 0 or (parent != 255 and parent >= index):
+                    raise ValueError("Invalid DRK1 bone hierarchy: " + name)
+            influence_offset = bone_offset + 8 * bones
+            for index in range(vertices):
+                base = influence_offset + index * 3
+                if payload[base] >= bones or payload[base + 1] >= bones:
+                    raise ValueError("Invalid DRK1 skin influence: " + name)
         digest = entry.get("sha256")
         size = entry.get("bytes")
         if (type(size) is not int or size != len(payload)
