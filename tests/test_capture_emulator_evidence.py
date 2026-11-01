@@ -25,10 +25,10 @@ def png_chunk(kind, body):
 
 def screenshot(index):
     """Generate distinct valid 256x384 RGB PNGs without private game assets."""
-    row = b"\\x00" + bytes((index, 40, 200)) * 256
+    row = b"\x00" + bytes((index, 40, 200)) * 256
     raw = row * 384
     header = struct.pack(">IIBBBBB", 256, 384, 8, 2, 0, 0, 0)
-    return (b"\\x89PNG\\r\\n\\x1a\\n" +
+    return (b"\x89PNG\r\n\x1a\n" +
             png_chunk(b"IHDR", header) +
             png_chunk(b"IDAT", zlib.compress(raw)) +
             png_chunk(b"IEND", b""))
@@ -47,7 +47,7 @@ with tempfile.TemporaryDirectory() as temp:
     assert audit_emulator_evidence(root, root)["status"] == "invalid_report"
 
     log = artifact(root / "runtime.log",
-                   b"Emulator: melonDS\\nWindow XID: 1234\\nROM: dream_radar.nds\\n")
+                   b"Emulator: melonDS\nWindow XID: 1234\nROM: dream_radar.nds\n")
     good = {
         "emulator": "melonDS", "test_kind": "live_emulator_capture",
         "commit_sha": "a" * 40, "rom_sha256": "b" * 64,
