@@ -135,3 +135,21 @@ with tempfile.TemporaryDirectory() as temporary:
     else:
         raise AssertionError("Repeated DRM1 face accepted")
 print("PASS: duplicate mesh face rejection")
+
+with tempfile.TemporaryDirectory() as temporary:
+    root = pathlib.Path(temporary)
+    name = "pokemon_00.drk"
+    manifest = "gltf_animation_manifest.json"
+    payload = bytearray(fixture("DRK1"))
+    payload[18:21] = bytes([0, 0, 0])
+    (root / name).write_bytes(payload)
+    (root / manifest).write_text(json.dumps({"format": "DRK1", "models": [
+        {"file": name, "bytes": len(payload),
+         "sha256": hashlib.sha256(payload).hexdigest()}]}))
+    try:
+        verify(root, manifest, "DRK1", ".drk")
+    except ValueError as exc:
+        assert "zero-weight" in str(exc), str(exc)
+    else:
+        raise AssertionError("Redundant zero-weight influence accepted")
+print("PASS: redundant zero-weight influence rejection")
