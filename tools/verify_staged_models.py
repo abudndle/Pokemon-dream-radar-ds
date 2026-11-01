@@ -46,6 +46,19 @@ def verify(directory: Path, manifest: str, expected_format: str, extension: str)
                            for j in (0, 2, 4))
                 if max(a, b, c) >= vertices or len({a, b, c}) != 3:
                     raise ValueError("Invalid DRM1 triangle: " + name)
+                def point(vertex):
+                    at = 8 + 6 * vertex
+                    return tuple(int.from_bytes(payload[at + k:at + k + 2],
+                                                "little", signed=True)
+                                 for k in (0, 2, 4))
+                va, vb, vc = point(a), point(b), point(c)
+                ab = tuple(vb[j] - va[j] for j in range(3))
+                ac = tuple(vc[j] - va[j] for j in range(3))
+                cross = (ab[1] * ac[2] - ab[2] * ac[1],
+                         ab[2] * ac[0] - ab[0] * ac[2],
+                         ab[0] * ac[1] - ab[1] * ac[0])
+                if not any(cross):
+                    raise ValueError("Degenerate DRM1 triangle: " + name)
         elif expected_format == "DRK1":
             if len(payload) < 10:
                 raise ValueError("Truncated DRK1 header: " + name)
