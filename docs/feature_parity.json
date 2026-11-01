@@ -79,7 +79,7 @@
     },
     {
       "id": "color_encounter_bias",
-      "feature": "Color-influenced next-search Pok\u00e9mon encounter selection",
+      "feature": "Color-influenced next-search Pokémon encounter selection",
       "status": "partial",
       "gap": "Colors are counted only when an individual orb is shot; dominant color is saved for next search and filters ordinary species. Exact weighted encounter rates are still provisional.",
       "evidence": [
@@ -144,7 +144,7 @@
     },
     {
       "id": "retrieval_dowsing",
-      "feature": "Retrieval favors Pok\u00e9mon; Dowsing favors items",
+      "feature": "Retrieval favors Pokémon; Dowsing favors items",
       "status": "host_tested",
       "gap": "Opposing bias implemented and tested; numerical odds are provisional.",
       "evidence": [
@@ -154,7 +154,7 @@
     },
     {
       "id": "simulator_item_rewards",
-      "feature": "Simulator \u03b1/\u03b2/\u03b3 award their special item pools",
+      "feature": "Simulator α/β/γ award their special item pools",
       "status": "host_tested",
       "gap": "Six-item original pool identities, storage and cancellation tested; odds unverified.",
       "evidence": [
@@ -192,7 +192,7 @@
     },
     {
       "id": "pokemon_roster",
-      "feature": "All original obtainable Pok\u00e9mon and encounter probabilities",
+      "feature": "All original obtainable Pokémon and encounter probabilities",
       "status": "partial",
       "gap": "26 named species supported, but spawn tables and form presentation are provisional.",
       "evidence": [
@@ -211,7 +211,7 @@
     },
     {
       "id": "research_storage",
-      "feature": "Six Pok\u00e9mon slots and six item stacks with replacement",
+      "feature": "Six Pokémon slots and six item stacks with replacement",
       "status": "host_tested",
       "gap": "Portable storage/replacement tested; original separate legendary priority remains missing.",
       "evidence": [
@@ -286,31 +286,39 @@
     {
       "id": "bclyt_layouts",
       "feature": "Original BCLYT screen positions and pane hierarchy",
-      "status": "investigation_only",
-      "gap": "135 original layouts inventoried; runtime compositor retargeting not integrated.",
+      "status": "partial",
+      "gap": "135 original layouts inventoried; source-derived TitleList and ScanList four-row pane hierarchies now feed a DS runtime with shared draw/touch geometry. Other source layouts and exact material, animation and pixel parity remain unimplemented.",
       "evidence": [
-        "tools/map_original_ui_layouts.py"
+        "tools/map_original_ui_layouts.py",
+        "tools/stage_title_ui.py",
+        "source/dr_ui_scene.c",
+        "source/main.c",
+        "tests/test_stage_scanlist_ui.py",
+        "docs/SCANLIST_PANE_RUNTIME.md"
       ]
     },
     {
       "id": "bclan_keyframes",
       "feature": "Original BCLAN animation keyframes and playback",
-      "status": "investigation_only",
-      "gap": "Native pane-target CLPA translation/rotation/scale/size curves now decode and sample Hermite/step keys from all 417 private CLAN clips (4871 transform tracks). Equal-time keys are preserved. Material/color/other tags, looping policy, parent composition, DS pane rendering and runtime playback remain unimplemented; these are 2D UI curves, not Pokemon skeletal animation.",
+      "status": "partial",
+      "gap": "417 native CLAN clips and 4871 transform tracks decoded privately. Optional private CLPA tracks can play on TitleList and ScanList pane geometry; actual original timings, appearance/material/color tracks, multiple clips, and DS full-screen compositor remain unsupported.",
       "evidence": [
         "tools/map_original_ui_layouts.py",
         "tools/audit_darc_asset_kinds.py",
         "docs/ORIGINAL_DARC_ASSET_KIND_AUDIT.json",
         "tools/decode_bclan_panes.py",
         "tests/test_bclan_panes.py",
-        "docs/BCLAN_PANE_CURVES.md"
+        "docs/BCLAN_PANE_CURVES.md",
+        "source/dr_ui_scene.c",
+        "tools/stage_title_ui.py",
+        "tests/test_stage_scanlist_ui.py"
       ]
     },
     {
       "id": "original_3d_models",
-      "feature": "Original Pok\u00e9mon 3D geometry and animations",
+      "feature": "Original Pokémon 3D geometry and animations",
       "status": "partial",
-      "gap": "Converted DRM1/DRA1/DRB1/DRK1 and strict glTF retargeting exist. Original NCCH ExeFS contains 14 verified CGFX Home Menu banner assets and a separate 16-file logo DARC; these are not confirmed Pok\u00e9mon encounter rigs. Native gameplay model/skeletal animation decoding remains unverified.",
+      "gap": "Converted DRM1/DRA1/DRB1/DRK1 and strict glTF retargeting exist. Original NCCH ExeFS contains 14 verified CGFX Home Menu banner assets and a separate 16-file logo DARC; these are not confirmed Pokémon encounter rigs. Native gameplay model/skeletal animation decoding remains unverified.",
       "evidence": [
         "source/dr_mesh.c",
         "source/dr_texture.c",
@@ -371,7 +379,7 @@
     },
     {
       "id": "unova_link_receive",
-      "feature": "Unova Link receiving Pok\u00e9mon/items into Black 2/White 2",
+      "feature": "Unova Link receiving Pokémon/items into Black 2/White 2",
       "status": "unimplemented",
       "gap": "No compatible send/receive implementation or save-verified integration.",
       "evidence": []
@@ -380,7 +388,7 @@
       "id": "hidden_abilities",
       "feature": "Original hidden-ability and badge-dependent levels",
       "status": "unimplemented",
-      "gap": "Without genuine Pok\u00e9mon transfer payloads these properties are not delivered.",
+      "gap": "Without genuine Pokémon transfer payloads these properties are not delivered.",
       "evidence": []
     },
     {
