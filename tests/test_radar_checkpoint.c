@@ -174,6 +174,58 @@ int main(void) {
     game_tick(&loaded);
     assert(loaded.dream_orbs[0].x==119 && loaded.dream_orbs[0].y==81);
 
+    /* An actual moving Legendary sphere spawns a primary and two secondary
+     * projectiles. Their positions and lifetimes must survive a checkpoint
+     * without an extra hit, while malformed values must be rejected before
+     * the first post-restart movement tick. */
+    Game projectile;
+    game_new(&projectile,53);
+    projectile.screen=STATE_SPHERE;
+    projectile.ext_selection=EXT_TORNADUS;
+    projectile.session_species=15;
+    projectile.capture_timeout=120;
+    projectile.projectile_enabled=1;
+    projectile.sphere_x=105;projectile.sphere_y=90;
+    projectile.aim_x=200;projectile.aim_y=120;
+    projectile.projectile_cooldown=0;
+    game_tick(&projectile);
+    assert(projectile.projectile_active && projectile.projectile_extra[0].active);
+    assert(projectile.projectile_extra[1].active);
+    assert(save_backend_write(&backend,&projectile));
+    reload(&backend,&loaded);
+    assert(loaded.screen==STATE_SPHERE && loaded.projectile_active);
+    assert(loaded.projectile_extra[0].active && loaded.projectile_extra[1].active);
+    assert(loaded.projectile_extra[0].ttl==90 && loaded.projectile_hits==0);
+    game_tick(&loaded);
+    assert(loaded.screen==STATE_SPHERE && loaded.projectile_extra[0].ttl==89);
+    assert(loaded.projectile_hits==0);
+
+    for(int invalid=0;invalid<16;invalid++) {
+        Game malformed=projectile;
+        switch(invalid) {
+            case 0: malformed.sphere_vx=2147483647;break;
+            case 1: malformed.sphere_vy=(-2147483647-1);break;
+            case 2: malformed.freeze_frames=301;break;
+            case 3: malformed.slow_frames=301;break;
+            case 4: malformed.projectile_vx=2147483647;break;
+            case 5: malformed.projectile_vy=(-2147483647-1);break;
+            case 6: malformed.projectile_lifetime=91;break;
+            case 7: malformed.projectile_x=256;break;
+            case 8: malformed.projectile_extra[0].vx=2147483647;break;
+            case 9: malformed.projectile_extra[0].vy=(-2147483647-1);break;
+            case 10: malformed.projectile_extra[0].ttl=91;break;
+            case 11: malformed.projectile_extra[0].x=256;break;
+            case 12: malformed.projectile_queued=3;break;
+            case 13: malformed.projectile_cooldown=161;break;
+            case 14: malformed.projectile_extra[0].active=2;break;
+            case 15: malformed.projectile_enabled=0;break;
+        }
+        assert(save_backend_write(&backend,&malformed));
+        reload(&backend,&loaded);
+        assert(loaded.screen==STATE_EXTENSIONS);
+        assert(loaded.save.orbs==projectile.save.orbs);
+    }
+
     /* A sidecar for a different save cannot revive old entities. */
     assert(save_backend_write(&backend,&g)); /* Replace corrupted sidecar. */
     Game newer=g;
