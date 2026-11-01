@@ -25,15 +25,17 @@ def finite(value):
         raise ValueError("invalid BCLYT/BCLAN floating value")
     return float(value)
 
-def stage(snapshot, clips=(), *, offset_y=80):
-    """Create bounded scene bytes. The 80px title calibration is provisional."""
+def stage(snapshot, clips=(), *, offset_y=80, layout_name=TARGET):
+    """Stage a four-row original BCLYT list (title or scan) with CLPA tracks."""
+    if layout_name not in (TARGET, "MnIf_S_ScanList.bclyt"):
+        raise ValueError("unsupported original BCLYT list layout")
     layouts = snapshot["layouts"]
-    matched = [item for item in layouts if Path(item["file"]).name == TARGET]
+    matched = [item for item in layouts if Path(item["file"]).name == layout_name]
     if len(matched) != 1:
-        raise ValueError("exactly one original TitleList BCLYT snapshot is required")
+        raise ValueError("exactly one selected original BCLYT snapshot is required")
     layout = matched[0]
     if len(layout["panes"]) != 1 or layout["panes"][0]["name"] != ROOT_NAME:
-        raise ValueError("unrecognized title BCLYT root")
+        raise ValueError("unrecognized original BCLYT root")
     w, h = [int(finite(v)) for v in layout["panes"][0]["size"]]
     if w != 320 or h != 240 or not -384 <= offset_y <= 384:
         raise ValueError("unexpected source canvas or calibration")
@@ -56,9 +58,9 @@ def stage(snapshot, clips=(), *, offset_y=80):
 
     walk(layout["panes"][0], -1)
     if set(names) != PANE_NAMES or len(nodes) > MAX_PANES:
-        raise ValueError("TitleList hierarchy missing required original panes")
-    # The original alpha=0 rows rely on other animation tags still unsupported.
-    # The DS title fallback keeps rows visible with an explicit documented policy.
+        raise ValueError("BCLYT hierarchy missing required four-row original panes")
+    # Original alpha=0 row envelopes are driven by unsupported alpha tags.
+    # Keep rows accessible until the private original opacity animation is restored.
     visible_rows = {f"L{i:02d}" for i in range(4)}
     raw_nodes = []
     for pane, parent in zip(nodes, parents):
