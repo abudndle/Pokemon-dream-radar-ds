@@ -565,7 +565,7 @@ static void render_search_bottom(void) {
         rect(bottom,sx-10,sy-7,20,14,0x8842);
         print(bottom,sx-7,sy-5,WHITE,text);
     }
-    /* Original bottom-screen art only. D-pad aims and A fires; no new joystick. */
+    /* Original bottom-screen art only. A does not fire on the radar screen. */
     /* Keep the original Back hotspot at the bottom right. */
 }
 /* Keep the complete target near the visible playfield. The clamped edge
