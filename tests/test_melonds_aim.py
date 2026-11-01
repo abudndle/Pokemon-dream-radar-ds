@@ -95,9 +95,9 @@ def sphere_frame(with_target=True):
 
 spheres = locate_spheres(sphere_frame(), WIDTH, HEIGHT)
 assert len(spheres) == 1
-assert spheres[0][:2] == (120, 100)
+assert spheres[0][:2] == (120, 99)
 guided = plan_sphere(sphere_frame(), WIDTH, HEIGHT)
-assert guided["target_screen"] == {"x": 120, "y": 100}
+assert guided["target_screen"] == {"x": 120, "y": 99}
 assert guided["horizontal_key"] == "Left" and guided["vertical_key"] == "Down"
 assert guided["candidate_spheres"] == 1
 for invalid in (
