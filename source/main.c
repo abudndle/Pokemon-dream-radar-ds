@@ -1946,6 +1946,10 @@ running_dsi=isDSiMode();
         if((game.screen==STATE_SPHERE || game.screen==STATE_RADAR) && !game.camera_active)camera_on();
         if(game.screen==STATE_SPHERE || game.screen==STATE_RADAR)update_camera();
         render();
+        /* Keep the in-flight radar snapshot fresh without writing SD every
+           frame: at most ten seconds of unsaved aiming progress on reboot. */
+        if(have_storage && (game.screen==STATE_RADAR || game.screen==STATE_SPHERE) &&
+           (game.save.frames_played%600)==0)game.requested_save=1;
         if(game.requested_save && have_storage && (game.save.frames_played%30)==0){
             if(save_backend_write(&save_backend,&game))game.requested_save=0;
             else {snprintf(game.message,sizeof game.message,"Could not save Dream Radar progress.");game.messages=120;}
