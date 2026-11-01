@@ -27,12 +27,13 @@ int main(void) {
     assert(g.save.caught_count == before_caught);
 
     g.save.cloud_count = 0;
+    g.screen = STATE_EXTENSIONS;
     game_begin_search(&g, EXT_BASIC);
-    assert(g.screen == STATE_RADAR);
+    assert(g.screen == STATE_EXTENSIONS);
     assert(game_active_dream_orbs(&g) == 0);
     assert(g.active_clouds == 0);
     game_fire(&g);
-    assert(g.screen == STATE_RADAR);
+    assert(g.screen == STATE_EXTENSIONS);
     assert(game_active_dream_orbs(&g) == 0);
     assert(g.save.caught_count == before_caught);
     puts("PASS: encounters and orbs remain hidden until radar cloud discovery");
