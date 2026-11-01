@@ -104,6 +104,16 @@ def compare_radar_counters(before, after):
             "limitations": "A counter change alone does not prove a sphere encounter, capture, reward, or save."}
 
 
+def compare_orb_counters(before, after):
+    """A decrease in visible live Orbs is evidence of collection, not saving."""
+    collected = before["orbs"] - after["orbs"]
+    return {"status": "orb_count_decreased" if collected > 0 else "orb_count_not_decreased",
+            "before": before, "after": after,
+            "orbs_collected": max(0, collected),
+            "orb_collection_observed": collected > 0,
+            "limitations": "Does not establish an encounter, reward persistence or restart."}
+
+
 def decode_native_capture(path):
     size = subprocess.run(["identify", "-format", "%w %h", str(path)],
                           capture_output=True, text=True, check=True, timeout=12)
@@ -152,6 +162,23 @@ def verify(directory, stages=None):
         else:
             report["postfire_observation"] = {
                 "status": "not_captured", "cloud_removal_observed": False}
+        postfire = report["postfire_observation"]
+        orb_path = Path(directory) / "05-radar-orb-postfire.png"
+        if orb_path.is_file() and "after" in postfire:
+            pixels, width, height = decode_native_capture(orb_path)
+            try:
+                orb_after = read_radar_counters(pixels, width, height, font)
+            except ValueError:
+                report["orb_observation"] = {
+                    "file": orb_path.name, "status": "radar_not_recognized",
+                    "orb_collection_observed": False}
+            else:
+                report["orb_observation"] = {
+                    "file": orb_path.name,
+                    **compare_orb_counters(postfire["after"], orb_after)}
+        else:
+            report["orb_observation"] = {
+                "status": "not_captured_or_not_radar", "orb_collection_observed": False}
     return report
 
 def main():
