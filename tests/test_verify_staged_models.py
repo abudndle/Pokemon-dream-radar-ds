@@ -11,7 +11,8 @@ from verify_staged_models import verify, verify_pairs
 def fixture(magic, vertices=3):
     if magic == "DRM1":
         coords = b"".join((i * 4096).to_bytes(2, "little", signed=True)
-                          + bytes(4) for i in range(vertices))
+                          + (4096 if i == 2 else 0).to_bytes(2, "little", signed=True)
+                          + bytes(2) for i in range(vertices))
         return (b"DRM1" + vertices.to_bytes(2, "little") + bytes([1, 0])
                 + coords + bytes([0, 0, 1, 0, 2, 0]))
     return (b"DRK1" + vertices.to_bytes(2, "little") + bytes([1, 2, 4, 0])
@@ -97,3 +98,21 @@ with tempfile.TemporaryDirectory() as temporary:
         else:
             raise AssertionError("Invalid DRK1 " + error + " accepted")
 print("PASS: malformed skeletal hierarchy and influence rejection")
+
+with tempfile.TemporaryDirectory() as temporary:
+    root = pathlib.Path(temporary)
+    name = "pokemon_00.drm"
+    manifest = "model_manifest.json"
+    payload = bytearray(fixture("DRM1"))
+    payload[8 + 6 * 2 + 2:8 + 6 * 2 + 4] = bytes(2)
+    (root / name).write_bytes(payload)
+    (root / manifest).write_text(json.dumps({"format": "DRM1", "models": [
+        {"file": name, "bytes": len(payload),
+         "sha256": hashlib.sha256(payload).hexdigest()}]}))
+    try:
+        verify(root, manifest, "DRM1", ".drm")
+    except ValueError as exc:
+        assert "Degenerate" in str(exc), str(exc)
+    else:
+        raise AssertionError("Zero-area DRM1 triangle accepted")
+print("PASS: degenerate mesh triangle rejection")
