@@ -103,6 +103,21 @@ with tempfile.TemporaryDirectory() as temp:
         invalid["captures"][stage] = invalid["captures"][REQUIRED[0]]
     assert status(invalid)["status"] == "reused_captures"
 
+    # Each file is a different, correctly checksummed PNG, but all display
+    # exactly the same pixels. Distinct metadata must not fake ten frames.
+    repeated = copy.deepcopy(good)
+    same_raw = (b"\x00" + bytes((1, 40, 200)) * 256) * 384
+    for i, stage in enumerate(REQUIRED):
+        decorated = (b"\x89PNG\r\n\x1a\n" +
+                     png_chunk(b"IHDR", struct.pack(">IIBBBBB", 256, 384, 8, 2, 0, 0, 0)) +
+                     png_chunk(b"tEXt", f"stage-{i}".encode()) +
+                     png_chunk(b"IDAT", zlib.compress(same_raw)) +
+                     png_chunk(b"IEND", b""))
+        repeated["captures"][stage] = artifact(root / f"same-{i}.png", decorated)
+    assert len({item["sha256"] for item in repeated["captures"].values()}) == len(REQUIRED)
+    assert status(repeated)["status"] == "reused_captures"
+
+
 
     # A valid PNG container is not enough: the compressed image itself must
     # contain exactly the expected scanlines and legal per-row filter bytes.
