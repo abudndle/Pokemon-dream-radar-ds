@@ -30,7 +30,6 @@ assert by_id["bclan_keyframes"]["status"]=="partial"
 assert "source/dr_ui_scene.c" in by_id["bclan_keyframes"]["evidence"]
 assert by_id["bclyt_layouts"]["status"]=="partial"
 assert "tests/test_stage_scanlist_ui.py" in by_id["bclyt_layouts"]["evidence"]
-assert "not" not in by_id["bclyt_layouts"]["gap"].lower() or by_id["bclyt_layouts"]["gap"].strip()
 assert by_id["device_and_emulator_tests"]["status"]=="unverified"
 assert by_id["retrieval_dowsing"]["status"]=="host_tested"
 assert by_id["simulator_item_rewards"]["status"]=="host_tested"
