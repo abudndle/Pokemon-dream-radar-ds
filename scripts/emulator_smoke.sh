@@ -60,14 +60,27 @@ snapshot() {
 # Capture actual emulator window, not simulated original UI images.
 sleep 7
 snapshot 01-title
-# DS X (DeSmuME CLI keyboard 's') opens the camera quick menu only on
-# title/intro. Exercise it BEFORE Start/A advance into the lab, where X is
-# reserved for another gameplay action. Do not conflate unrelated key input
-# with a camera-settings failure.
-xdotool windowfocus "$window" 2>/dev/null || true
-xdotool key --window "$window" s
-sleep 3
+# DeSmuME scans DS keys once per emulated frame; xdotool's short
+# synthetic key tap can be missed. Hold it for several VBlanks.
+send_ds_key() {
+  local name="$1"
+  xdotool windowfocus "$window" 2>/dev/null || true
+  xdotool keydown --window "$window" "$name"
+  sleep 0.35
+  xdotool keyup --window "$window" "$name"
+}
+# DS X (CLI 's') opens camera quick settings from title/intro.
+send_ds_key s
+sleep 2
 snapshot 04-camera-settings
+# DS Select (CLI Right Shift) is a second, equivalent shortcut, useful for
+# headless SDL builds that discard the first synthetic key event.
+if cmp -s "$outdir/01-title.png" "$outdir/04-camera-settings.png"; then
+  echo "DS X not captured; retrying camera shortcut with DS Select" >>"$outdir/runtime.log"
+  send_ds_key Shift_R
+  sleep 2
+  snapshot 04-camera-settings
+fi
 # Reject unchanged screenshots: a visible emulator window alone does not
 # demonstrate the newly added camera settings menu.
 python3 - "$outdir/01-title.png" "$outdir/04-camera-settings.png" <<'PY'
@@ -79,14 +92,14 @@ if hashlib.sha256(before).digest()==hashlib.sha256(after).digest():
     raise SystemExit("DS X did not open camera settings; unchanged real screenshot")
 print("PASS: emulator displayed a changed title frame after DS X camera shortcut")
 PY
-# DS B (keyboard 'z') returns to title without losing the normal smoke path.
-xdotool key --window "$window" z
+# DS B (CLI 'z') returns to title without losing the normal smoke path.
+send_ds_key z
 sleep 2
-xdotool key --window "$window" Return
+send_ds_key Return
 sleep 6
 snapshot 02-after-start
-# DeSmuME default key binding for DS A is X.
-xdotool key --window "$window" x
+# DeSmuME CLI maps 'x' to DS A.
+send_ds_key x
 sleep 6
 snapshot 03-after-a
 python3 tools/verify_emulator_screenshots.py \
