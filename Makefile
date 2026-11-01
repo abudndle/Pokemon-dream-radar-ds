@@ -138,6 +138,7 @@ test-host:
 	./build/test_reference_layout
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/dr_pane_runtime.c source/dr_title_runtime.c tests/test_dr_pane_runtime.c -lm -o build/test_dr_pane_runtime
 	./build/test_dr_pane_runtime
+	python3 tools/generate_title_pane_nodes.py --check
 	python3 tests/test_title_asset_geometry.py
 	python3 tests/test_original_ui_audit.py
 	python3 tests/test_camera_quick_ui.py
