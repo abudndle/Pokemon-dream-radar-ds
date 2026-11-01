@@ -1,5 +1,32 @@
 # Linux DS emulator smoke tests and real screenshots
 
+## melonDS navigation validation
+
+`scripts/melonds_smoke.sh` now checks the actual rendered headings for the
+Burnet intro, lab, Extension menu, radar, results and return to lab. The verifier
+uses the existing 6x8 game font at native 256x384 DS resolution; blank, shifted,
+scaled or wrong-stage frames fail. Changing pixels alone is insufficient.
+
+The workflow writes explicit DS A=Z/B=X mappings into melonDS's real
+`config/melonDS/melonDS.toml` directory. Input is focused and held across
+VBlanks. `MELONDS_BIN` can select a local official binary instead of Flatpak.
+
+Stylus entry and keyboard navigation have separate results. If the initial
+Start tap does not produce the intro heading, its real frame is retained as
+`02-title-touch-unverified.png`, then DS Start is tested independently. The
+JSON report keeps `title_touch_verified: false`; keyboard success never proves
+touch support. Set `REQUIRE_TOUCH=1` to make that unresolved stylus check fail
+even after successful keyboard navigation. Inspect `navigation-report.json`
+and the real frames. Cloud shooting, persistence, DSi camera/SD and hardware
+remain separate checks.
+
+Local evidence: the 1,551,360-byte ROM based on development commit `f8afcd3`
+booted in official melonDS 1.1 with built-in DS firmware under Xvfb. All six
+navigation headings were recognized in real 256x403 window captures. The stylus
+attempt did not reach the intro; a separate diagnostic ROM showed keyboard input
+but no `KEY_TOUCH` from that attempt. No diagnosis of physical touch hardware is
+implied. The production ROM used no diagnostic overlay or test-specific gameplay.
+
 This project now has a **real DeSmuME CLI emulator** boot-and-capture workflow in addition to BlocksDS compilation and host simulation tests. Unlike UI mockups or reconstructed 3DS assets, its PNG files are **captured from the emulator's displayed Nintendo DS dual-screen window** after launching the compiled `dream_radar.nds`.
 
 The automated workflow [`emulator-smoke.yml`](../.github/workflows/emulator-smoke.yml) runs:

@@ -159,10 +159,12 @@ test-host:
 	python3 tests/test_original_ncch_exefs_report.py
 	python3 tests/test_bclim_spr_converter.py
 	python3 tests/test_original_ui_layouts.py
+	python3 tests/test_bclan_panes.py
 	python3 tests/test_feature_parity.py
 	python3 tests/test_original_pane_geometry.py
 	python3 tests/test_pane_retarget.py
 	python3 tests/test_pane_hit_test.py
 	python3 tests/test_nds_header.py
 	python3 tests/test_verify_emulator_screenshots.py
+	python3 tests/test_melonds_navigation.py
 	python3 tools/verify_assets.py
