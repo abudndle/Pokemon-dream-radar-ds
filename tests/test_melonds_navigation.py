@@ -9,6 +9,7 @@ from verify_melonds_navigation import (check_heading, font_rows, read_radar_coun
 
 font = font_rows()
 width, height = 256, 403
+OFFSET = height - 384
 text = "RESEARCH LAB"
 pixels = bytearray(width * height * 3)
 for index, letter in enumerate(text):
