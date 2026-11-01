@@ -237,3 +237,20 @@ with tempfile.TemporaryDirectory() as temporary:
     else:
         raise AssertionError("Unknown manifest field accepted")
 print("PASS: unknown staged manifest fields rejected")
+
+with tempfile.TemporaryDirectory() as temporary:
+    root = pathlib.Path(temporary)
+    payload = fixture("DRM1")
+    (root / "pokemon_00.drm").write_bytes(payload)
+    (root / "model_manifest.json").write_text(json.dumps({
+        "format": "DRM1",
+        "models": [{"file": "pokemon_00.drm", "bytes": len(payload),
+                    "sha256": hashlib.sha256(payload).hexdigest().upper()}]
+    }))
+    try:
+        verify(root, "model_manifest.json", "DRM1", ".drm")
+    except ValueError as exc:
+        assert "checksum mismatch" in str(exc), str(exc)
+    else:
+        raise AssertionError("Noncanonical uppercase SHA-256 accepted")
+print("PASS: noncanonical SHA-256 manifest hashes rejected")
