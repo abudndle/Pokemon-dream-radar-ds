@@ -1179,7 +1179,7 @@ static void update_optical_motion(void) {
         }
         // Extremely crude optical-flow estimate, not a gyro replacement.
         if(best<150000) {
-            game.aim_x+=bestx*3;game.aim_y+=besty*3;
+            game.aim_x+=bestx*6;game.aim_y+=besty*6;
             if(game.aim_x<6)game.aim_x=6;
             if(game.aim_x>250)game.aim_x=250;
             if(game.aim_y<6)game.aim_y=6;
@@ -1418,10 +1418,10 @@ static void handle_key(int keys,int down,touchPosition *touch) {
         int back_touch = (down & KEY_TOUCH) && touch->px>=188 && touch->py>=174;
         /* Hardware controls work in BOTH cloud search and Pokémon/item encounters.
            No stylus aiming or synthetic joystick overrides the original touch UI. */
-        if(keys&KEY_LEFT) game.aim_x-=3;
-        if(keys&KEY_RIGHT)game.aim_x+=3;
-        if(keys&KEY_UP)   game.aim_y-=3;
-        if(keys&KEY_DOWN) game.aim_y+=3;
+        if(keys&KEY_LEFT) game.aim_x-=6;
+        if(keys&KEY_RIGHT)game.aim_x+=6;
+        if(keys&KEY_UP)   game.aim_y-=6;
+        if(keys&KEY_DOWN) game.aim_y+=6;
         if(game.aim_x<6)game.aim_x=6;
         if(game.aim_x>249)game.aim_x=249;
         if(game.aim_y<6)game.aim_y=6;
