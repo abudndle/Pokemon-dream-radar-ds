@@ -47,6 +47,8 @@ static DrUiScene *scanlist_ui_scene;
 static uint32_t scanlist_ui_started_frame;
 static DrUiScene *mainmenu_ui_scene;
 static uint32_t mainmenu_ui_started_frame;
+static DrUiScene *shoplist_ui_scene;
+static uint32_t shoplist_ui_started_frame;
 /* A from Start Search cannot immediately shoot a cloud before release. */
 static int radar_fire_armed;
 static TwilightSaveIndex sd_index;
@@ -792,6 +794,16 @@ static void mainmenu_live_rects(DrUiRect rows[4]) {
     for(int i=1;i<4;i++)
         rows[i]=(DrUiRect){21,44+(i-1)*35,214,27};
 }
+/* The original ShopList has four Touch00..03 panes, matching ScanList.
+ * Paginate all six purchasable rows without inventing extra source panes. */
+static void shoplist_live_rects(DrUiRect rows[4]) {
+    if(shoplist_ui_scene &&
+       dr_ui_four_row_rects(shoplist_ui_scene,
+           (float)(game.save.frames_played-shoplist_ui_started_frame),rows))
+        return;
+    for(int i=0;i<4;i++)
+        rows[i]=(DrUiRect){4,36+i*32,240,28};
+}
 static void render(void) {
     switch(game.screen) {
     case STATE_TITLE: {
@@ -923,7 +935,11 @@ static void render(void) {
         char tx[70];
         snprintf(tx,sizeof tx,"Development Lab  ORBS %lu",(unsigned long)game.save.orbs);
         print(bottom,8,8,GOLD,tx);
-        for(int i=0;i<6;i++) {
+        DrUiRect shop_rows[4];shoplist_live_rects(shop_rows);
+        int base=(game.selection/4)*4;
+        for(int slot=0;slot<4 && base+slot<6;slot++) {
+            int i=base+slot;
+            const DrUiRect *r=&shop_rows[slot];
             char lbl[64];
             if(i<3) {
                 int lev=game.save.upgrades[i];
@@ -931,8 +947,15 @@ static void render(void) {
                          upgrade_prices[lev<5?lev:4]);
             } else snprintf(lbl,sizeof lbl,"%s x%d  %d",shop_names[i],
                             game.save.goods[i-3],i==3?100:50);
-            button(bottom,dr_shop_row_top(i),lbl,game.selection==i);
+            /* The row geometry is from 3DS BCLYT; the unextracted wnd1
+               material remains a simple DS focus border. */
+            if(game.selection==i){
+                border(bottom,r->x,r->y,r->w,r->h,WHITE);
+                border(bottom,r->x+2,r->y+2,r->w-4,r->h-4,CYAN);
+            }
+            print(bottom,r->x+14,r->y+(r->h-8)/2,WHITE,lbl);
         }
+        print(bottom,218,177,GRAY,base?"2/2":"1/2");
         print(bottom,12,177,CYAN,"A: PURCHASE    B: RETURN");
         break; }
     case STATE_EXTENSIONS: {
@@ -1447,6 +1470,7 @@ static void switch_screen(GameScreen next) {
     if(next==STATE_RADAR || next==STATE_SPHERE)radar_fire_armed=0;
     if(next==STATE_EXTENSIONS)scanlist_ui_started_frame=game.save.frames_played;
     if(next==STATE_LAB)mainmenu_ui_started_frame=game.save.frames_played;
+    if(next==STATE_SHOP)shoplist_ui_started_frame=game.save.frames_played;
     if(next!=STATE_TRANSFER)game.archive_confirm=0;
     if(!was_search && is_search)camera_on();
 }
@@ -1678,11 +1702,13 @@ static void handle_key(int keys,int down,touchPosition *touch) {
     if(game.screen==STATE_SHOP){
         if(down&KEY_DOWN)game.selection=(game.selection+1)%6;
         if(down&KEY_UP)game.selection=(game.selection+5)%6;
-        if(down&KEY_TOUCH) {
-            int row=dr_shop_hit(touch->px,touch->py);
-            if(row>=0)game.selection=row;
-        }
-        if((down&KEY_A) || ((down&KEY_TOUCH) && dr_shop_hit(touch->px,touch->py)>=0))
+        DrUiRect shop_rows[4];shoplist_live_rects(shop_rows);
+        int local=(down&KEY_TOUCH)?
+            dr_ui_title_hit(shop_rows,touch->px,touch->py):-1;
+        int touched=local<0?-1:(game.selection/4)*4+local;
+        if(touched>=6)touched=-1;
+        if(touched>=0)game.selection=touched;
+        if((down&KEY_A)||touched>=0)
             game_buy(&game,game.selection<3?0:1,game.selection<3?game.selection:game.selection-3);
         if(down&KEY_B)switch_screen(STATE_LAB);
         return;
@@ -1954,6 +1980,7 @@ running_dsi=isDSiMode();
         title_ui_scene=dr_ui_scene_load("nitro:/title.drui");
         scanlist_ui_scene=dr_ui_scene_load("nitro:/scanlist.drui");
         mainmenu_ui_scene=dr_ui_scene_load("nitro:/mainmenu.drui");
+        shoplist_ui_scene=dr_ui_scene_load("nitro:/shoplist.drui");
     }
     if(have_storage && storage_root){
         char path[128];
@@ -1981,6 +2008,14 @@ running_dsi=isDSiMode();
                 mainmenu_ui_scene=original_ui;
             }
         }
+        len=snprintf(path,sizeof path,"%sDreamRadarDSi/UI/shoplist.drui",storage_root);
+        if(len>0 && len<(int)sizeof path){
+            DrUiScene *original_ui=dr_ui_scene_load(path);
+            if(original_ui){
+                dr_ui_scene_free(shoplist_ui_scene);
+                shoplist_ui_scene=original_ui;
+            }
+        }
     }
     time_t now=time(NULL);
     game_new(&game, ((uint32_t)now)^0xa15f009u);
@@ -1988,6 +2023,7 @@ running_dsi=isDSiMode();
     title_ui_started_frame=game.save.frames_played;
     scanlist_ui_started_frame=game.save.frames_played;
     mainmenu_ui_started_frame=game.save.frames_played;
+    shoplist_ui_started_frame=game.save.frames_played;
     restore_custom_background();
     game_regen_clouds(&game,(uint32_t)now);
     // Camera only starts when actively searching and the mode supports DSi.
