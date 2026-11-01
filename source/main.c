@@ -43,6 +43,8 @@
 static Game game;
 static DrUiScene *title_ui_scene;
 static uint32_t title_ui_started_frame;
+static DrUiScene *scanlist_ui_scene;
+static uint32_t scanlist_ui_started_frame;
 static TwilightSaveIndex sd_index;
 static SaveBackend save_backend;
 static int sd_selected;
@@ -765,6 +767,16 @@ static int title_live_rects(DrUiRect rows[4]) {
     }
     return 0;
 }
+/* The original MnIf_S_ScanList has four actual Touch00..03 panes,
+ * unlike the old DS five-row placeholder. Share touch and painted bounds,
+ * retaining safe source-sized rectangles when private tracks are invalid. */
+static void scanlist_live_rects(DrUiRect rows[4]) {
+    if(scanlist_ui_scene &&
+       dr_ui_four_row_rects(scanlist_ui_scene,
+           (float)(game.save.frames_played-scanlist_ui_started_frame),rows))
+        return;
+    for(int i=0;i<4;i++)rows[i]=(DrUiRect){4,36+i*32,240,28};
+}
 static void render(void) {
     switch(game.screen) {
     case STATE_TITLE: {
@@ -903,10 +915,18 @@ static void render(void) {
             print(top,13,145,GOLD,desc);
         }
         load_bg("menu_bottom.raw",bottom,0x8424);
-        int base=(extension_row_of(game.ext_selection)/5)*5;
-        for(int row=base;row<base+5 && row<extension_visible_count();row++) {
+        DrUiRect scan_rows[4];
+        scanlist_live_rects(scan_rows);
+        int base=(extension_row_of(game.ext_selection)/4)*4;
+        for(int row=base;row<base+4 && row<extension_visible_count();row++) {
+            const DrUiRect *r=&scan_rows[row-base];
             int ext=extension_at_row(row);
-            button(bottom,10+(row-base)*30,game_extension_name(ext),game.ext_selection==ext);
+            if(game.ext_selection==ext){
+                border(bottom,r->x,r->y,r->w,r->h,WHITE);
+                border(bottom,r->x+2,r->y+2,r->w-4,r->h-4,CYAN);
+            }
+            print(bottom,r->x+14,r->y+(r->h-8)/2,WHITE,
+                  game_extension_name(ext));
         }
         print(bottom,10,170,GRAY,"UP/DOWN: SELECT  A: START");
         print(bottom,28,181,GRAY,"B: BACK");
@@ -1392,6 +1412,7 @@ static void switch_screen(GameScreen next) {
     if(was_search && !is_search)camera_off();
     game.screen=next;game.selection=0;
     if(next==STATE_TITLE)title_ui_started_frame=game.save.frames_played;
+    if(next==STATE_EXTENSIONS)scanlist_ui_started_frame=game.save.frames_played;
     if(next!=STATE_TRANSFER)game.archive_confirm=0;
     if(!was_search && is_search)camera_on();
 }
@@ -1599,9 +1620,14 @@ static void handle_key(int keys,int down,touchPosition *touch) {
         int count=extension_visible_count();
         if(down&KEY_DOWN)game.ext_selection=extension_at_row((extension_row_of(game.ext_selection)+1)%count);
         if(down&KEY_UP)game.ext_selection=extension_at_row((extension_row_of(game.ext_selection)+count-1)%count);
-        if((down&KEY_TOUCH) && touch->px>=8 && touch->px<248 && touch->py>=10 && touch->py<160) {
-            int row=(extension_row_of(game.ext_selection)/5)*5+(touch->py-10)/30;
-            if(row<count)game.ext_selection=extension_at_row(row);
+        if(down&KEY_TOUCH) {
+            DrUiRect scan_rows[4];
+            scanlist_live_rects(scan_rows);
+            int hit=dr_ui_title_hit(scan_rows,touch->px,touch->py);
+            if(hit>=0) {
+                int row=(extension_row_of(game.ext_selection)/4)*4+hit;
+                if(row<count)game.ext_selection=extension_at_row(row);
+            }
         }
         if(down&KEY_A && validate_active_source()) {
             GameScreen prev=game.screen;
@@ -1882,7 +1908,10 @@ running_dsi=isDSiMode();
     for(int i=0;i<68;i++)load_sprite(i);
     /* Geometry-only title scene is generated during the build. Private
        user-staged original CLPA animations override it from SD/FAT. */
-    if(have_romfs)title_ui_scene=dr_ui_scene_load("nitro:/title.drui");
+    if(have_romfs){
+        title_ui_scene=dr_ui_scene_load("nitro:/title.drui");
+        scanlist_ui_scene=dr_ui_scene_load("nitro:/scanlist.drui");
+    }
     if(have_storage && storage_root){
         char path[128];
         int len=snprintf(path,sizeof path,"%sDreamRadarDSi/UI/title.drui",storage_root);
@@ -1893,11 +1922,20 @@ running_dsi=isDSiMode();
                 title_ui_scene=original_ui;
             }
         }
+        len=snprintf(path,sizeof path,"%sDreamRadarDSi/UI/scanlist.drui",storage_root);
+        if(len>0 && len<(int)sizeof path){
+            DrUiScene *original_ui=dr_ui_scene_load(path);
+            if(original_ui){
+                dr_ui_scene_free(scanlist_ui_scene);
+                scanlist_ui_scene=original_ui;
+            }
+        }
     }
     time_t now=time(NULL);
     game_new(&game, ((uint32_t)now)^0xa15f009u);
     if(have_storage)save_backend_load(&save_backend,&game);
     title_ui_started_frame=game.save.frames_played;
+    scanlist_ui_started_frame=game.save.frames_played;
     restore_custom_background();
     game_regen_clouds(&game,(uint32_t)now);
     // Camera only starts when actively searching and the mode supports DSi.
