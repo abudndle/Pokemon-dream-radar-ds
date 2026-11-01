@@ -148,13 +148,14 @@ with tempfile.TemporaryDirectory() as temp:
                     predictor = 0
                 scanlines.append((value - predictor) & 255)
             previous = row
-        return (b"\\x89PNG\\r\\n\\x1a\\n" +
+        return (b"\x89PNG\r\n\x1a\n" +
                 png_chunk(b"IHDR", struct.pack(">IIBBBBB", 256, 384, 8, 2, 0, 0, 0)) +
                 png_chunk(b"IDAT", zlib.compress(bytes(scanlines))) +
                 png_chunk(b"IEND", b""))
 
     variants = [filtered_png(kind) for kind in range(5)]
     assert len(set(variants)) == 5
+    assert all(_valid_png(png) for png in variants)
     assert len({_valid_png(png) for png in variants}) == 1
     filtered_reuse = copy.deepcopy(good)
     for i, stage in enumerate(REQUIRED):
