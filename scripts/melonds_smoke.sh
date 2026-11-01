@@ -114,6 +114,21 @@ if python3 tools/plan_melonds_aim.py "$out/05-radar.png" >"$out/aim-plan.json"; 
   aim_ds_key "$horizontal" "$horizontal_seconds"
   aim_ds_key "$vertical" "$vertical_seconds"
   snapshot 05-radar-aimed
+  # CI emulation speed varies, so milliseconds are not a fixed DS frame count.
+  # Re-read actual pixels after movement and correct the remaining offset
+  # before firing; two bounded iterations prevent an uncontrolled aim sweep.
+  for correction in 1 2; do
+    if ! python3 tools/plan_melonds_aim.py "$out/05-radar-aimed.png" >"$out/aim-correction-$correction.json"; then
+      break
+    fi
+    read -r horizontal horizontal_seconds vertical vertical_seconds < <(
+      python3 -c 'import json,sys; p=json.load(open(sys.argv[1])); x=p["offset"]["x"]; y=p["offset"]["y"]; done=abs(x)<=7 and abs(y)<=7; print("none" if done else p["horizontal_key"], 0 if done else round(min(0.3,p["horizontal_seconds"]*1.5),3), "none" if done else p["vertical_key"], 0 if done else round(min(0.3,p["vertical_seconds"]*1.5),3))' "$out/aim-correction-$correction.json"
+    )
+    [[ "$horizontal" == none && "$vertical" == none ]] && break
+    aim_ds_key "$horizontal" "$horizontal_seconds"
+    aim_ds_key "$vertical" "$vertical_seconds"
+    snapshot 05-radar-aimed
+  done
 else
   echo "WARNING: screenshot-guided aim unavailable; trying center reticle" | tee -a "$out/runtime.log"
 fi
