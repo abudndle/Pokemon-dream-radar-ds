@@ -14,7 +14,10 @@ NAME = re.compile(r"pokemon_(0[0-9]|1[0-9]|2[0-5])\.(drm|drk)\Z")
 
 
 def verify(directory: Path, manifest: str, expected_format: str, extension: str):
-    report = json.loads((directory / manifest).read_text(encoding="utf-8"))
+    manifest_path = directory / manifest
+    if manifest_path.is_symlink() or not manifest_path.is_file():
+        raise ValueError("Missing or symlinked staged manifest: " + manifest)
+    report = json.loads(manifest_path.read_text(encoding="utf-8"))
     if report.get("format") != expected_format or not isinstance(report.get("models"), list):
         raise ValueError("Invalid staged asset manifest format")
     seen = set()
