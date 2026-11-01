@@ -253,6 +253,41 @@ int game_load(Game *g, const char *file) {
     if(migrated_item_layout || repaired_background || migrated_orb_color || migrated_legends)
         s.checksum=game_checksum(&s);
     g->save = s;
+    /* Save v3 has four previously unused bytes for a UI checkpoint. Older
+     * saves remain valid: without the marker, retain the title screen.
+     * Transient encounter screens cannot be reconstructed from SaveData
+     * alone, so resume at Extensions instead of showing an empty sphere
+     * or results page. Research rewards already saved remain intact. */
+    if(s.reserved[16]==SAVE_UI_CHECKPOINT_MARKER) {
+        GameScreen restored=(GameScreen)s.reserved[17];
+        switch(restored) {
+        case STATE_TITLE: case STATE_LAB: case STATE_SHOP:
+        case STATE_EXTENSIONS: case STATE_RECORDS: case STATE_TRANSFER:
+        case STATE_SETTINGS: case STATE_STORAGE: case STATE_TIPS:
+        case STATE_ALBUM: case STATE_CREDITS: case STATE_PLACEHOLDER:
+            g->screen=restored;
+            break;
+        case STATE_INTRO:
+            g->screen=s.intro_seen?STATE_LAB:STATE_INTRO;
+            break;
+        case STATE_RADAR: case STATE_SPHERE: case STATE_RESULTS:
+            g->screen=STATE_EXTENSIONS;
+            g->requested_save=1;
+            break;
+        case STATE_SD_SAVES:
+            /* The external SD list must be scanned again after reboot. */
+            g->screen=STATE_SETTINGS;
+            break;
+        case STATE_REPLACE: case STATE_DIALOGUE: case STATE_CAMERA_QUICK:
+            g->screen=STATE_LAB;
+            break;
+        default:
+            g->screen=STATE_TITLE;
+            break;
+        }
+        g->ext_selection=s.reserved[18]<EXT_COUNT?s.reserved[18]:0;
+        g->page=s.reserved[19]<16u?s.reserved[19]:0;
+    }
     if(migrated_item_layout || repaired_background || migrated_orb_color || migrated_legends)
         g->requested_save=1;
     /* The three secret research extensions persist in unused reserved bytes,
@@ -284,6 +319,13 @@ int game_save(Game *g, const char *file) {
     for(int i=0;i<MAX_ITEMS;i++)
         if(snapshot.reserved[2+i]<1 ||
            snapshot.reserved[2+i]>RESEARCH_ITEM_TYPES)return 0;
+    /* Persist stable navigation in reserved v3 bytes without changing
+     * save size, checksum algorithm, or the legacy on-disk version. */
+    snapshot.reserved[16]=SAVE_UI_CHECKPOINT_MARKER;
+    snapshot.reserved[17]=(uint8_t)g->screen;
+    snapshot.reserved[18]=(uint8_t)((g->ext_selection>=0 && g->ext_selection<EXT_COUNT)
+                                  ? g->ext_selection:0);
+    snapshot.reserved[19]=(uint8_t)((g->page>=0 && g->page<16)?g->page:0);
     snapshot.checksum=game_checksum(&snapshot);
     FILE *f=fopen(file,"wb"); if (!f) return 0;
     int okay = fwrite(&snapshot,1,sizeof snapshot,f)==sizeof snapshot;
