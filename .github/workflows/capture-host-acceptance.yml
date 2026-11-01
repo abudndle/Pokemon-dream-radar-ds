@@ -8,6 +8,8 @@ on:
       - 'tests/**'
       - 'scripts/melonds_smoke.sh'
       - 'tools/audit_capture_milestone.py'
+      - 'tests/test_capture_emulator_evidence.py'
+      - 'docs/PARALLEL_PORT_WORKSTREAMS.md'
       - 'Makefile'
       - '.github/workflows/capture-host-acceptance.yml'
   workflow_dispatch:
