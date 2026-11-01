@@ -33,10 +33,14 @@ def verify(directory: Path, manifest: str, expected_format: str, extension: str)
     if (not isinstance(report, dict) or report.get("format") != expected_format
             or not isinstance(report.get("models"), list)):
         raise ValueError("Invalid staged asset manifest format")
+    if set(report) != {"format", "models"}:
+        raise ValueError("Unexpected staged manifest fields")
     seen = set()
     for entry in report["models"]:
         if not isinstance(entry, dict):
             raise ValueError("Invalid staged asset entry")
+        if set(entry) != {"file", "sha256", "bytes"}:
+            raise ValueError("Unexpected staged asset entry fields")
         name = entry.get("file")
         if (not isinstance(name, str) or not NAME.fullmatch(name)
                 or not name.endswith(extension) or name in seen):
