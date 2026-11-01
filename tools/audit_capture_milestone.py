@@ -87,7 +87,7 @@ def _valid_png(data):
     """Check a real PNG chunk stream and plausible dual-screen screenshot size."""
     import struct
     import zlib
-    if not data.startswith(b"\\x89PNG\\r\\n\\x1a\\n"):
+    if not data.startswith(b"\x89PNG\r\n\x1a\n"):
         return False
     pos, width, height, saw_image, saw_end = 8, 0, 0, False, False
     while pos + 12 <= len(data):
