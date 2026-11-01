@@ -1,0 +1,22 @@
+name: Dream Radar capture host acceptance
+on:
+  push:
+    branches: [milestone-next-parity-audit-20261101]
+  pull_request:
+    paths:
+      - 'source/**'
+      - 'tests/**'
+      - 'tools/audit_capture_milestone.py'
+      - 'Makefile'
+      - '.github/workflows/capture-host-acceptance.yml'
+  workflow_dispatch:
+jobs:
+  host-capture-checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run portable gameplay and syntax checks
+        run: python3 tools/audit_capture_milestone.py --run-host
+      - name: Run screenshot recognition regression checks
+        run: python3 tests/test_melonds_navigation.py
