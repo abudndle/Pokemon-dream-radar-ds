@@ -11,7 +11,7 @@ rom="$(realpath "$1")"
 out="$(realpath -m "$2")"
 mkdir -p "$out"
 test -s "$rom"
-for app in flatpak xdotool import identify; do
+for app in flatpak xdotool import identify compare; do
   command -v "$app" >/dev/null || { echo "Missing $app" >&2; exit 1; }
 done
 export LIBGL_ALWAYS_SOFTWARE=1
@@ -36,8 +36,48 @@ if [[ -z "$window" ]]; then
 fi
 echo "Window XID: $window" >>"$out/runtime.log"
 xwininfo -id "$window" >>"$out/runtime.log" 2>&1 || true
+snapshot() {
+  local name="$1"
+  kill -0 "$pid" 2>/dev/null || { echo "melonDS exited before $name" >&2; exit 1; }
+  import -silent -window "$window" "$out/$name.png"
+  identify "$out/$name.png" | tee -a "$out/runtime.log"
+  test -s "$out/$name.png"
+}
+press_ds_key() {
+  local key="$1"
+  xdotool windowfocus "$window" 2>/dev/null || true
+  xdotool keydown --window "$window" "$key"
+  sleep 0.25
+  xdotool keyup --window "$window" "$key"
+  sleep 2
+}
+assert_changed() {
+  local before="$1" after="$2"
+  local diff
+  diff="$(compare -metric AE "$out/$before.png" "$out/$after.png" null: 2>&1 || true)"
+  # A state transition should change a substantial portion of the 256x403
+  # dual-screen frame; reject identical or near-identical captures.
+  if ! awk -v n="$diff" 'BEGIN { exit !(n+0 > 500) }'; then
+    echo "Expected visible screen transition $before -> $after; changed pixels=$diff" >&2
+    exit 1
+  fi
+  echo "Verified visible transition: $before -> $after ($diff pixels)" >>"$out/runtime.log"
+}
 sleep 10
-import -silent -window "$window" "$out/01-melonds-boot.png"
-identify "$out/01-melonds-boot.png" | tee -a "$out/runtime.log"
-test -s "$out/01-melonds-boot.png"
-echo "PASS: captured actual melonDS application window"
+snapshot 01-title
+# melonDS default keyboard mapping: Return=Start, z=B, x=A.
+press_ds_key Return
+snapshot 02-intro
+assert_changed 01-title 02-intro
+press_ds_key z
+snapshot 03-lab
+assert_changed 02-intro 03-lab
+# Lab's first option opens the extension list; its first entry is Basic.
+press_ds_key x
+snapshot 04-extensions
+assert_changed 03-lab 04-extensions
+press_ds_key x
+snapshot 05-cloud-search
+assert_changed 04-extensions 05-cloud-search
+echo "PASS: real melonDS boot, title -> intro -> lab -> extensions -> radar navigation" |
+  tee -a "$out/runtime.log"
