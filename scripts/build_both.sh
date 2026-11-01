@@ -10,7 +10,8 @@ rm -rf build
 # CLPA keyframes are optional private SD/FAT overrides, never public assets.
 if command -v python3 >/dev/null 2>&1; then
     python3 tools/stage_title_ui.py ui_mapping/original_pane_geometry.json nitrofs/title.drui
-elif [ ! -s nitrofs/title.drui ]; then
+    python3 tools/stage_scan_ui.py ui_mapping/original_pane_geometry.json nitrofs/scan.drui
+elif ( [ ! -s nitrofs/title.drui ] || [ ! -s nitrofs/scan.drui ] ); then
     echo "Stage nitrofs/title.drui on the host before entering the SDK-only Docker image" >&2
     exit 1
 fi
