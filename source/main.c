@@ -45,6 +45,8 @@ static DrUiScene *title_ui_scene;
 static uint32_t title_ui_started_frame;
 static DrUiScene *scanlist_ui_scene;
 static uint32_t scanlist_ui_started_frame;
+/* A from Start Search cannot immediately shoot a cloud before release. */
+static int radar_fire_armed;
 static TwilightSaveIndex sd_index;
 static SaveBackend save_backend;
 static int sd_selected;
@@ -1412,6 +1414,7 @@ static void switch_screen(GameScreen next) {
     if(was_search && !is_search)camera_off();
     game.screen=next;game.selection=0;
     if(next==STATE_TITLE)title_ui_started_frame=game.save.frames_played;
+    if(next==STATE_RADAR || next==STATE_SPHERE)radar_fire_armed=0;
     if(next==STATE_EXTENSIONS)scanlist_ui_started_frame=game.save.frames_played;
     if(next!=STATE_TRANSFER)game.archive_confirm=0;
     if(!was_search && is_search)camera_on();
@@ -1426,6 +1429,7 @@ static void finish_story_dialogue(void) {
 }
 static void from_results(int continue_search) {
     if(continue_search && game_resume_radar(&game)) {
+        radar_fire_armed=0;
         /* Resume the existing clouds, saved Orb colors and aim state. */
         camera_on();
         return;
@@ -1518,7 +1522,8 @@ static void handle_key(int keys,int down,touchPosition *touch) {
         if(game.aim_y>184)game.aim_y=184;
         /* A fires at clouds or at revealed encounter targets. Touch is reserved
            for the original support-item and Back controls. */
-        if((keys&KEY_A) && (game.save.frames_played%5==0))game_fire(&game);
+        if(dr_search_fire_gate((keys&KEY_A)!=0,&radar_fire_armed) &&
+           (game.save.frames_played%5==0))game_fire(&game);
         if((down&KEY_TOUCH) && game.screen==STATE_SPHERE && touch->py>=58 && !back_touch) {
             int best=dr_support_at(touch->px,touch->py);
             if(best>=0) game_use_support(&game,best);
@@ -1630,6 +1635,7 @@ static void handle_key(int keys,int down,touchPosition *touch) {
             }
         }
         if(down&KEY_A && validate_active_source()) {
+            radar_fire_armed=0;
             GameScreen prev=game.screen;
             game_begin_search(&game,game.ext_selection);
             /* Cloud radar first; camera starts only on capture encounter. */
