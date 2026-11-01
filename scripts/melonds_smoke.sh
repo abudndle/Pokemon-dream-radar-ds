@@ -171,11 +171,25 @@ if [[ ! -f "$out/05-sphere-encounter.png" ]] && \
     aim_ds_key "$vertical" "$vertical_seconds"
     snapshot 05-radar-orb-aimed
   done
-  press_ds_key z
-  snapshot 05-radar-orb-postfire
-  latest_radar="$out/05-radar-orb-postfire.png"
+  # A moving Orb can leave the reticle during correction. Do not fire at a
+  # cloud just because an Orb was visible in an earlier screenshot.
+  latest_radar="$out/05-radar-orb-aimed.png"
+  if python3 tools/plan_melonds_aim.py "$latest_radar" --target orb \
+      >"$out/orb-fire-check.json" &&
+     python3 -c 'import json,sys; sys.exit(not json.load(open(sys.argv[1]))["within_safe_fire_radius"])' \
+      "$out/orb-fire-check.json"; then
+    press_ds_key z
+    snapshot 05-radar-orb-postfire
+    latest_radar="$out/05-radar-orb-postfire.png"
+  else
+    echo "WARNING: moving Orb not aligned with reticle; skipped unsafe shot" | tee -a "$out/runtime.log"
+  fi
 else
-  echo "WARNING: no visible pink Dream Orb target; collection not verified" | tee -a "$out/runtime.log"
+  if [[ -f "$out/05-sphere-encounter.png" ]]; then
+    echo "INFO: sphere encounter replaced Orb-collection stage" | tee -a "$out/runtime.log"
+  else
+    echo "WARNING: no visible pink Dream Orb target; collection not verified" | tee -a "$out/runtime.log"
+  fi
 fi
 # The initial pink cloud can produce Orbs instead of an encounter. Try at
 # most two additional clouds, always using fresh actual emulator screenshots.
