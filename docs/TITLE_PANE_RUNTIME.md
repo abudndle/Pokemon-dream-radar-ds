@@ -71,3 +71,53 @@ The stager rejects private-clip outputs inside the repository checkout.
 
 This is a concrete first runtime integration, **not full milestone #47 or retail
 3DS feature parity**.
+
+## Restore original 3DS title backgrounds without redistributing them
+
+The public ROM **already contains the owner's original extracted English
+title logo sprite**, and the 320x240 title-menu BCLYT hierarchy powers its
+interactive panes. The two public full-screen title backdrops, however, were
+re-created approximations and **are not the original 3DS bitmaps**. A 3DS-exact
+title cannot be claimed until the owner has supplied and validated the missing
+original background and window textures, material bindings and animations.
+
+To put genuine private original 3DS title-background images into the DS build,
+extract the opaque 400x240 title-top and 320x240 title-bottom background
+compositions from the **owner's own game dump**, then stage both together:
+
+```sh
+python3 tools/stage_original_title_art.py \
+  --top /private/title-top-400x240.bclim \
+  --bottom /private/title-bottom-320x240.png \
+  --output-root /private/dsi-sd-card
+```
+
+This writes `DreamRadarDSi/UI/title_top.raw` and
+`DreamRadarDSi/UI/title_bottom.raw` under the specified private storage
+root. Supported sources are privately extracted uncompressed BCLIM or
+opaque PNG/BMP files with the original screen dimensions. ETC1 formats are
+explicitly rejected by the decoder, not silently approximated.
+Both screens are scaled to 256x192 RGB555, the physical DS/DSi screen size;
+the extracted title logo and existing menu-pane labels are still overdrawn
+by the runtime, so provide **background-only** images rather than screenshots
+already containing a complete logo or text.
+
+On startup, if the DSi SD or DS flashcart FAT volume contains both files,
+the runtime validates their exact 98,304-byte length and opaque RGB555 pixels,
+then replaces both title backgrounds together. Missing, partial or corrupt
+pairs are ignored without changing the bundled fallback. The staging script
+refuses to place converted original Nintendo artwork inside the public GitHub
+checkout. No original 3DS bitmap has been published in this PR.
+
+### Unobstructed original title menu
+
+The extra DS-only camera settings gear is removed from the title artwork.
+`SELECT + X` held together on the title screen opens the optional camera
+settings, and B restores the title selection. One key or a random touchscreen
+tap cannot open it. This keeps the original title menu unmodified by the
+camera settings feature, though the still-approximate fallback backgrounds
+remain to be replaced by the owner's original images.
+
+**Outstanding:** exact material/window image composition, original animated
+opacity, all pane timelines, idle Pokémon title background, pixel-verified
+original 3DS fidelity, and DS/DSi hardware acceptance tests.
