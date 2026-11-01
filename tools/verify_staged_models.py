@@ -84,6 +84,8 @@ def verify(directory: Path, manifest: str, expected_format: str, extension: str)
                 base = influence_offset + index * 3
                 if payload[base] >= bones or payload[base + 1] >= bones:
                     raise ValueError("Invalid DRK1 skin influence: " + name)
+                if payload[base + 2] == 0 and payload[base] == payload[base + 1]:
+                    raise ValueError("Redundant DRK1 zero-weight influence: " + name)
         digest = entry.get("sha256")
         size = entry.get("bytes")
         if (type(size) is not int or size != len(payload)
