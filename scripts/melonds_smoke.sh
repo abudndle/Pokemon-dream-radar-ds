@@ -79,7 +79,7 @@ snapshot 01-title
 probe_key() {
   local key="$1" before="$2" after="$3" diff
   xdotool windowfocus --sync "$window" 2>/dev/null || true
-  xdotool key --window "$window" --clearmodifiers "$key"
+  xdotool key --clearmodifiers "$key"
   sleep 1
   snapshot "$after"
   diff="$(compare -metric AE "$out/$before.png" "$out/$after.png" null: 2>&1 || true)"
