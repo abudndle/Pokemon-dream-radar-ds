@@ -19,7 +19,7 @@ with tempfile.TemporaryDirectory() as tmp:
     t=(folder/"title_top.raw").read_bytes()
     b=(folder/"title_bottom.raw").read_bytes()
     assert len(t)==len(b)==256*192*2
-    assert t[:2] == bytes([0x82,0x98])
+    assert t[:2] == bytes([0xA2,0x9C])
     assert all(b[i]&0x80 for i in range(1,len(b),2))
     old=t,b
     try:stage(top,top,out)
