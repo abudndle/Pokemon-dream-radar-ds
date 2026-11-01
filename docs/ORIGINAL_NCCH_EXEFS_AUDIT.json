@@ -1,0 +1,196 @@
+{
+  "format": "NCCH_EXEFS_MODEL_SOURCE_AUDIT_V1",
+  "image_bytes": 24944640,
+  "exefs": {
+    "section_count": 4,
+    "sections": [
+      {
+        "name": ".code",
+        "bytes": 572840,
+        "relative_offset": 0
+      },
+      {
+        "name": "banner",
+        "bytes": 866072,
+        "relative_offset": 572928
+      },
+      {
+        "name": "icon",
+        "bytes": 14016,
+        "relative_offset": 1439232
+      },
+      {
+        "name": "logo",
+        "bytes": 8192,
+        "relative_offset": 1453568
+      }
+    ],
+    "icon_format": "SMDH",
+    "banner": {
+      "graphics_format": "CBMD",
+      "cgfx_container_count": 14,
+      "cgfx_containers": [
+        {
+          "slot": 0,
+          "compressed_bytes": 12057,
+          "padding_bytes": 0,
+          "decoded_bytes": 82432,
+          "section_count": 2,
+          "cmdl_signature_count": 1,
+          "imag_signature_count": 1
+        },
+        {
+          "slot": 1,
+          "compressed_bytes": 58636,
+          "padding_bytes": 0,
+          "decoded_bytes": 183936,
+          "section_count": 2,
+          "cmdl_signature_count": 1,
+          "imag_signature_count": 1
+        },
+        {
+          "slot": 2,
+          "compressed_bytes": 58055,
+          "padding_bytes": 0,
+          "decoded_bytes": 187648,
+          "section_count": 2,
+          "cmdl_signature_count": 1,
+          "imag_signature_count": 1
+        },
+        {
+          "slot": 3,
+          "compressed_bytes": 59347,
+          "padding_bytes": 0,
+          "decoded_bytes": 187136,
+          "section_count": 2,
+          "cmdl_signature_count": 1,
+          "imag_signature_count": 1
+        },
+        {
+          "slot": 4,
+          "compressed_bytes": 58055,
+          "padding_bytes": 0,
+          "decoded_bytes": 187648,
+          "section_count": 2,
+          "cmdl_signature_count": 1,
+          "imag_signature_count": 1
+        },
+        {
+          "slot": 5,
+          "compressed_bytes": 58055,
+          "padding_bytes": 0,
+          "decoded_bytes": 187648,
+          "section_count": 2,
+          "cmdl_signature_count": 1,
+          "imag_signature_count": 1
+        },
+        {
+          "slot": 6,
+          "compressed_bytes": 58636,
+          "padding_bytes": 0,
+          "decoded_bytes": 183936,
+          "section_count": 2,
+          "cmdl_signature_count": 1,
+          "imag_signature_count": 1
+        },
+        {
+          "slot": 7,
+          "compressed_bytes": 58636,
+          "padding_bytes": 0,
+          "decoded_bytes": 183936,
+          "section_count": 2,
+          "cmdl_signature_count": 1,
+          "imag_signature_count": 1
+        },
+        {
+          "slot": 8,
+          "compressed_bytes": 58636,
+          "padding_bytes": 0,
+          "decoded_bytes": 183936,
+          "section_count": 2,
+          "cmdl_signature_count": 1,
+          "imag_signature_count": 1
+        },
+        {
+          "slot": 10,
+          "compressed_bytes": 58635,
+          "padding_bytes": 0,
+          "decoded_bytes": 183936,
+          "section_count": 2,
+          "cmdl_signature_count": 1,
+          "imag_signature_count": 1
+        },
+        {
+          "slot": 11,
+          "compressed_bytes": 58055,
+          "padding_bytes": 0,
+          "decoded_bytes": 187648,
+          "section_count": 2,
+          "cmdl_signature_count": 1,
+          "imag_signature_count": 1
+        },
+        {
+          "slot": 12,
+          "compressed_bytes": 58055,
+          "padding_bytes": 0,
+          "decoded_bytes": 187648,
+          "section_count": 2,
+          "cmdl_signature_count": 1,
+          "imag_signature_count": 1
+        },
+        {
+          "slot": 13,
+          "compressed_bytes": 58635,
+          "padding_bytes": 0,
+          "decoded_bytes": 183936,
+          "section_count": 2,
+          "cmdl_signature_count": 1,
+          "imag_signature_count": 1
+        },
+        {
+          "slot": 15,
+          "compressed_bytes": 46042,
+          "padding_bytes": 9,
+          "decoded_bytes": 172544,
+          "section_count": 2,
+          "cmdl_signature_count": 1,
+          "imag_signature_count": 1
+        }
+      ],
+      "cmdl_markers_total": 14,
+      "banner_audio": {
+        "format": "CWAV",
+        "bytes": 106392
+      },
+      "scope": "Nintendo 3DS HOME MENU banner, not gameplay Pokémon"
+    },
+    "logo": {
+      "compression": "LZ11",
+      "container": "DARC",
+      "decoded_bytes": 25928,
+      "compressed_bytes": 6504,
+      "file_count": 16,
+      "categories": {
+        "image": 8,
+        "ui_animation": 6,
+        "ui_layout": 2
+      },
+      "scope": "ExeFS Nintendo logo UI, not gameplay Pokémon"
+    },
+    "code_status": "opaque_executable_not_a_model_decode"
+  },
+  "romfs": {
+    "file_count": 208,
+    "types": {
+      "CARC_LZH8_header": 177,
+      "CSAR_audio": 1,
+      "CSTM_audio": 20,
+      "DVLB_shader": 10
+    },
+    "classified_3d_gameplay_meshes": 0,
+    "scope": "Top-level RomFS signatures only; no blind executable reverse engineering"
+  },
+  "verified_3ds_pokemon_skeletal_animation": false,
+  "private_asset_bytes_exported": 0,
+  "caveat": "14 real CGFX 3D containers belong to ExeFS HOME MENU banner; this DOES NOT identify or decode Pokémon encounter geometry or original skeletal tracks. RomFS extension/header inventory and an opaque executable scan cannot rule out native data stored in unknown formats or runtime code."
+}
