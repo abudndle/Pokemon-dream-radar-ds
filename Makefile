@@ -160,6 +160,8 @@ test-host:
 	python3 tests/test_bclim_spr_converter.py
 	python3 tests/test_original_ui_layouts.py
 	python3 tests/test_bclan_panes.py
+	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/dr_ui_scene.c tests/test_dr_ui_scene.c -lm -o build/test_dr_ui_scene
+	python3 tests/test_stage_title_ui.py
 	python3 tests/test_feature_parity.py
 	python3 tests/test_original_pane_geometry.py
 	python3 tests/test_pane_retarget.py
