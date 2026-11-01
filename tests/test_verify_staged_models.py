@@ -153,3 +153,21 @@ with tempfile.TemporaryDirectory() as temporary:
     else:
         raise AssertionError("Redundant zero-weight influence accepted")
 print("PASS: redundant zero-weight influence rejection")
+
+with tempfile.TemporaryDirectory() as temporary:
+    root = pathlib.Path(temporary)
+    name = "pokemon_00.drk"
+    manifest = "gltf_animation_manifest.json"
+    payload = bytearray(fixture("DRK1"))
+    payload[17] = 1  # Reserved byte of the first bone must remain zero.
+    (root / name).write_bytes(payload)
+    (root / manifest).write_text(json.dumps({"format": "DRK1", "models": [
+        {"file": name, "bytes": len(payload),
+         "sha256": hashlib.sha256(payload).hexdigest()}]}))
+    try:
+        verify(root, manifest, "DRK1", ".drk")
+    except ValueError as exc:
+        assert "bone hierarchy" in str(exc), str(exc)
+    else:
+        raise AssertionError("Nonzero DRK1 bone reserved byte accepted")
+print("PASS: reserved skeleton bytes rejected")
