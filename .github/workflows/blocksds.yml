@@ -40,6 +40,7 @@ jobs:
       - name: Compile enhanced ROM with DS fallback
         run: |
           python3 tools/stage_title_ui.py ui_mapping/original_pane_geometry.json nitrofs/title.drui
+          python3 tools/stage_scan_ui.py ui_mapping/original_pane_geometry.json nitrofs/scan.drui
           docker run --rm -v "$PWD:/workspace" -w /workspace \
             -e SKIP_HOST_TESTS=1 -e SKIP_ROM_CHECK=1 \
             skylyrac/blocksds:slim-latest sh scripts/build_both.sh
