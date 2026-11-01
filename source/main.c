@@ -1413,6 +1413,14 @@ static void handle_key(int keys,int down,touchPosition *touch) {
         return;
     }
     if(game.screen==STATE_CAMERA_QUICK) {
+        /* Exit before processing Select's reset command: holding X and
+           pressing Select must never silently erase the chosen background. */
+        if((down&KEY_B) ||
+           dr_camera_quick_open(1,keys,down,KEY_SELECT,KEY_X)) {
+            switch_screen(camera_quick_return);
+            game.selection=camera_quick_return_selection;
+            return;
+        }
         if(down&(KEY_UP|KEY_DOWN))game.selection^=1;
         int tapped=(down&KEY_TOUCH)?
             dr_camera_quick_row_hit(touch->px,touch->py):-1;
@@ -1445,11 +1453,6 @@ static void handle_key(int keys,int down,touchPosition *touch) {
             snprintf(game.message,sizeof game.message,
                      "Original camera-free background restored.");
             game.messages=120;
-        }
-        if((down&KEY_B) ||
-           dr_camera_quick_open(1,keys,down,KEY_SELECT,KEY_X)) {
-            switch_screen(camera_quick_return);
-            game.selection=camera_quick_return_selection;
         }
         return;
     }
