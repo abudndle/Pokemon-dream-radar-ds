@@ -1,0 +1,55 @@
+name: Linux DS emulator smoke and screenshots
+
+on:
+  workflow_dispatch:
+  schedule:
+    # One periodic emulated DS boot test each week; not a claim of gameplay parity.
+    - cron: '30 12 * * 0'
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - '.github/workflows/emulator-smoke.yml'
+      - 'scripts/emulator_smoke.sh'
+      - 'tools/verify_emulator_screenshots.py'
+      - 'tests/test_verify_emulator_screenshots.py'
+      - 'source/**'
+      - 'nitrofs/**'
+      - 'Makefile'
+      - 'scripts/build_both.sh'
+      - 'scripts/check_nds.py'
+jobs:
+  emulator-boot:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Linux Nintendo DS emulator and screenshot capture tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends desmume xvfb xauth xdotool imagemagick x11-utils
+          test -x /usr/games/desmume-cli
+      - name: Build DS-compatible homebrew ROM with BlocksDS
+        run: |
+          docker run --rm -v "$PWD:/workspace" -w /workspace \
+            -e SKIP_HOST_TESTS=1 -e SKIP_ROM_CHECK=1 \
+            skylyrac/blocksds:slim-latest sh scripts/build_both.sh
+          python3 scripts/check_nds.py dream_radar.nds
+      - name: Launch real DeSmuME emulator and capture both DS screens
+        run: |
+          xvfb-run -a -s '-screen 0 1024x900x24' \
+            bash scripts/emulator_smoke.sh dream_radar.nds emulator-results
+      - name: Publish real emulator screenshot evidence and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-desmume-real-screenshots
+          path: |
+            emulator-results/*.png
+            emulator-results/*.log
+            emulator-results/*.json
+            emulator-results/window-tree.txt
+          if-no-files-found: warn
+          retention-days: 30

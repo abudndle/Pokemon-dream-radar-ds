@@ -41,7 +41,7 @@ The source-of-truth checklist is [`feature_parity.json`](feature_parity.json), c
 | Unova Link receiving Pokémon/items into Black 2/White 2 | unimplemented | No compatible send/receive implementation or save-verified integration. |
 | Original hidden-ability and badge-dependent levels | unimplemented | Without genuine Pokémon transfer payloads these properties are not delivered. |
 | Original complete language selection and translated UI | partial | Extracted localized assets exist; complete in-game per-language switching is absent. |
-| Boot, input, performance, save tests on DS/DSi and emulator | unverified | CI compiles ROMs and runs portable tests; reliable end-to-end gameplay test still pending. |
+| Boot, input, performance, save tests on DS/DSi and emulator | unverified | Linux DeSmuME screenshot/boot smoke workflow runs on relevant code changes, weekly, and manually; actual successful boot, menu navigation, DS/DSi hardware, save reload, and full gameplay still require verification. |
 
 ## Required acceptance gates before calling the port finished
 
