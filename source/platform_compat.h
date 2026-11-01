@@ -20,6 +20,9 @@ int dr_settings_action(int dsi_mode,int selection);
 int dr_camera_allowed(int dsi_mode,int camera_enabled);
 /* Only an explicit camera-enable action clears a prior failure latch. */
 int dr_camera_retry_latch(int camera_enabled,int previous_failure);
+/* A used to enter Search must be released before it can shoot a cloud.
+ * Call on every active radar/capture frame; caller clears armed on entry. */
+int dr_search_fire_gate(int a_held,int *armed);
 /* Fire once when L and R become jointly held, only in DSi mode. */
 int dr_photo_shortcut(int dsi_mode,int held,int down,int l_mask,int r_mask);
 /* Never save stale frames after the camera is stopped or unavailable. */
