@@ -280,9 +280,15 @@ if [[ -f "$out/05-sphere-encounter.png" ]]; then
       11) direction=Left;  seconds=0.70 ;;
       12) direction=Down;  seconds=0.18 ;;
     esac
-    # Prefer the observed silhouette on the known flat DS fallback scene.
+    # Sample a fresh frame after the previous movement. The encounter art
+    # moves during screenshots; a stale one-frame position can chase the
+    # target indefinitely. Extrapolate only a bounded two-frame displacement.
+    previous_sphere="$capture_last"
+    snapshot "05-sphere-before-$step"
+    current_sphere="$out/05-sphere-before-$step.png"
     # Unknown artwork/backgrounds fail closed to the bounded manual sweep.
-    if python3 tools/plan_melonds_aim.py "$capture_last" --target sphere \
+    if python3 tools/plan_melonds_aim.py "$current_sphere" --target sphere \
+        --previous-screenshot "$previous_sphere" \
         >"$out/sphere-aim-$step.json" 2>/dev/null; then
       read -r horizontal horizontal_seconds vertical vertical_seconds < <(
         python3 -c 'import json,sys; p=json.load(open(sys.argv[1])); print(p["horizontal_key"],p["horizontal_seconds"],p["vertical_key"],p["vertical_seconds"])' \
