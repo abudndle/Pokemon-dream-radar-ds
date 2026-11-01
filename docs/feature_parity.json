@@ -386,9 +386,9 @@
     },
     {
       "id": "camera_quick_settings",
-      "feature": "DS-only bottom-left camera options and placeholder BMP import",
+      "feature": "Title-only DS camera settings and placeholder BMP import",
       "status": "host_tested",
-      "gap": "The requested two-action DS menu, fixed 256x192 BMP path and save restoration have host tests. Live DSi hardware and full emulator input testing remain outstanding. This is intentionally new, not original 3DS UI.",
+      "gap": "The requested camera gear and X shortcut are restricted to the title; no camera rows appear in ordinary Options or gameplay. Fixed 256x192 BMP import and save restoration have host tests. Live DSi hardware and FAT import testing remain outstanding. This is intentionally new, not original 3DS UI.",
       "evidence": [
         "source/main.c",
         "source/platform_compat.c",
