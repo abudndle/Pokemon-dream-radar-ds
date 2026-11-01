@@ -140,6 +140,63 @@ def observe_search_state(pixels, width, height, font):
                 read_sphere_state(pixels, width, height, font)}
 
 
+
+def read_capture_reward(pixels, width, height, font):
+    """Verify an actual results-screen reward using the game's font and catalog.
+
+    This recognizes a displayed Pokemon/item reward, not a successful save,
+    cartridge transfer, or persistence after restarting the emulator.
+    """
+    check_heading(pixels, width, height, 10, 8, "RESEARCH RESULTS", font)
+    catalogs = (
+        ("pokemon", "Caught: ", "gold", "game.c", "species_names"),
+        ("item", "Item: ", "white", "item_catalog_generated.h",
+         "original_item_names"),
+    )
+    matches = []
+    for kind, prefix, ink, filename, variable in catalogs:
+        source = (ROOT / "source" / filename).read_text()
+        block = re.search(r"\\b" + variable + r"\\s*\\[[^]]*\\]\\s*=\\s*\\{(.*?)\\};",
+                          source, re.S)
+        if not block:
+            raise ValueError(f"Cannot locate {variable} catalog")
+        for name in re.findall(r'"([^"]+)"', block.group(1)):
+            # The bottom screen begins at native y=192. Requiring the
+            # trailing blank prevents a shorter prefix from matching a name.
+            phrase = prefix + name + " "
+            try:
+                check_heading(pixels, width, height, 16, 192 + 68,
+                              phrase, font, ink=ink)
+            except ValueError:
+                continue
+            matches.append({"reward_kind": kind, "reward_name": name})
+    if len(matches) != 1:
+        raise ValueError("No unique stored Pokemon/item reward shown on results screen")
+    return matches[0]
+
+
+def read_capture_progress(pixels, width, height, font):
+    """Read the visible gold capture meter; do not mistake a shot for a hit."""
+    encounter = read_sphere_state(pixels, width, height, font)
+    offset = height - 384
+    # progress_bar(9,4,181,hp,240,GOLD): inner fill is x=11..187, y=6..14.
+    # Check three interior rows to avoid a single background-colored pixel.
+    def gold(x):
+        for y in (8, 9, 10):
+            at = ((y + offset) * width + x) * 3
+            r, g, b = pixels[at:at + 3]
+            if not (r >= 220 and g >= 190 and b <= 110):
+                return False
+        return True
+    filled = 0
+    for x in range(11, 188):
+        if not gold(x):
+            break
+        filled += 1
+    return {"encounter": encounter, "filled_pixels": filled,
+            "bar_width": 177,
+            "limitations": "Visual meter only; no reward, save, or restart verified."}
+
 def compare_radar_counters(before, after):
     """Describe visible counter changes; never infer a successful capture."""
     removed = before["clouds"] - after["clouds"]
@@ -268,6 +325,18 @@ def main():
     parser.add_argument("--observe-search-screenshot", type=Path,
                         help="Print verified radar/encounter state from one actual screenshot")
     args = parser.parse_args()
+    if sum(v is not None for v in
+           (args.observe_search_screenshot, args.observe_reward_screenshot,
+            args.observe_capture_progress)) > 1:
+        parser.error("Select only one screenshot observation")
+    if args.observe_reward_screenshot:
+        pixels, width, height = decode_native_capture(args.observe_reward_screenshot)
+        print(json.dumps(read_capture_reward(pixels, width, height, font_rows())))
+        return
+    if args.observe_capture_progress:
+        pixels, width, height = decode_native_capture(args.observe_capture_progress)
+        print(json.dumps(read_capture_progress(pixels, width, height, font_rows())))
+        return
     if args.observe_search_screenshot:
         pixels, width, height = decode_native_capture(args.observe_search_screenshot)
         print(json.dumps(observe_search_state(pixels, width, height, font_rows())))
