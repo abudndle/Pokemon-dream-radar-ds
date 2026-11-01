@@ -22,6 +22,7 @@ REQUIRED = {
     ".github/workflows/capture-host-acceptance.yml": "CI acceptance evidence",
     "docs/feature_parity.json": "feature parity tracking",
     "source/main.c": "real DS input and display integration",
+    "tests/test_capture_emulator_evidence.py": "reject incomplete emulator evidence",
 }
 
 def audit(root, run_host=False):
