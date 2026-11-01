@@ -106,7 +106,16 @@ static int radar_checkpoint_restore(const char *save_path,Game *g) {
        r.session.session_species<-1 || r.session.session_species>25 ||
        r.session.session_item<-1 ||
        r.session.session_item>=RESEARCH_ITEM_TYPES ||
-       r.session.capture_hp<0 || r.session.capture_hp>240)return 0;
+       r.session.capture_hp<0 || r.session.capture_hp>240 ||
+       /* The orb-chain counters are bounded by the gameplay spawner.
+        * Accepting impossible values could revive a broken or endlessly
+        * rewarding chain from an otherwise checksummed sidecar. */
+       r.session.search_orb_color>=ORB_COLOR_COUNT ||
+       r.session.orb_chain_valid>1 ||
+       r.session.orb_chain_stage>5 ||
+       r.session.orb_group_target>5 ||
+       r.session.orb_group_collected>r.session.orb_group_target ||
+       r.session.orb_total_collected>DREAM_ORB_CHAIN_LIMIT)return 0;
     /* A full-storage prompt must have an actionable, bounded replacement.
      * Without these checks a checksummed but inconsistent sidecar can
      * restore a screen from which the player cannot complete the reward. */
