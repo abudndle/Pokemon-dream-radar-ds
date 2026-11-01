@@ -89,6 +89,8 @@ test-host:
 	./build/test_orb_overflow
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c tests/test_empty_cloud_search.c -o build/test_empty_cloud_search
 	./build/test_empty_cloud_search
+	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c tests/test_cloud_search_visibility.c -o build/test_cloud_search_visibility
+	./build/test_cloud_search_visibility
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c tests/test_support_gameplay.c -o build/test_support_gameplay
 	./build/test_support_gameplay
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c tests/test_capture_viewport.c -o build/test_capture_viewport
