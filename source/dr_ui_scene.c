@@ -197,3 +197,12 @@ int dr_ui_title_hit(const DrUiRect r[4],int x,int y){
                           y>=r[i].y && y<r[i].y+r[i].h)return i;
     return -1;
 }
+
+/* BCLYT ScanList uses the exact same four Touch00..03 resolver as TitleList.
+ * Separate exported names avoid title-specific APIs leaking into gameplay. */
+int dr_ui_rows_rects(const DrUiScene *s,float frame,DrUiRect out[4]){
+    return dr_ui_title_rects(s,frame,out);
+}
+int dr_ui_rows_hit(const DrUiRect rows[4],int x,int y){
+    return dr_ui_title_hit(rows,x,y);
+}
