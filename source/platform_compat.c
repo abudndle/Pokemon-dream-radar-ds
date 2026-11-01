@@ -6,18 +6,18 @@
 #include <sys/stat.h>
 #include <errno.h>
 
-int dr_camera_quick_icon_hit(int x,int y){
-    return x>=3 && x<37 && y>=168 && y<192;
-}
 int dr_camera_quick_row_hit(int x,int y){
     if(x<12 || x>=244)return -1;
     if(y>=40 && y<68)return 0;
     if(y>=86 && y<114)return 1;
     return -1;
 }
-int dr_camera_quick_open(int is_title,int touched,int pressed_x,int x,int y){
-    /* Neither keyboard nor touch may open the menu away from the title. */
-    return is_title && (pressed_x || (touched && dr_camera_quick_icon_hit(x,y)));
+int dr_camera_quick_open(int menu_allowed,int held,int down,
+                         int select_mask,int x_mask){
+    const int combo=select_mask|x_mask;
+    /* A hidden chord, never the X key or a tap alone. Trigger only on a
+       newly pressed chord component to avoid toggling every held frame. */
+    return menu_allowed && (held&combo)==combo && (down&combo)!=0;
 }
 int dr_placeholder_path(char *out,size_t cap,const char *storage_root){
     if(!out || !cap || !storage_root || !*storage_root)return 0;

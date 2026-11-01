@@ -70,46 +70,47 @@ send_ds_key() {
   sleep 0.35
   xdotool keyup --window "$window" "$name"
 }
-# DeSmuME default key 's' maps to DS X. The quick menu is accessible
-# from the title only; we verify opening, closing and restoring the title.
+# DeSmuME default key s maps to DS X; BackSpace maps to DS Select.
+# Only their chord may open the hidden camera utility. A single X must
+# leave the original four-option 3DS title menu unchanged.
 send_ds_key s
 sleep 2
-snapshot 04-camera-settings
-camera_entry_input="title X (DeSmuME key s)"
-if cmp -s "$outdir/01-title.png" "$outdir/04-camera-settings.png"; then
-  # DeSmuME SDL input under headless Xvfb sometimes drops the X key.
-  # A real click at (20, 372) is the title gear (bottom screen local
-  # coordinate 20, 180, with 192px upper screen). Never inject clicks in
-  # intro/gameplay; the gear must only open on the title.
-  xdotool mousemove --window "$window" 20 372
-  sleep 0.2
-  xdotool mousedown 1
-  sleep 0.45
-  xdotool mouseup 1
-  sleep 3
-  snapshot 04-camera-settings
-  camera_entry_input="title touch gear (20,180)"
+snapshot 04-title-single-x
+if ! cmp -s "$outdir/01-title.png" "$outdir/04-title-single-x.png"; then
+  echo "Single X changed the title frame; hidden camera restriction not verified" >&2
+  exit 1
 fi
+send_camera_chord() {
+  xdotool windowfocus "$window" 2>/dev/null || true
+  xdotool keydown --window "$window" BackSpace
+  sleep 0.20
+  xdotool keydown --window "$window" s
+  sleep 0.45
+  xdotool keyup --window "$window" s
+  xdotool keyup --window "$window" BackSpace
+}
+send_camera_chord
+sleep 2
+snapshot 05-camera-settings
 camera_menu_opened=0
-if cmp -s "$outdir/01-title.png" "$outdir/04-camera-settings.png"; then
-  # Save the real attempt, but never mislabel an unchanged title as a
-  # verified camera menu. SDL/Xvfb touch and X events remain inconclusive.
-  mv "$outdir/04-camera-settings.png" "$outdir/04-title-input-unverified.png"
-  echo "WARNING: title X and gear events produced no visible menu transition; camera-menu input NOT verified" |
+if cmp -s "$outdir/01-title.png" "$outdir/05-camera-settings.png"; then
+  # Do not mislabel a headless X11 input failure as navigation success.
+  mv "$outdir/05-camera-settings.png" "$outdir/05-title-chord-unverified.png"
+  echo "WARNING: Select+X did not change the actual title frame; input delivery UNVERIFIED" |
     tee -a "$outdir/runtime.log"
 else
   camera_menu_opened=1
-  echo "Camera menu input route: $camera_entry_input" >>"$outdir/runtime.log"
+  echo "Verified camera menu input route: title Select+X" >>"$outdir/runtime.log"
   send_ds_key z
   sleep 2
-  snapshot 05-camera-back
-  if ! cmp -s "$outdir/01-title.png" "$outdir/05-camera-back.png"; then
+  snapshot 06-camera-back
+  if ! cmp -s "$outdir/01-title.png" "$outdir/06-camera-back.png"; then
     echo "Camera quick menu did not restore the original title" >&2
     exit 1
   fi
 fi
-# Title Start advances to Professor Burnet; DS X must NOT open camera
-# settings there or on any other non-title screen.
+# The intro must also reject the hidden shortcut: it is not a gameplay or
+# Professor Burnet dialogue control.
 send_ds_key Return
 sleep 4
 snapshot 02-after-start
@@ -117,11 +118,11 @@ if cmp -s "$outdir/01-title.png" "$outdir/02-after-start.png"; then
   echo "DS Start did not advance from the title" >&2
   exit 1
 fi
-send_ds_key s
+send_camera_chord
 sleep 2
-snapshot 06-intro-X-blocked
-if ! cmp -s "$outdir/02-after-start.png" "$outdir/06-intro-X-blocked.png"; then
-  echo "DS X changed intro screen; title-only camera shortcut not verified" >&2
+snapshot 07-intro-combo-blocked
+if ! cmp -s "$outdir/02-after-start.png" "$outdir/07-intro-combo-blocked.png"; then
+  echo "Hidden Select+X changed the Burnet intro frame; menu gating failed" >&2
   exit 1
 fi
 # DS B skips intro; DS A enters extensions for another real emulator shot.
@@ -131,11 +132,11 @@ send_ds_key x
 sleep 5
 snapshot 03-after-a
 screenshots=("$outdir/01-title.png" "$outdir/02-after-start.png"
-             "$outdir/06-intro-X-blocked.png" "$outdir/03-after-a.png")
+             "$outdir/07-intro-combo-blocked.png" "$outdir/04-title-single-x.png" "$outdir/03-after-a.png")
 if ((camera_menu_opened)); then
-  screenshots+=("$outdir/04-camera-settings.png" "$outdir/05-camera-back.png")
+  screenshots+=("$outdir/05-camera-settings.png" "$outdir/06-camera-back.png")
 else
-  screenshots+=("$outdir/04-title-input-unverified.png")
+  screenshots+=("$outdir/05-title-chord-unverified.png")
 fi
 python3 tools/verify_emulator_screenshots.py \
   --output "$outdir/report.json" "${screenshots[@]}"
@@ -147,14 +148,15 @@ p=Path(sys.argv[1])
 camera_opened=sys.argv[2]=="1"
 report=json.loads(p.read_text())
 report["camera_settings_input_changed_frame"]=camera_opened
+report["camera_settings_chord"]="Select+X (hidden); single X and intro combo rejected"
 report["camera_settings_returned_to_title"]=camera_opened
 report["camera_settings_blocked_on_intro"]=camera_opened
 report["camera_settings_verification"]=(
-    "title camera entry/return visually verified" if camera_opened else
-    "INCONCLUSIVE: emulator X/touch did not produce a title menu transition")
+    "hidden Select+X camera entry/return visually verified" if camera_opened else
+    "INCONCLUSIVE: emulator Select+X did not produce a title menu transition")
 if not camera_opened:
     report["limitations"].append(
-        "Title-only gear/X behavior passed host tests, but emulator input "
+         "Hidden Select+X behavior passed host tests, but emulator input "
         "delivery and menu entry were NOT verified; no success is claimed.")
 report["limitations"].append(
     "Importing a BMP from emulated writable FAT/SD and live DSi camera "
@@ -162,7 +164,7 @@ report["limitations"].append(
 p.write_text(json.dumps(report,indent=2)+"\n")
 PY
 if ((camera_menu_opened)); then
-  echo "PASS: real DeSmuME title camera menu, title return and intro routing"
+  echo "PASS: real DeSmuME hidden Select+X camera menu, title return and intro routing"
 else
-  echo "PASS: real DeSmuME boot and intro Start; WARNING title camera menu input UNVERIFIED"
+  echo "PASS: real DeSmuME boot and intro Start; WARNING hidden camera chord UNVERIFIED"
 fi

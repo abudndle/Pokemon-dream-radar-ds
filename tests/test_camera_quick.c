@@ -18,30 +18,29 @@ int main(void) {
                             (((unsigned)(y/6)&31u)<<5) |
                             (((unsigned)(x/8+y/6)&31u)<<10));
     for(int y=0;y<192;y++)for(int x=0;x<256;x++) {
-        int hit=dr_camera_quick_icon_hit(x,y);
-        assert(hit==(x>=3 && x<37 && y>=168 && y<192));
         int row=dr_camera_quick_row_hit(x,y);
         assert(row==((x>=12 && x<244 && y>=40 && y<68)?0:
                      (x>=12 && x<244 && y>=86 && y<114)?1:-1));
     }
-    assert(!dr_camera_quick_icon_hit(-1,180));
-    assert(!dr_camera_quick_icon_hit(33,192));
     assert(dr_camera_quick_row_hit(244,50)==-1);
     assert(dr_camera_quick_row_hit(11,90)==-1);
     assert(dr_camera_quick_row_hit(100,68)==-1);
 
-    /* Every non-title state rejects gear and keyboard X; title accepts
-     * an in-bounds gear tap or X, but not unrelated touch coordinates. */
-    assert(dr_camera_quick_open(1,1,0,20,180));
-    assert(dr_camera_quick_open(1,0,1,100,100));
-    assert(dr_camera_quick_open(1,1,1,-1,-1));
-    assert(!dr_camera_quick_open(1,0,0,20,180));
-    assert(!dr_camera_quick_open(1,1,0,100,100));
-    for(int state=0;state<10;state++) {
-        assert(!dr_camera_quick_open(0,1,0,20,180));
-        assert(!dr_camera_quick_open(0,0,1,20,180));
-        assert(!dr_camera_quick_open(0,1,1,20,180));
-    }
+    /* Hidden SELECT+X from menus, never from active radar/encounters.
+       Both keys must be held, with one newly pressed on this frame.
+       Single X and all touchscreen-only input paths do nothing. */
+    enum {SEL=1, X=2, A=4, TOUCH=8};
+    assert(dr_camera_quick_open(1,SEL|X,X,SEL,X));
+    assert(dr_camera_quick_open(1,SEL|X,SEL,SEL,X));
+    assert(dr_camera_quick_open(1,SEL|X,SEL|X,SEL,X));
+    assert(!dr_camera_quick_open(1,SEL|X,0,SEL,X));
+    assert(!dr_camera_quick_open(1,X,X,SEL,X));
+    assert(!dr_camera_quick_open(1,SEL,SEL,SEL,X));
+    assert(!dr_camera_quick_open(1,A|X,X,SEL,X));
+    assert(!dr_camera_quick_open(1,SEL|X,A,SEL,X));
+    assert(!dr_camera_quick_open(1,TOUCH,TOUCH,SEL,X));
+    assert(!dr_camera_quick_open(0,SEL|X,X,SEL,X));
+    assert(!dr_camera_quick_open(0,SEL|X,SEL,SEL,X));
 
     char pathname[128];
     assert(dr_placeholder_path(pathname,sizeof pathname,"sd:/"));
@@ -74,6 +73,6 @@ int main(void) {
     assert(remove(file)==0);
     assert(rmdir(folder)==0);
     assert(rmdir(dir)==0);
-    puts("PASS: title-only camera settings, fixed BMP path and strict import");
+    puts("PASS: hidden Select+X menu settings, previous-menu return policy and strict BMP import");
     return 0;
 }
