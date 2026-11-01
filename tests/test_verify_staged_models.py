@@ -11,11 +11,11 @@ from verify_staged_models import verify, verify_pairs
 def fixture(magic, vertices=3):
     if magic == "DRM1":
         coords = b"".join((i * 4096).to_bytes(2, "little", signed=True)
-                          + b"\\x00\\x00\\x00\\x00" for i in range(vertices))
-        return b"DRM1" + vertices.to_bytes(2, "little") + b"\\x01\\x00" + coords + b"\\x00\\x00\\x01\\x00\\x02\\x00"
+                          + b"\x00\x00\x00\x00" for i in range(vertices))
+        return b"DRM1" + vertices.to_bytes(2, "little") + b"\x01\x00" + coords + b"\x00\x00\x01\x00\x02\x00"
     return (b"DRK1" + vertices.to_bytes(2, "little") + bytes([1, 2, 4, 0])
-            + b"\\x00" * 6 + bytes([255, 0])
-            + bytes([0, 0, 255]) * vertices + b"\\x00" * 8)
+            + b"\x00" * 6 + bytes([255, 0])
+            + bytes([0, 0, 255]) * vertices + b"\x00" * 8)
 
 with tempfile.TemporaryDirectory() as temporary:
     root = pathlib.Path(temporary)
