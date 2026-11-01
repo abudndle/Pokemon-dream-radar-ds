@@ -19,6 +19,18 @@ jobs:
       - uses: actions/checkout@v4
       - name: Run portable gameplay and syntax checks
         run: python3 tools/audit_capture_milestone.py --run-host
+      - name: Publish capture host evidence
+        if: always()
+        run: |
+          mkdir -p capture-evidence
+          python3 tools/audit_capture_milestone.py --run-host > capture-evidence/host-audit.json || true
+          printf '%s\\n' "commit=$GITHUB_SHA" "run=$GITHUB_RUN_ID" > capture-evidence/build-context.txt
+      - name: Upload capture host evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: capture-host-evidence
+          path: capture-evidence/
       - name: Guard radar input parity
         run: python3 tests/test_radar_input_parity.py
       - name: Run screenshot recognition regression checks
