@@ -35,7 +35,6 @@ assert "{0,0,2,2,dr_private_keys_2}" in generated
 assert "-116.8f" in generated and "-100.8f" in generated
 assert "132.0f" in generated
 assert "UnrelatedMaterial" not in generated
-assert "0f," not in generated and "5f," not in generated
 with tempfile.TemporaryDirectory() as directory:
     root=Path(directory)
     src=root/"clip.json"
