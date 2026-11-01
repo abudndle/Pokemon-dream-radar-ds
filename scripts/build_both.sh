@@ -6,6 +6,9 @@ if [ "${SKIP_HOST_TESTS:-0}" != 1 ]; then
     make test-host test-syntax
 fi
 rm -rf build
+# Compile source-derived title-pane geometry into the ROM. Native original
+# CLPA keyframes are optional private SD/FAT overrides, never public assets.
+python3 tools/stage_title_ui.py ui_mapping/original_pane_geometry.json nitrofs/title.drui
 make check-sdk
 make -j2
 rom="dream_radar.nds"
