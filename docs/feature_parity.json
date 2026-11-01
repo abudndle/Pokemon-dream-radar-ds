@@ -302,7 +302,7 @@
       "id": "original_3d_models",
       "feature": "Original Pokémon 3D geometry and animations",
       "status": "partial",
-      "gap": "Converted DRM1/DRA1/DRB1/DRK1 and strict glTF retargeting exist. The 177 decoded DARC archives contain UI/2D resources and no independently identified 3D skeleton; original native 3DS model/animation source, decoding, and fidelity remain unverified.",
+      "gap": "Converted DRM1/DRA1/DRB1/DRK1 and strict glTF retargeting exist. Original NCCH ExeFS contains 14 verified CGFX Home Menu banner assets and a separate 16-file logo DARC; these are not confirmed Pokémon encounter rigs. Native gameplay model/skeletal animation decoding remains unverified.",
       "evidence": [
         "source/dr_mesh.c",
         "source/dr_texture.c",
@@ -336,6 +336,11 @@
         "tests/test_darc_asset_report.py",
         "docs/ORIGINAL_DARC_MODEL_SEARCH.md",
         "docs/ORIGINAL_DARC_ASSET_KIND_AUDIT.json",
+        "tools/audit_ncch_exefs.py",
+        "tests/test_ncch_exefs_audit.py",
+        "tests/test_original_ncch_exefs_report.py",
+        "docs/ORIGINAL_NCCH_EXEFS_DISCOVERY.md",
+        "docs/ORIGINAL_NCCH_EXEFS_AUDIT.json",
         "source/main.c"
       ]
     },
