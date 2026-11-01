@@ -153,6 +153,25 @@ static int radar_checkpoint_restore(const char *save_path,Game *g) {
         } else return 0;
     }
     if(r.session.screen==STATE_SPHERE) {
+        /* A resumed encounter must still describe a reward the game could
+         * have generated. Otherwise a checksummed sidecar can resume a
+         * capturable target that silently awards nothing at 240 HP.
+         * Simulators are the deliberate exception: they display a legendary
+         * species but award a separate item from their research pool. */
+        int simulator=r.session.ext_selection>=EXT_SIM_TORNADUS &&
+                      r.session.ext_selection<=EXT_SIM_LANDORUS;
+        if(r.session.session_type==0) {
+            if(r.session.session_species<0 || r.session.session_species>25 ||
+               (simulator && r.session.session_species!=
+                LEGEND_SPECIES_START+r.session.ext_selection-EXT_SIM_TORNADUS) ||
+               (simulator && (r.session.session_item<0 ||
+                              r.session.session_item>=RESEARCH_ITEM_TYPES)) ||
+               (!simulator && r.session.session_item!=-1))return 0;
+        } else if(r.session.session_type==1) {
+            if(simulator || r.session.session_species!=-1 ||
+               r.session.session_item<0 ||
+               r.session.session_item>=RESEARCH_ITEM_TYPES)return 0;
+        } else return 0;
         if(r.session.capture_timeout<=0 ||
            r.session.sphere_x<0 || r.session.sphere_x>255 ||
            r.session.sphere_y<0 || r.session.sphere_y>191 ||
