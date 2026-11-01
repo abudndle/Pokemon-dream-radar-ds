@@ -18,10 +18,14 @@ assert 'case STATE_CAMERA_QUICK:' in main
 assert 'render_camera_quick_icon' in main
 assert 'if(camera_quick_icon_visible())render_camera_quick_icon();' in main
 assert 'dr_camera_quick_icon_hit(touch->px,touch->py)' in main
-assert '(down&KEY_SELECT) ||' in main
-assert '((down&KEY_X) && (game.screen==STATE_TITLE ||' in main
-assert 'dr_camera_intro_start_shortcut(game.screen==STATE_INTRO,' in main
-assert 'down,KEY_START)))' in main
+assert 'return game.screen==STATE_TITLE;' in main
+assert 'dr_camera_quick_open(game.screen==STATE_TITLE,' in main
+assert '(down&KEY_TOUCH)!=0,(down&KEY_X)!=0,' in main
+assert 'dr_camera_intro_start_shortcut' not in main
+assert 'dr_camera_intro_start_shortcut' not in platform
+assert '(down&KEY_SELECT) ||' not in main
+assert 'int dr_camera_quick_open(int is_title,int touched,int pressed_x,int x,int y)' in platform
+assert 'return is_title && (pressed_x || (touched && dr_camera_quick_icon_hit(x,y)));' in platform
 assert 'dr_camera_quick_row_hit(touch->px,touch->py)' in main
 assert 'camera_quick_return=game.screen;' in main
 assert 'camera_quick_return_selection=game.selection;' in main
@@ -74,5 +78,8 @@ assert 'DreamRadarDSi/placeholder.bmp' in platform
 assert 'return x>=3 && x<37 && y>=168 && y<192;' in platform
 assert 'if(y>=40 && y<68)return 0;' in platform
 assert 'if(y>=86 && y<114)return 1;' in platform
-assert 'DR_SETTING_PLACEHOLDER' in (root/'source/platform_compat.h').read_text()
-print('PASS: bottom-left camera settings icon, two-action menu, save persistence, DS fallback')
+assert 'int dr_settings_count(int dsi_mode){return dsi_mode?3:2;}' in platform
+assert 'return dsi_mode?selection+1:selection+2;' in platform
+assert 'if(action==DR_SETTING_CAMERA)' not in main
+assert 'if(action==DR_SETTING_PLACEHOLDER)' not in main
+print('PASS: title-only camera gear and shortcut, no gameplay/Options entry, BMP persistence')
