@@ -1410,6 +1410,7 @@ static void switch_screen(GameScreen next) {
     /* Keep the camera stream alive across cloud-to-encounter transitions.
        Restarting it here discards the live preview and can briefly blank it. */
     if(was_search && !is_search)camera_off();
+    if(game.screen!=next)game.requested_save=1; /* Save menu navigation too. */
     game.screen=next;game.selection=0;
     if(next==STATE_TITLE)title_ui_started_frame=game.save.frames_played;
     if(next==STATE_EXTENSIONS)scanlist_ui_started_frame=game.save.frames_played;
