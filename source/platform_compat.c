@@ -15,8 +15,9 @@ int dr_camera_quick_row_hit(int x,int y){
     if(y>=86 && y<114)return 1;
     return -1;
 }
-int dr_camera_intro_start_shortcut(int intro_screen,int down,int start_mask){
-    return intro_screen && start_mask!=0 && (down&start_mask)!=0;
+int dr_camera_quick_open(int is_title,int touched,int pressed_x,int x,int y){
+    /* Neither keyboard nor touch may open the menu away from the title. */
+    return is_title && (pressed_x || (touched && dr_camera_quick_icon_hit(x,y)));
 }
 int dr_placeholder_path(char *out,size_t cap,const char *storage_root){
     if(!out || !cap || !storage_root || !*storage_root)return 0;
@@ -33,7 +34,7 @@ int dr_lab_action(int dsi_mode,int selection){
     if(selection<0 || selection>=dr_lab_count(dsi_mode))return -1;
     return selection;
 }
-int dr_settings_count(int dsi_mode){return dsi_mode?5:2;}
+int dr_settings_count(int dsi_mode){return dsi_mode?3:2;}
 int dr_settings_hit(int x,int y,int dsi_mode){
     int count=dr_settings_count(dsi_mode);
     if(x<10 || x>=246 || y<16)return -1;
@@ -43,7 +44,8 @@ int dr_settings_hit(int x,int y,int dsi_mode){
 }
 int dr_settings_action(int dsi_mode,int selection){
     if(selection<0 || selection>=dr_settings_count(dsi_mode))return -1;
-    return dsi_mode?(selection==4?DR_SETTING_PLACEHOLDER:selection):selection+2;
+    /* DSi Options retains optical aim and game pairing; no camera rows. */
+    return dsi_mode?selection+1:selection+2;
 }
 int dr_camera_allowed(int dsi_mode,int camera_enabled){return dsi_mode && camera_enabled;}
 int dr_camera_retry_latch(int camera_enabled,int previous_failure){
