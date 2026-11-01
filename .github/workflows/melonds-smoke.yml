@@ -13,6 +13,9 @@ on:
       - 'scripts/build_both.sh'
       - 'scripts/check_nds.py'
       - 'tools/verify_melonds_navigation.py'
+      - 'tools/plan_melonds_aim.py'
+      - 'tests/test_melonds_navigation.py'
+      - 'tests/test_melonds_aim.py'
       - 'source/font6.h'
 jobs:
   melonds-boot:
@@ -22,6 +25,12 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
+      - name: Validate encounter recognition and smoke-script syntax
+        run: |
+          bash -n scripts/melonds_smoke.sh
+          python3 -m py_compile tools/verify_melonds_navigation.py tools/plan_melonds_aim.py
+          python3 tests/test_melonds_navigation.py
+          python3 tests/test_melonds_aim.py
       - name: Install Flatpak and screenshot tools
         run: |
           sudo apt-get update -qq
