@@ -5,18 +5,14 @@
  * anchored at origin=4, under SRT00 (Y=16), L00..03 (Y=130,90,50,10).
  * The source canvas is 320x240; scale .8 maps it to 256x192.
  *
+ * The generated header is sourced from the recovered pane hierarchy.
  * The missing original BCLAN menu entrance still requires a provisional
  * vertical placement (center Y=175.4 DS px) to match the approved title
  * screenshot and existing four-row positions. Do not claim animation parity.
  * Y is inverted from 3DS pane coordinates to DS bitmap coordinates.
  */
-static const DrUiPane title_nodes[5]={
-    {-1,128.0f,175.4f,256.0f,192.0f,1,1,0,4,1,255,0},
-    {0,0,-116.8f,228.8f,27.2f,1,1,0,4,1,255,0},
-    {0,0, -84.8f,228.8f,27.2f,1,1,0,4,1,255,0},
-    {0,0, -52.8f,228.8f,27.2f,1,1,0,4,1,255,0},
-    {0,0, -20.8f,228.8f,27.2f,1,1,0,4,1,255,0},
-};
+#include "dr_title_pane_nodes_generated.h"
+#define title_nodes dr_title_source_nodes
 static DrUiFrame title_frames[5];
 static int title_ready;
 
