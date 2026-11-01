@@ -1,0 +1,5 @@
+build/
+nitrofs/title.drui
+*.nds
+*.elf
+*.map

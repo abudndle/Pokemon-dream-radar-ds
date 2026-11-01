@@ -22,6 +22,7 @@
 #include "dialogue_generated.h"
 #include "story_dialogue.h"
 #include "reference_layout.h"
+#include "dr_ui_scene.h"
 #include "cloud_animation.h"
 #include "burnet_tips_generated.h"
 #include "dr_mesh.h"
@@ -38,6 +39,8 @@
 
 
 static Game game;
+static DrUiScene *title_ui_scene;
+static uint32_t title_ui_started_frame;
 static TwilightSaveIndex sd_index;
 static SaveBackend save_backend;
 static int sd_selected;
@@ -738,6 +741,20 @@ static void render_camera_quick_icon(void) {
     rect(bottom,cx-4,cy-4,9,9,0x8421);
     rect(bottom,cx-2,cy-2,5,5,CYAN);
 }
+/* Render and touch use the identical resolved title panes. If the private
+ * clip is unsupported, malformed or temporarily outside the viewport,
+ * retain the established visible, source-derived title fallback. */
+static int title_live_rects(DrUiRect rows[4]) {
+    if(title_ui_scene &&
+       dr_ui_title_rects(title_ui_scene,
+           (float)(game.save.frames_played-title_ui_started_frame),rows))
+        return 1;
+    for(int i=0;i<4;i++){
+        rows[i]=(DrUiRect){dr_title_panes[i].x,dr_title_panes[i].y,
+                           dr_title_panes[i].w,dr_title_panes[i].h};
+    }
+    return 0;
+}
 static void render(void) {
     switch(game.screen) {
     case STATE_TITLE: {
@@ -751,8 +768,18 @@ static void render(void) {
         snprintf(tx,sizeof tx,"CLOUDS %d/%d",game.save.cloud_count,max_clouds);
         print(bottom,29,19,WHITE,tx);
         const char *opts[]={"Start","Send Research Data","Credits","Records"};
+        DrUiRect title_rows[4];
+        title_live_rects(title_rows);
         for(int i=0;i<4;i++) {
-            const DrPaneRect *r=&dr_title_panes[i];
+            const DrUiRect *r=&title_rows[i];
+            /* The retail source includes animated panes, but the present
+             * bundled bitmap has static buttons. For private moving tracks,
+             * draw a visible adapted panel exactly at the live hitbox. */
+            if(r->x!=dr_title_panes[i].x || r->y!=dr_title_panes[i].y ||
+               r->w!=dr_title_panes[i].w || r->h!=dr_title_panes[i].h) {
+                rect(bottom,r->x,r->y,r->w,r->h,0xA512);
+                border(bottom,r->x,r->y,r->w,r->h,CYAN);
+            }
             /* Original blue title panels use a bright white/cyan focus edge,
                not the gold selection outline from the development UI. */
             if(game.selection==i) {
@@ -1347,6 +1374,7 @@ static void switch_screen(GameScreen next) {
        Restarting it here discards the live preview and can briefly blank it. */
     if(was_search && !is_search)camera_off();
     game.screen=next;game.selection=0;
+    if(next==STATE_TITLE)title_ui_started_frame=game.save.frames_played;
     if(next!=STATE_TRANSFER)game.archive_confirm=0;
     if(!was_search && is_search)camera_on();
 }
@@ -1479,7 +1507,11 @@ static void handle_key(int keys,int down,touchPosition *touch) {
     if(game.screen==STATE_TITLE){
         if(down&KEY_UP)game.selection=(game.selection+3)%4;
         if(down&KEY_DOWN)game.selection=(game.selection+1)%4;
-        int title_touch=(down&KEY_TOUCH)?dr_title_hit(touch->px,touch->py):-1;
+        DrUiRect title_rows[4];
+        int animated_title=title_live_rects(title_rows);
+        int title_touch=(down&KEY_TOUCH)?
+            (animated_title?dr_ui_title_hit(title_rows,touch->px,touch->py):
+                            dr_title_hit(touch->px,touch->py)):-1;
         if(title_touch>=0)game.selection=title_touch;
         if((down&KEY_A)||(down&KEY_START)||title_touch>=0) {
             switch(game.selection){
@@ -1815,9 +1847,24 @@ running_dsi=isDSiMode();
     }
     if(have_storage)save_backend_init(&save_backend,storage_root,argc>0?argv[0]:NULL);
     for(int i=0;i<68;i++)load_sprite(i);
+    /* Geometry-only title scene is generated during the build. Private
+       user-staged original CLPA animations override it from SD/FAT. */
+    if(have_romfs)title_ui_scene=dr_ui_scene_load("nitro:/title.drui");
+    if(have_storage && storage_root){
+        char path[128];
+        int len=snprintf(path,sizeof path,"%sDreamRadarDSi/UI/title.drui",storage_root);
+        if(len>0 && len<(int)sizeof path){
+            DrUiScene *original_ui=dr_ui_scene_load(path);
+            if(original_ui){
+                dr_ui_scene_free(title_ui_scene);
+                title_ui_scene=original_ui;
+            }
+        }
+    }
     time_t now=time(NULL);
     game_new(&game, ((uint32_t)now)^0xa15f009u);
     if(have_storage)save_backend_load(&save_backend,&game);
+    title_ui_started_frame=game.save.frames_played;
     restore_custom_background();
     game_regen_clouds(&game,(uint32_t)now);
     // Camera only starts when actively searching and the mode supports DSi.
