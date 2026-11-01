@@ -30,6 +30,14 @@ int main(void) {
     assert(dr_camera_quick_row_hit(11,90)==-1);
     assert(dr_camera_quick_row_hit(100,68)==-1);
 
+    /* Real emulator coverage: Start is already proven routable at title.
+     * The new shortcut is strictly confined to intro, never to gameplay. */
+    assert(dr_camera_intro_start_shortcut(1,0x10,0x10));
+    assert(dr_camera_intro_start_shortcut(1,0x30,0x10));
+    assert(!dr_camera_intro_start_shortcut(0,0x10,0x10));
+    assert(!dr_camera_intro_start_shortcut(1,0x08,0x10));
+    assert(!dr_camera_intro_start_shortcut(1,0x10,0));
+
     char pathname[128];
     assert(dr_placeholder_path(pathname,sizeof pathname,"sd:/"));
     assert(strcmp(pathname,"sd:/DreamRadarDSi/placeholder.bmp")==0);

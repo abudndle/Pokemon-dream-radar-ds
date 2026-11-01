@@ -60,7 +60,7 @@ snapshot() {
 # Capture actual DeSmuME window, never reference art or synthetic mockups.
 sleep 7
 snapshot 01-title
-# Hold synthetic keys across several emulated VBlanks to avoid lost taps.
+# Hold keys across several VBlanks and send a release before the next press.
 send_ds_key() {
   local name="$1"
   xdotool windowfocus "$window" 2>/dev/null || true
@@ -68,42 +68,33 @@ send_ds_key() {
   sleep 0.35
   xdotool keyup --window "$window" "$name"
 }
-# DS Start -> intro (on a fresh save). A real screen transition is required.
+# DS Start -> Burnet introduction on a fresh save.
 send_ds_key Return
-sleep 6
+sleep 4
 snapshot 02-after-start
 if cmp -s "$outdir/01-title.png" "$outdir/02-after-start.png"; then
   echo "DS Start did not advance the real emulator; smoke test failed" >&2
   exit 1
 fi
-# On intro, DS X ('s') is another camera shortcut. A headless Xvfb
-# environment may not deliver SDL synthetic events: retain evidence but
-# never treat a non-changing image as proof that the camera menu opened.
-send_ds_key s
-sleep 2
+# Second DS Start opens camera menu ONLY while Burnet introduction is active.
+# This keyboard action is verified in the real emulator, unlike synthetic
+# touchscreen injection on some SDL/Xvfb runners.
+send_ds_key Return
+sleep 3
 snapshot 04-camera-settings
 if cmp -s "$outdir/02-after-start.png" "$outdir/04-camera-settings.png"; then
-  # Lower panel begins at y=192 in this 256x384 DeSmuME SDL window.
-  xdotool mousemove --window "$window" 20 372
-  xdotool mousedown 1
-  sleep 0.35
-  xdotool mouseup 1
-  sleep 2
-  snapshot 04-camera-settings
+  echo "Camera quick settings did not open from intro via DS Start" >&2
+  exit 1
 fi
-if cmp -s "$outdir/02-after-start.png" "$outdir/04-camera-settings.png"; then
-  send_ds_key Shift_R
-  sleep 2
-  snapshot 04-camera-settings
+# DS B must close the menu, restoring the original intro screen exactly.
+send_ds_key z
+sleep 2
+snapshot 05-camera-back
+if ! cmp -s "$outdir/02-after-start.png" "$outdir/05-camera-back.png"; then
+  echo "Camera quick settings did not return to the original intro" >&2
+  exit 1
 fi
-camera_input_changed=0
-if ! cmp -s "$outdir/02-after-start.png" "$outdir/04-camera-settings.png"; then
-  camera_input_changed=1
-else
-  echo "WARNING: camera menu input not confirmed under headless DeSmuME" | tee -a "$outdir/runtime.log"
-fi
-# B returns from the optional menu (or skips intro if no menu opened);
-# retain a final gameplay screenshot, regardless of input responsiveness.
+# DS B now skips intro; DS A enters extensions for a further real shot.
 send_ds_key z
 sleep 2
 send_ds_key x
@@ -112,19 +103,20 @@ snapshot 03-after-a
 python3 tools/verify_emulator_screenshots.py \
   --output "$outdir/report.json" \
   "$outdir/01-title.png" "$outdir/02-after-start.png" \
-  "$outdir/03-after-a.png" "$outdir/04-camera-settings.png"
-# The report distinguishes tested startup from an unverified menu transition.
-python3 - "$outdir/report.json" "$camera_input_changed" <<'PY'
+  "$outdir/04-camera-settings.png" "$outdir/05-camera-back.png" \
+  "$outdir/03-after-a.png"
+python3 - "$outdir/report.json" <<'PY'
 import json
 from pathlib import Path
 import sys
 p=Path(sys.argv[1])
 report=json.loads(p.read_text())
-report["camera_settings_input_changed_frame"]=bool(int(sys.argv[2]))
-if not report["camera_settings_input_changed_frame"]:
-    report["limitations"].append(
-        "Camera settings control was NOT verified by injected SDL input; "
-        "Xvfb screenshot after camera shortcut matched the intro")
+report["camera_settings_input_changed_frame"]=True
+report["camera_settings_returned_to_intro"]=True
+report["camera_settings_verification"]="actual intro Start transition and B restoration in Linux DeSmuME"
+report["limitations"].append(
+    "Importing a BMP from emulated writable FAT/SD and live DSi camera "
+    "still require separate end-to-end verification")
 p.write_text(json.dumps(report,indent=2)+"\n")
 PY
-echo "Real DeSmuME boot and screenshot validation completed"
+echo "PASS: real DeSmuME camera settings menu opened and returned to intro"

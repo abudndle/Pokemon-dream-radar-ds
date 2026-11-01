@@ -19,6 +19,8 @@ assert 'if(camera_quick_icon_visible())render_camera_quick_icon();' in main
 assert 'dr_camera_quick_icon_hit(touch->px,touch->py)' in main
 assert '(down&KEY_SELECT) ||' in main
 assert '((down&KEY_X) && (game.screen==STATE_TITLE ||' in main
+assert 'dr_camera_intro_start_shortcut(game.screen==STATE_INTRO,' in main
+assert 'down,KEY_START)))' in main
 assert 'dr_camera_quick_row_hit(touch->px,touch->py)' in main
 assert 'camera_quick_return=game.screen;' in main
 assert 'camera_quick_return_selection=game.selection;' in main

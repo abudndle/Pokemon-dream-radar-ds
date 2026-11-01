@@ -8,6 +8,9 @@ enum {DR_SETTING_CAMERA,DR_SETTING_OPTICAL,DR_SETTING_CART,DR_SETTING_SD,DR_SETT
 int dr_camera_quick_icon_hit(int x,int y);
 /* Exactly two choices: 0=camera toggle, 1=import local placeholder BMP. */
 int dr_camera_quick_row_hit(int x,int y);
+/* A Start press opens the camera menu only during Burnet's intro, where
+ * Start has no existing action. Accept key masks as inputs for host tests. */
+int dr_camera_intro_start_shortcut(int intro_screen,int down,int start_mask);
 /* Only a fixed, storage-root-relative BMP path is accepted. */
 int dr_placeholder_path(char *out,size_t cap,const char *storage_root);
 int dr_lab_count(int dsi_mode);
