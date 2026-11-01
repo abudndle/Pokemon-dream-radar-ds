@@ -90,6 +90,47 @@ int main(void) {
     assert(game_save(&newer,backend.active));
     reload(&backend,&loaded);
     assert(loaded.screen==STATE_SHOP && loaded.save.orbs==newer.save.orbs);
-    puts("PASS: radar/sphere/results resume, exactly-once charges, corrupt and stale sidecar fallback");
+    /* Full Pokemon storage must resume at the exact unresolved choice, not
+     * silently award a capture or discard the existing six Pokemon. */
+    game_new(&g,91);
+    g.screen=STATE_REPLACE;
+    g.save.pending_count=MAX_CAUGHT;
+    for(int i=0;i<MAX_CAUGHT;i++)g.save.pending[i]=(uint8_t)i;
+    g.replace_kind=REPLACE_POKEMON;
+    g.replace_value=8;
+    g.replace_selected=2;
+    g.session_species=8;
+    assert(save_backend_write(&backend,&g));
+    reload(&backend,&loaded);
+    assert(loaded.screen==STATE_REPLACE);
+    assert(loaded.replace_kind==REPLACE_POKEMON);
+    assert(loaded.replace_value==8 && loaded.replace_selected==2);
+    assert(loaded.save.pending_count==MAX_CAUGHT);
+    assert(loaded.save.pending[2]==2);
+    assert(game_replace_pending(&loaded,2));
+    assert(loaded.screen==STATE_RESULTS && loaded.save.pending[2]==8);
+    assert(save_backend_write(&backend,&loaded));
+    reload(&backend,&g);
+    assert(g.screen==STATE_RESULTS && g.save.pending[2]==8);
+
+    /* A malformed but internally checksummed runtime prompt must not trap
+     * the user in an unfinishable replacement screen after reboot. */
+    g.screen=STATE_REPLACE;
+    g.replace_kind=REPLACE_NONE;
+    assert(save_backend_write(&backend,&g));
+    reload(&backend,&loaded);
+    assert(loaded.screen==STATE_LAB);
+    assert(loaded.save.pending[2]==8);
+
+    /* A sphere with no remaining capture time cannot be resumed. */
+    g.screen=STATE_SPHERE;
+    g.replace_kind=REPLACE_NONE;
+    g.capture_timeout=0;
+    assert(save_backend_write(&backend,&g));
+    reload(&backend,&loaded);
+    assert(loaded.screen==STATE_EXTENSIONS);
+    assert(loaded.save.pending[2]==8);
+
+    puts("PASS: radar/sphere/results/replacement resume, exactly-once rewards, invalid checkpoint fallback");
     return 0;
 }
