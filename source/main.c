@@ -740,6 +740,18 @@ static void render_camera_quick_icon(void) {
     rect(bottom,cx-2,cy-2,5,5,CYAN);
 }
 static void render(void) {
+    /* Reset the native title CLPA clip clock whenever the title reopens.
+       With no privately staged clip the source-derived touch panes stay
+       static; no fabricated original animation is introduced. */
+    static int title_on_last_frame;
+    static uint32_t title_anim_started;
+    if(game.screen==STATE_TITLE) {
+        if(!title_on_last_frame)title_anim_started=game.save.frames_played;
+        title_on_last_frame=1;
+        if(!dr_title_runtime_frame(NULL,
+                  (float)(game.save.frames_played-title_anim_started)))
+            dr_title_runtime_frame(NULL,0);
+    } else title_on_last_frame=0;
     switch(game.screen) {
     case STATE_TITLE: {
         load_bg("title_original_top.raw",top,0x8824);
