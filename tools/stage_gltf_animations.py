@@ -5,8 +5,11 @@ All conversions are checked before any output is published, so a broken pair
 cannot silently leave only part of a newly converted set.
 """
 import argparse
+import hashlib
 import json
+import os
 import re
+import tempfile
 from pathlib import Path
 from convert_gltf_skin import convert, load_document
 
@@ -33,14 +36,22 @@ def stage(gltf_dir: Path, mesh_dir: Path, out_dir: Path, *, frames=4, ticks=8, a
     out_dir.mkdir(parents=True, exist_ok=True)
     report = {'format': 'DRK1', 'source': 'private_gltf_export',
               'verified_original_3ds_animation': False, 'models': []}
-    for stem, data, info in converted:
-        filename = stem + '.drk'
-        (out_dir / filename).write_bytes(data)
-        report['models'].append({'file':filename,'vertices':info['vertices'],
-                                 'bones':info['bones'],'frames':info['frames'],
-                                 'bytes':len(data)})
-    (out_dir / 'gltf_animation_manifest.json').write_text(
-        json.dumps(report, indent=2) + '\n', encoding='utf-8')
+    # Complete conversion before publishing; place temporary files on the
+    # same filesystem so os.replace publishes each file atomically.
+    with tempfile.TemporaryDirectory(prefix='.drk-staging-', dir=out_dir.parent) as temp:
+        staged = Path(temp)
+        for stem, data, info in converted:
+            filename = stem + '.drk'
+            (staged / filename).write_bytes(data)
+            report['models'].append({'file': filename, 'vertices': info['vertices'],
+                                     'bones': info['bones'], 'frames': info['frames'],
+                                     'bytes': len(data),
+                                     'sha256': hashlib.sha256(data).hexdigest()})
+        (staged / 'gltf_animation_manifest.json').write_text(
+            json.dumps(report, indent=2) + '\n', encoding='utf-8')
+        for item in sorted(staged.iterdir(),
+                           key=lambda path: path.name == 'gltf_animation_manifest.json'):
+            os.replace(item, out_dir / item.name)
     return report
 
 
