@@ -14,8 +14,8 @@ assert re.search(r"if\s*\(\s*game\.screen\s*==\s*STATE_SPHERE\s*&&\s*\(keys\s*&\
 for match in re.finditer(r"game_fire\s*\(\s*&game\s*\)", block):
     prefix = block[:match.start()]
     statement = prefix[prefix.rfind(";") + 1:]
-    assert "STATE_SPHERE" in statement, "Ungated radar firing call"
-    assert "KEY_A" in statement, "Unreviewed firing control"
+    assert re.search(r"if\s*\(\s*game\.screen\s*==\s*STATE_SPHERE\s*&&", statement), "Ungated radar firing call"
+    assert re.search(r"keys\s*&\s*KEY_A", statement), "Unreviewed firing control"
 assert block.count("game_fire(&game)") == 1, "Unexpected firing path"
 smoke = (root / "scripts/melonds_smoke.sh").read_text()
 radar = smoke.split("snapshot 05-radar", 1)[1].split("snapshot 06-results", 1)[0]
