@@ -17,6 +17,8 @@ REQUIRED = {
     "tests/test_capture_profiles.c": "capture profile",
     "tests/test_gameplay_save_roundtrip.c": "save reload",
     "tests/test_melonds_navigation.py": "screenshot heading recognition",
+    "scripts/melonds_smoke.sh": "real emulator navigation smoke",
+    "tools/verify_melonds_navigation.py": "recognize native DS emulator frames",
     ".github/workflows/capture-host-acceptance.yml": "CI acceptance evidence",
     "docs/feature_parity.json": "feature parity tracking",
 }
@@ -31,6 +33,8 @@ def audit(root, run_host=False):
         "prerequisites_present": present,
         "host_tests": "not_run",
         "capture_emulator_test_passed": False,
+        "capture_emulator_test_status": "not_run",
+        "capture_emulator_evidence": None,
         "note": "Host tests and screenshot-recognition tests cannot establish live emulator gameplay.",
     }
     if run_host:
