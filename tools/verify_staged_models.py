@@ -26,6 +26,8 @@ def verify(directory: Path, manifest: str, expected_format: str, extension: str)
     manifest_path = directory / manifest
     if manifest_path.is_symlink() or not manifest_path.is_file():
         raise ValueError("Missing or symlinked staged manifest: " + manifest)
+    if manifest_path.stat().st_size > 1024 * 1024:
+        raise ValueError("Staged manifest exceeds 1 MiB size limit")
     report = json.loads(manifest_path.read_text(encoding="utf-8"),
                         object_pairs_hook=reject_duplicate_keys)
     if (not isinstance(report, dict) or report.get("format") != expected_format

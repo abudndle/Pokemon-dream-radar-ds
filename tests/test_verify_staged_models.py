@@ -214,3 +214,14 @@ with tempfile.TemporaryDirectory() as temporary:
     else:
         raise AssertionError("Duplicate manifest JSON keys accepted")
 print("PASS: duplicate manifest JSON keys rejected")
+
+with tempfile.TemporaryDirectory() as temporary:
+    root = pathlib.Path(temporary)
+    (root / "model_manifest.json").write_bytes(b" " * (1024 * 1024 + 1))
+    try:
+        verify(root, "model_manifest.json", "DRM1", ".drm")
+    except ValueError as exc:
+        assert "size limit" in str(exc), str(exc)
+    else:
+        raise AssertionError("Oversized manifest accepted")
+print("PASS: oversized staged manifests rejected")
