@@ -377,6 +377,8 @@ static int draw_encounter_mesh(int species,int x,int y) {
 /* Source-authentic 3DS thumbnail fallback until real geometry has been
    imported and optimized for the DS GPU. Keep both camera paths identical. */
 static void draw_original_encounter_art(void) {
+    /* Encounter rewards stay hidden throughout cloud search. */
+    if(game.screen!=STATE_SPHERE)return;
     int art=-1;
     if(game.session_type==0 && game.session_species>=0 && game.session_species<26)
         art=S_ORIGINAL_POKEMON_FIRST+game.session_species;
