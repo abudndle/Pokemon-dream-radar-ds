@@ -46,6 +46,22 @@ int dr_transfer_slot_at(int x,int y) {
     }
     return -1;
 }
+void dr_legendary_slot_rect(int index,int *x,int *y,int *w,int *h) {
+    int valid=index>=0 && index<MAX_LEGENDARY;
+    if(x)*x=valid?8+30*index:-1;
+    if(y)*y=valid?119:-1;
+    if(w)*w=valid?28:0;
+    if(h)*h=valid?31:0;
+}
+int dr_legendary_slot_at(int x,int y) {
+    if(x<0 || x>=256 || y<119 || y>=150)return -1;
+    for(int i=0;i<MAX_LEGENDARY;i++) {
+        int px,py,pw,ph;
+        dr_legendary_slot_rect(i,&px,&py,&pw,&ph);
+        if(x>=px && x<px+pw && y>=py && y<py+ph)return i;
+    }
+    return -1;
+}
 int dr_lab_row_top(int index) {
     return index>=0 && index<7 ? 3+23*index : -1;
 }
