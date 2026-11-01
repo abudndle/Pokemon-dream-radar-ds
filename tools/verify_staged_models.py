@@ -111,7 +111,7 @@ def verify(directory: Path, manifest: str, expected_format: str, extension: str)
         digest = entry.get("sha256")
         size = entry.get("bytes")
         if (type(size) is not int or size != len(payload)
-                or not isinstance(digest, str) or len(digest) != 64
+                or not isinstance(digest, str) or not re.fullmatch(r"[0-9a-f]{64}", digest)
                 or digest != hashlib.sha256(payload).hexdigest()):
             raise ValueError("Staged asset checksum mismatch: " + name)
     if not seen:
