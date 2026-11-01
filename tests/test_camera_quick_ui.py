@@ -17,7 +17,7 @@ assert 'STATE_CAMERA_QUICK } GameScreen;' in game
 assert 'case STATE_CAMERA_QUICK:' in main
 assert 'render_camera_quick_icon' in main
 assert 'if(camera_quick_icon_visible())render_camera_quick_icon();' in main
-assert 'dr_camera_quick_icon_hit(touch->px,touch->py)' in main
+assert 'dr_camera_quick_icon_hit(x,y)' in platform
 assert 'return game.screen==STATE_TITLE;' in main
 assert 'dr_camera_quick_open(game.screen==STATE_TITLE,' in main
 assert '(down&KEY_TOUCH)!=0,(down&KEY_X)!=0,' in main
