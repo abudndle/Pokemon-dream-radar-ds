@@ -26,7 +26,7 @@ The source-of-truth checklist is [`feature_parity.json`](feature_parity.json), c
 | All original obtainable Pokémon and encounter probabilities | partial | 26 named species supported, but spawn tables and form presentation are provisional. |
 | All original item names and drops | partial | 23 extracted English names supported, but drop tables are not proven original. |
 | Six Pokémon slots and six item stacks with replacement | host tested | Portable storage/replacement tested; original separate legendary priority remains missing. |
-| Separate special legendary row and priority on transfer | unimplemented | Homebrew queue uses six ordinary Pokémon slots instead of original transfer ordering. |
+| Separate special legendary row and priority on transfer | host tested | Eight special legendary research slots now persist independently of six regular slots. Six-Pokémon text archive batches place legends first and retain overflow for later archives; v3 saves migrate without changing size. Actual Black 2/White 2 Unova Link remains unimplemented. |
 | Durable homebrew save/restore and recovery | host tested | Private save version/checksum and recovery tests; never equate with retail save data. |
 | Nintendo DS dual-screen and tactile/touch navigation | partial | Main controls and hitboxes exist; exact original touch layout is not proven. |
 | DSi outer camera live preview and optional album | partial | DSi camera API and fallback present; real DSi gameplay boot testing still pending. |
