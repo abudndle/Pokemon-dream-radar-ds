@@ -95,6 +95,11 @@ press_ds_key z
 snapshot 04-extensions
 press_ds_key z
 snapshot 05-radar
+# Verify an actual A-button cloud shot in the radar before backing out.
+# D-pad aims at a fixed cloud coordinate only if the deterministic scene
+# supports it; do not claim capture from an unverified screenshot.
+press_ds_key z
+snapshot 05-radar-after-fire
 press_ds_key x
 snapshot 06-results
 press_ds_key x
