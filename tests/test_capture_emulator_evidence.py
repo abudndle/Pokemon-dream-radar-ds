@@ -103,4 +103,36 @@ with tempfile.TemporaryDirectory() as temp:
         invalid["captures"][stage] = invalid["captures"][REQUIRED[0]]
     assert status(invalid)["status"] == "reused_captures"
 
+
+    # A valid PNG container is not enough: the compressed image itself must
+    # contain exactly the expected scanlines and legal per-row filter bytes.
+    def invalid_png(png):
+        invalid = copy.deepcopy(good)
+        invalid["captures"]["save"] = artifact(root / "bad-pixels.png", png)
+        assert status(invalid)["status"] == "invalid_capture"
+
+    header = struct.pack(">IIBBBBB", 256, 384, 8, 2, 0, 0, 0)
+    signature = b"\\x89PNG\\r\\n\\x1a\\n"
+    def png_with_data(compressed, ihdr=header):
+        return (signature + png_chunk(b"IHDR", ihdr) +
+                png_chunk(b"IDAT", compressed) + png_chunk(b"IEND", b""))
+
+    invalid_png(png_with_data(b"not zlib"))
+    invalid_png(png_with_data(zlib.compress(b"too short")))
+    invalid_png(png_with_data(zlib.compress(b"\\x05" + b"\\x00" * (256 * 3) +
+                                            (b"\\x00" + b"\\x00" * (256 * 3)) * 383)))
+    invalid_png(png_with_data(zlib.compress((b"\\x00" + b"\\x00" * 768) * 384) +
+                              b"trailing garbage"))
+    invalid_png(png_with_data(zlib.compress((b"\\x00" + b"\\x00" * 768) * 384),
+                              struct.pack(">IIBBBBB", 4096, 384, 8, 2, 0, 0, 0)))
+    # Different IDAT chunk partitioning is valid and must not be rejected.
+    compressed = zlib.compress((b"\\x00" + b"\\x00" * 768) * 384)
+    split = (signature + png_chunk(b"IHDR", header) +
+             png_chunk(b"IDAT", compressed[:len(compressed)//2]) +
+             png_chunk(b"IDAT", compressed[len(compressed)//2:]) +
+             png_chunk(b"IEND", b""))
+    assert len(split) > 0
+    from audit_capture_milestone import _valid_png
+    assert _valid_png(split)
+
 print("PASS: emulator evidence requires real hashed PNGs, provenance log and stages")
