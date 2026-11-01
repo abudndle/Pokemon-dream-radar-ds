@@ -27,7 +27,8 @@ capture-evidence/
 
 Capture each screenshot from the actual emulator window at the named stage,
 not from the DS source assets or a simulated host renderer. Each PNG must be
-at least 256×192 and have a valid PNG chunk structure. The runtime log must
+an unscaled 256-pixel-wide vertical DS window, 384–480 pixels tall,
+and contain complete, decodable PNG scanlines with valid checksums and filters. The runtime log must
 contain the emulator name and window ID, as recorded by
 `scripts/melonds_smoke.sh`. The smoke script alone **does not** produce the
 full capture evidence: its navigation screenshots are insufficient.
@@ -66,7 +67,12 @@ full capture evidence: its navigation screenshots are insufficient.
 The `captures` map must contain an entry for **each** stage, not just the
 single entry shown in the abbreviated example. Every path is relative to the
 evidence directory and must stay within it (symlink escapes are rejected).
-The ten stages must include at least four distinct screenshot hashes.
+The ten stages must include at least four distinct decoded-frame fingerprints.
+The validator reverses PNG row filters before fingerprinting, so re-encoding
+one frame with different filter types, compression or metadata does not count
+as new gameplay evidence. File SHA-256 still independently authenticates each
+artifact's bytes. A fingerprint is not scene recognition; distinct images can
+still be fabricated, so independently inspect gameplay and restart behavior.
 Each stage value must be the JSON boolean `true`, not a number or string.
 
 Generate hashes using `sha256sum capture-evidence/*.png
