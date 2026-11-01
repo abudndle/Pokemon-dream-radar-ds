@@ -121,3 +121,39 @@ remain to be replaced by the owner's original images.
 **Outstanding:** exact material/window image composition, original animated
 opacity, all pane timelines, idle Pokémon title background, pixel-verified
 original 3DS fidelity, and DS/DSi hardware acceptance tests.
+
+## Original TitleList window/cursor textures (private pack)
+
+The user's decrypted Nintendo 3DS NCCH has now been inspected in private.
+The original `Ui/MnIf_S_TitleList.carc` contains **ten source RGBA4444
+8x8 BCLIM textures**, `ListBg00..04` and `ListCursor00..04`, which
+are the original window and highlighted-menu cursor tiles. These original
+colors differ materially from the recreated flat blue buttons.
+
+The DS runtime now supports these ten original title-window tiles in a
+small **DTT1** source-derived private pack (1292 bytes). A bounded,
+CRC32-verified loader reads `sd:/DreamRadarDSi/UI/title_tiles.drtt`
+(or `fat:/` on a flashcart). It draws the source window's nine-slice
+frame and the focused cursor using RGBA4444 alpha blending on **the exact
+same live BCLYT rectangles used for touch hit detection**. Missing or
+corrupt tiles never partially overwrite the menu or load into it.
+
+To build the pack from the owner's private extraction (never public CI):
+
+```sh
+python3 tools/stage_original_title_tiles.py \
+  --source-dir /private/Ui/MnIf_S_TitleList/timg \
+  --output-root /private/dsi-sd-root
+```
+
+These pixels are deliberately not committed to the public repository. The
+owner can privately place the generated small pack into the matching
+`DreamRadarDSi/UI/` directory on their DS/DSi storage.
+
+**Remaining differences from 3DS:** the initial full title-menu bitmap is
+still a fallback until the user's complete original bottom-screen image
+composition is assembled. The source DTT1 windows are now used when
+available, but exact 3DS nine-slice stretching, CLAN material/visibility
+animation, font/material settings, original top-screen backdrop and
+stereoscopic 3D are not yet reproduced. A frame-accurate 3DS screenshot
+comparison and physical DS/DSi performance test remain outstanding.

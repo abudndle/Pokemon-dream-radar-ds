@@ -141,6 +141,8 @@ test-host:
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/dr_title_art.c tests/test_dr_title_art.c -o build/test_dr_title_art
 	./build/test_dr_title_art
 	python3 tests/test_stage_original_title_art.py
+	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/dr_title_tiles.c tests/test_dr_title_tiles.c -o build/test_dr_title_tiles
+	python3 tests/test_stage_original_title_tiles.py
 	python3 tests/test_camera_quick_ui.py
 	python3 tests/test_pack_drt1.py
 	python3 tests/test_pack_dra1.py
