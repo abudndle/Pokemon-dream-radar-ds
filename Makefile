@@ -119,6 +119,8 @@ test-host:
 	./build/test_platform_compat
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/platform_compat.c source/photo_album.c tests/test_camera_quick.c -o build/test_camera_quick
 	./build/test_camera_quick
+	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/platform_compat.c tests/test_search_fire_gate.c -o build/test_search_fire_gate
+	./build/test_search_fire_gate
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/platform_compat.c source/photo_album.c source/dr_background.c tests/test_background_import.c -o build/test_background_import
 	./build/test_background_import
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/dr_mesh.c tests/test_dr_mesh.c -o build/test_dr_mesh
@@ -177,6 +179,9 @@ test-host:
 	python3 tests/test_stage_title_ui.py
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/dr_ui_scene.c tests/test_scanlist_ui.c -lm -o build/test_scanlist_ui
 	python3 tests/test_stage_scanlist_ui.py
+	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/dr_ui_scene.c tests/test_mainmenu_ui.c -lm -o build/test_mainmenu_ui
+	python3 tests/test_stage_mainmenu_ui.py
+	python3 tests/test_stage_shoplist_ui.py
 	python3 tests/test_feature_parity.py
 	python3 tests/test_original_pane_geometry.py
 	python3 tests/test_pane_retarget.py

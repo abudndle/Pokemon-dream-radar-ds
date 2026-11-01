@@ -15,6 +15,8 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 TARGET = "MnIf_S_TitleList.bclyt"
 SCAN_TARGET = "MnIf_S_ScanList.bclyt"
+MAINMENU_TARGET = "MnIf_S_MainMenuList.bclyt"
+SHOP_TARGET = "MnIf_S_ShopList.bclyt"
 ROOT_NAME = "RootPane"
 PANE_NAMES = {ROOT_NAME, "Pos", "SRT00"} | {f"L{i:02d}" for i in range(4)} | {f"List{i:02d}" for i in range(4)} | {f"Touch{i:02d}" for i in range(4)}
 PROPERTIES = ("translate_x", "translate_y", "translate_z", "rotate_x", "rotate_y",
@@ -28,7 +30,7 @@ def finite(value):
 
 def stage(snapshot, clips=(), *, offset_y=80, target=TARGET):
     """Create bounded four-row BCLYT scene bytes; 80px Y is provisional."""
-    if target not in (TARGET, SCAN_TARGET):
+    if target not in (TARGET, SCAN_TARGET, MAINMENU_TARGET, SHOP_TARGET):
         raise ValueError("unsupported original BCLYT layout")
     layouts = snapshot["layouts"]
     matched = [item for item in layouts if Path(item["file"]).name == target]
@@ -40,13 +42,15 @@ def stage(snapshot, clips=(), *, offset_y=80, target=TARGET):
     w, h = [int(finite(v)) for v in layout["panes"][0]["size"]]
     if w != 320 or h != 240 or not -384 <= offset_y <= 384:
         raise ValueError("unexpected source canvas or calibration")
+    allowed = (PANE_NAMES if target != MAINMENU_TARGET else
+               (PANE_NAMES - {"SRT00"}) | {"SRT"})
     nodes = []
     parents = []
     names = {}
 
     def walk(pane, parent):
         name = pane["name"]
-        if name not in PANE_NAMES:
+        if name not in allowed:
             return
         if name in names or not isinstance(name, str) or len(name.encode("ascii")) > 19:
             raise ValueError("duplicate/invalid source pane")
@@ -58,7 +62,7 @@ def stage(snapshot, clips=(), *, offset_y=80, target=TARGET):
             walk(child, index)
 
     walk(layout["panes"][0], -1)
-    if set(names) != PANE_NAMES or len(nodes) > MAX_PANES:
+    if set(names) != allowed or len(nodes) > MAX_PANES:
         raise ValueError("four-row layout missing required original panes")
     # The original alpha=0 rows rely on other animation tags still unsupported.
     # The DS title fallback keeps rows visible with an explicit documented policy.
@@ -134,7 +138,7 @@ def main():
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--clip", type=Path, help="private original BCLAN file")
     group.add_argument("--clip-json", type=Path, help="private JSON from decode_bclan_panes.py")
-    parser.add_argument("--layout", choices=(TARGET, SCAN_TARGET), default=TARGET,
+    parser.add_argument("--layout", choices=(TARGET, SCAN_TARGET, MAINMENU_TARGET, SHOP_TARGET), default=TARGET,
                         help="original four-row menu to stage")
     parser.add_argument("--offset-y", type=int, default=80,
                         help="provisional visible DS title calibration in pixels")
