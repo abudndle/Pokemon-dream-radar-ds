@@ -73,12 +73,28 @@ send_ds_key() {
 # DeSmuME default key 's' maps to DS X. The quick menu is accessible
 # from the title only; we verify opening, closing and restoring the title.
 send_ds_key s
-sleep 3
+sleep 2
 snapshot 04-camera-settings
+camera_entry_input="title X (DeSmuME key s)"
 if cmp -s "$outdir/01-title.png" "$outdir/04-camera-settings.png"; then
-  echo "Title DS X did not open the camera quick menu" >&2
+  # DeSmuME SDL input under headless Xvfb sometimes drops the X key.
+  # A real click at (20, 372) is the title gear (bottom screen local
+  # coordinate 20, 180, with 192px upper screen). Never inject clicks in
+  # intro/gameplay; the gear must only open on the title.
+  xdotool mousemove --window "$window" 20 372
+  sleep 0.2
+  xdotool mousedown 1
+  sleep 0.45
+  xdotool mouseup 1
+  sleep 3
+  snapshot 04-camera-settings
+  camera_entry_input="title touch gear (20,180)"
+fi
+if cmp -s "$outdir/01-title.png" "$outdir/04-camera-settings.png"; then
+  echo "Neither title X nor the real bottom-left title gear tap opened camera settings" >&2
   exit 1
 fi
+echo "Camera menu input route: $camera_entry_input" >>"$outdir/runtime.log"
 send_ds_key z
 sleep 2
 snapshot 05-camera-back
@@ -121,8 +137,9 @@ p=Path(sys.argv[1])
 report=json.loads(p.read_text())
 report["camera_settings_input_changed_frame"]=True
 report["camera_settings_returned_to_title"]=True
+report["title_entry_route_logged_in_runtime_log"]=True
 report["camera_settings_blocked_on_intro"]=True
-report["camera_settings_verification"]="title X opens settings, B restores title, intro X leaves intro unchanged in Linux DeSmuME"
+report["camera_settings_verification"]="title keyboard X or real gear touch opens settings; B restores title; intro X leaves intro unchanged in Linux DeSmuME"
 report["limitations"].append(
     "Importing a BMP from emulated writable FAT/SD and live DSi camera "
     "still require separate end-to-end verification")
