@@ -69,14 +69,25 @@ send_ds_key() {
   sleep 0.35
   xdotool keyup --window "$window" "$name"
 }
-# DS X (CLI 's') opens camera quick settings from title/intro.
-send_ds_key s
+# Try the actual touch-screen gear first. The DeSmuME CLI draws the two
+# 256x192 panels vertically at native size; icon center (20,180) in the
+# lower panel is therefore window coordinate (20,372).
+xdotool mousemove --sync --window "$window" 20 372
+xdotool mousedown 1
+sleep 0.5
+xdotool mouseup 1
 sleep 2
 snapshot 04-camera-settings
-# DS Select (CLI Right Shift) is a second, equivalent shortcut, useful for
-# headless SDL builds that discard the first synthetic key event.
+# Some headless X11 builds drop synthetic mouse events; also exercise
+# the independent DS X/Select shortcuts with injected key presses.
 if cmp -s "$outdir/01-title.png" "$outdir/04-camera-settings.png"; then
-  echo "DS X not captured; retrying camera shortcut with DS Select" >>"$outdir/runtime.log"
+  echo "Mouse gear tap unchanged; trying DS X" >>"$outdir/runtime.log"
+  send_ds_key s
+  sleep 2
+  snapshot 04-camera-settings
+fi
+if cmp -s "$outdir/01-title.png" "$outdir/04-camera-settings.png"; then
+  echo "DS X unchanged; trying DS Select" >>"$outdir/runtime.log"
   send_ds_key Shift_R
   sleep 2
   snapshot 04-camera-settings
