@@ -45,6 +45,49 @@ def check_heading(pixels, width, height, x, y, text, font):
                 if white != bool(mask & (1 << (5 - column))):
                     raise ValueError(f"Expected rendered heading {text!r} was not found")
 
+def read_radar_counters(pixels, width, height, font):
+    """Read actual cloud/orb counts from the top-screen 6x8 game font.
+
+    Unlike a static CLOUDS heading check, this establishes that the live
+    radar screen has initialized its cloud population. It does not prove
+    shooting, an encounter, or reward persistence.
+    """
+    x, y = 6, 6
+    check_heading(pixels, width, height, x, y, "CLOUDS ", font)
+    x += 7 * 6
+
+    def matches(column, character):
+        try:
+            check_heading(pixels, width, height, column, y, character, font)
+            return True
+        except ValueError:
+            return False
+
+    def decimal(column):
+        digits = ""
+        for _ in range(2):
+            candidates = [str(d) for d in range(10)
+                          if matches(column, str(d))]
+            if len(candidates) != 1:
+                break
+            digits += candidates[0]
+            column += 6
+        if not digits:
+            raise ValueError("Radar counter is missing or illegible")
+        return int(digits), column
+
+    clouds, x = decimal(x)
+    check_heading(pixels, width, height, x, y, "  ORBS ", font)
+    x += 7 * 6
+    orbs, x = decimal(x)
+    # A trailing digit must not be silently accepted as part of another
+    # number; the game draws both counters against a dark label rectangle.
+    check_heading(pixels, width, height, x, y, " ", font)
+    if not (0 <= clouds <= 30 and 0 <= orbs <= 24):
+        raise ValueError("Radar counters exceed game entity capacity")
+    return {"clouds": clouds, "orbs": orbs}
+
+
 def verify(directory, stages=None):
     font = font_rows()
     results = []
@@ -59,7 +102,13 @@ def verify(directory, stages=None):
         raw = subprocess.run(["convert", str(path), "-depth", "8", "rgb:-"],
                              capture_output=True, check=True, timeout=12)
         check_heading(raw.stdout, width, height, x, y, text, font)
-        results.append({"file": path.name, "recognized_heading": text})
+        entry = {"file": path.name, "recognized_heading": text}
+        if name == "05-radar":
+            counters = read_radar_counters(raw.stdout, width, height, font)
+            if counters["clouds"] == 0:
+                raise ValueError("Radar opened without any searchable clouds")
+            entry["radar_counters"] = counters
+        results.append(entry)
     return {"kind": "melonds-native-ds-navigation", "stages": results,
             "limitations": ["DS mode only; no DSi camera or hardware proof",
                             "Does not test cloud shooting, encounters, persistence or frame rate"]}
