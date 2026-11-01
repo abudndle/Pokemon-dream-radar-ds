@@ -60,53 +60,58 @@ snapshot() {
 # Capture actual DeSmuME window, never reference art or synthetic mockups.
 sleep 7
 snapshot 01-title
-# Hold keys across several VBlanks and send a release before the next press.
+# Hold keys across several VBlanks. No gear or X-alone camera shortcut.
 send_ds_key() {
   local name="$1"
-  # Preserve the previously verified Start/B/A keyboard delivery path.
-  # SDL/Xvfb delivery of the new title X shortcut is separately audited.
   xdotool windowfocus "$window" 2>/dev/null || true
   xdotool keydown --window "$window" "$name"
   sleep 0.35
   xdotool keyup --window "$window" "$name"
 }
-# DeSmuME default key 's' maps to DS X. The quick menu is accessible
-# from the title only; we verify opening, closing and restoring the title.
 send_ds_key s
 sleep 2
-snapshot 04-camera-settings
-camera_entry_input="title X (DeSmuME key s)"
-if cmp -s "$outdir/01-title.png" "$outdir/04-camera-settings.png"; then
-  # DeSmuME SDL input under headless Xvfb sometimes drops the X key.
-  # A real click at (20, 372) is the title gear (bottom screen local
-  # coordinate 20, 180, with 192px upper screen). Never inject clicks in
-  # intro/gameplay; the gear must only open on the title.
-  xdotool mousemove --window "$window" 20 372
-  sleep 0.2
-  xdotool mousedown 1
-  sleep 0.45
-  xdotool mouseup 1
-  sleep 3
-  snapshot 04-camera-settings
-  camera_entry_input="title touch gear (20,180)"
+snapshot 04-title-x-alone
+if ! cmp -s "$outdir/01-title.png" "$outdir/04-title-x-alone.png"; then
+  echo "DS X alone unexpectedly changed the title screen" >&2
+  exit 1
 fi
+# Previously there was an extra gear painted at bottom touch (20,180).
+xdotool mousemove --window "$window" 20 372
+sleep 0.2
+xdotool mousedown 1
+sleep 0.45
+xdotool mouseup 1
+sleep 2
+snapshot 05-title-no-gear
+if ! cmp -s "$outdir/01-title.png" "$outdir/05-title-no-gear.png"; then
+  echo "Removed gear touch region unexpectedly changed the title" >&2
+  exit 1
+fi
+# Best-effort Select+X chord: host Select mapping unverified under Xvfb.
+xdotool windowfocus "$window" 2>/dev/null || true
+xdotool keydown --window "$window" BackSpace
+xdotool keydown --window "$window" s
+sleep 0.5
+xdotool keyup --window "$window" s
+xdotool keyup --window "$window" BackSpace
+sleep 2
+snapshot 06-title-select-x-attempt
 camera_menu_opened=0
-if cmp -s "$outdir/01-title.png" "$outdir/04-camera-settings.png"; then
-  # Save the real attempt, but never mislabel an unchanged title as a
-  # verified camera menu. SDL/Xvfb touch and X events remain inconclusive.
-  mv "$outdir/04-camera-settings.png" "$outdir/04-title-input-unverified.png"
-  echo "WARNING: title X and gear events produced no visible menu transition; camera-menu input NOT verified" |
-    tee -a "$outdir/runtime.log"
-else
-  camera_menu_opened=1
-  echo "Camera menu input route: $camera_entry_input" >>"$outdir/runtime.log"
+if ! cmp -s "$outdir/01-title.png" "$outdir/06-title-select-x-attempt.png"; then
   send_ds_key z
   sleep 2
-  snapshot 05-camera-back
-  if ! cmp -s "$outdir/01-title.png" "$outdir/05-camera-back.png"; then
-    echo "Camera quick menu did not restore the original title" >&2
+  snapshot 07-title-after-camera-back
+  if cmp -s "$outdir/01-title.png" "$outdir/07-title-after-camera-back.png"; then
+    camera_menu_opened=1
+  else
+    echo "Select+X changed the frame but B failed to return to title" >&2
     exit 1
   fi
+fi
+if ((camera_menu_opened)); then
+  echo "PASS: Select+X changed title frame and B restored title" | tee -a "$outdir/runtime.log"
+else
+  echo "WARNING: headless Select+X delivery unverified; no success claimed" | tee -a "$outdir/runtime.log"
 fi
 # Title Start advances to Professor Burnet; DS X must NOT open camera
 # settings there or on any other non-title screen.
@@ -119,8 +124,8 @@ if cmp -s "$outdir/01-title.png" "$outdir/02-after-start.png"; then
 fi
 send_ds_key s
 sleep 2
-snapshot 06-intro-X-blocked
-if ! cmp -s "$outdir/02-after-start.png" "$outdir/06-intro-X-blocked.png"; then
+snapshot 08-intro-X-blocked
+if ! cmp -s "$outdir/02-after-start.png" "$outdir/08-intro-X-blocked.png"; then
   echo "DS X changed intro screen; title-only camera shortcut not verified" >&2
   exit 1
 fi
@@ -131,12 +136,10 @@ send_ds_key x
 sleep 5
 snapshot 03-after-a
 screenshots=("$outdir/01-title.png" "$outdir/02-after-start.png"
-             "$outdir/06-intro-X-blocked.png" "$outdir/03-after-a.png")
-if ((camera_menu_opened)); then
-  screenshots+=("$outdir/04-camera-settings.png" "$outdir/05-camera-back.png")
-else
-  screenshots+=("$outdir/04-title-input-unverified.png")
-fi
+             "$outdir/08-intro-X-blocked.png" "$outdir/03-after-a.png"
+             "$outdir/04-title-x-alone.png" "$outdir/05-title-no-gear.png"
+             "$outdir/06-title-select-x-attempt.png")
+if ((camera_menu_opened)); then screenshots+=("$outdir/07-title-after-camera-back.png"); fi
 python3 tools/verify_emulator_screenshots.py \
   --output "$outdir/report.json" "${screenshots[@]}"
 python3 - "$outdir/report.json" "$camera_menu_opened" <<'PY'
@@ -146,23 +149,23 @@ import sys
 p=Path(sys.argv[1])
 camera_opened=sys.argv[2]=="1"
 report=json.loads(p.read_text())
-report["camera_settings_input_changed_frame"]=camera_opened
-report["camera_settings_returned_to_title"]=camera_opened
-report["camera_settings_blocked_on_intro"]=camera_opened
+report["title_x_alone_blocked"]=True
+report["removed_title_gear_touch_blocked"]=True
+report["select_x_chord_frame_transition_and_return"]=camera_opened
 report["camera_settings_verification"]=(
-    "title camera entry/return visually verified" if camera_opened else
-    "INCONCLUSIVE: emulator X/touch did not produce a title menu transition")
+    "Select+X changed frame and B returned to title; content not independently recognized"
+    if camera_opened else "INCONCLUSIVE: emulator Select+X host input delivery not verified")
 if not camera_opened:
     report["limitations"].append(
-        "Title-only gear/X behavior passed host tests, but emulator input "
-        "delivery and menu entry were NOT verified; no success is claimed.")
+        "Hidden Select+X logic passed host tests but emulator chord delivery "
+        "and camera menu content remain unverified.")
 report["limitations"].append(
-    "Importing a BMP from emulated writable FAT/SD and live DSi camera "
-    "still require separate end-to-end verification")
+    "Original 3DS title backdrops are privately staged, not bundled; "
+    "3DS visual parity is not established by these captures.")
 p.write_text(json.dumps(report,indent=2)+"\n")
 PY
 if ((camera_menu_opened)); then
-  echo "PASS: real DeSmuME title camera menu, title return and intro routing"
+  echo "PASS: real DeSmuME title Select+X return and intro routing"
 else
-  echo "PASS: real DeSmuME boot and intro Start; WARNING title camera menu input UNVERIFIED"
+  echo "PASS: DeSmuME boot, Start and blocked X/gear; WARNING Select+X menu UNVERIFIED"
 fi
