@@ -8,13 +8,23 @@ import tempfile
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "tools"))
 from verify_staged_models import verify, verify_pairs
 
+def fixture(magic, vertices=3):
+    if magic == "DRM1":
+        coords = b"".join((i * 4096).to_bytes(2, "little", signed=True)
+                          + bytes(4) for i in range(vertices))
+        return (b"DRM1" + vertices.to_bytes(2, "little") + bytes([1, 0])
+                + coords + bytes([0, 0, 1, 0, 2, 0]))
+    return (b"DRK1" + vertices.to_bytes(2, "little") + bytes([1, 2, 4, 0])
+            + bytes(6) + bytes([255, 0])
+            + bytes([0, 0, 255]) * vertices + bytes(8))
+
 with tempfile.TemporaryDirectory() as temporary:
     root = pathlib.Path(temporary)
     for filename, manifest, magic, extension in (
         ("pokemon_00.drm", "model_manifest.json", "DRM1", ".drm"),
         ("pokemon_25.drk", "gltf_animation_manifest.json", "DRK1", ".drk"),
     ):
-        payload = magic.encode() + b"fixture"
+        payload = fixture(magic)
         (root / filename).write_bytes(payload)
         report = {"format": magic, "models": [{"file": filename,
                   "bytes": len(payload), "sha256": hashlib.sha256(payload).hexdigest()}]}
@@ -47,14 +57,14 @@ with tempfile.TemporaryDirectory() as temporary:
     skins.mkdir()
     for folder, filename, magic in ((meshes, "pokemon_00.drm", "DRM1"),
                                     (skins, "pokemon_00.drk", "DRK1")):
-        payload = magic.encode() + (3).to_bytes(2, "little") + b"fixture"
+        payload = fixture(magic)
         (folder / filename).write_bytes(payload)
         manifest = "model_manifest.json" if magic == "DRM1" else "gltf_animation_manifest.json"
         (folder / manifest).write_text(json.dumps({"format": magic, "models": [
             {"file": filename, "bytes": len(payload),
              "sha256": hashlib.sha256(payload).hexdigest()}]}))
     assert verify_pairs(skins, meshes) == 1
-    payload = b"DRM1" + (4).to_bytes(2, "little") + b"fixture"
+    payload = fixture("DRM1", 4)
     (meshes / "pokemon_00.drm").write_bytes(payload)
     report = json.loads((meshes / "model_manifest.json").read_text())
     report["models"][0].update(bytes=len(payload), sha256=hashlib.sha256(payload).hexdigest())
