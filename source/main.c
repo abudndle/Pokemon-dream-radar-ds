@@ -24,6 +24,7 @@
 #include "reference_layout.h"
 #include "dr_ui_scene.h"
 #include "dr_title_art.h"
+#include "dr_title_tiles.h"
 #include "cloud_animation.h"
 #include "burnet_tips_generated.h"
 #include "dr_mesh.h"
@@ -62,6 +63,8 @@ static u16 bg_cache[11][PIXELS] __attribute__((aligned(32)));
 static u8 bg_valid[11];
 /* True only after both private original title backgrounds validate. */
 static int original_title_art_loaded;
+static DrTitleTiles original_title_tiles;
+static int original_title_tiles_loaded;
 static u16 *top_vram, *bottom_vram;
 static int have_storage, have_romfs, camera_busy, camera_frames, photo_index;
 static int running_dsi, camera_failed_this_run;
@@ -781,19 +784,25 @@ static void render(void) {
         title_live_rects(title_rows);
         for(int i=0;i<4;i++) {
             const DrUiRect *r=&title_rows[i];
-            /* The retail source includes animated panes, but the present
-             * bundled bitmap has static buttons. For private moving tracks,
-             * draw a visible adapted panel exactly at the live hitbox. */
-            if(r->x!=dr_title_panes[i].x || r->y!=dr_title_panes[i].y ||
-               r->w!=dr_title_panes[i].w || r->h!=dr_title_panes[i].h) {
-                rect(bottom,r->x,r->y,r->w,r->h,0xA512);
-                border(bottom,r->x,r->y,r->w,r->h,CYAN);
-            }
-            /* Original blue title panels use a bright white/cyan focus edge,
-               not the gold selection outline from the development UI. */
-            if(game.selection==i) {
-                border(bottom,r->x,r->y,r->w,r->h,WHITE);
-                border(bottom,r->x+2,r->y+2,r->w-4,r->h-4,CYAN);
+            /* When user-owned authentic 3DS ListBg/ListCursor textures are
+             * staged, draw their original 8x8 RGBA4444 nine-slice windows at
+             * exactly the source-derived BCLYT hit regions. No fake cyan
+             * borders are drawn over the original cursor artwork. */
+            int original_panel=original_title_tiles_loaded &&
+                dr_title_tiles_draw(bottom,&original_title_tiles,
+                                    r->x,r->y,r->w,r->h,game.selection==i);
+            if(!original_panel) {
+                /* Public ROM retains its clearly documented adapted art
+                 * fallback until private original textures are supplied. */
+                if(r->x!=dr_title_panes[i].x || r->y!=dr_title_panes[i].y ||
+                   r->w!=dr_title_panes[i].w || r->h!=dr_title_panes[i].h) {
+                    rect(bottom,r->x,r->y,r->w,r->h,0xA512);
+                    border(bottom,r->x,r->y,r->w,r->h,CYAN);
+                }
+                if(game.selection==i) {
+                    border(bottom,r->x,r->y,r->w,r->h,WHITE);
+                    border(bottom,r->x+2,r->y+2,r->w-4,r->h-4,CYAN);
+                }
             }
             /* Center each label within its actual extracted menu pane, not
                the full screen; preserve the original pane positions. */
@@ -1867,6 +1876,9 @@ running_dsi=isDSiMode();
         original_title_art_loaded=1;
     }
 
+    if(have_storage && storage_root)
+        original_title_tiles_loaded=dr_title_tiles_load(storage_root,
+                                                        &original_title_tiles);
     for(int i=0;i<68;i++)load_sprite(i);
     /* Geometry-only title scene is generated during the build. Private
        user-staged original CLPA animations override it from SD/FAT. */
