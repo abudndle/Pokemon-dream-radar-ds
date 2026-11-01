@@ -41,7 +41,7 @@ def radar_frame(label):
             for column in range(6):
                 if mask & (1 << (5 - column)):
                     at = ((19 + 6 + row) * width + 6 + index * 6 + column) * 3
-                    frame[at:at + 3] = b"\\xff\\xff\\xff"
+                    frame[at:at + 3] = bytes((255, 255, 255))
     return frame
 
 for label, expected in (
