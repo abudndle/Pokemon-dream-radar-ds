@@ -1516,9 +1516,11 @@ static void handle_key(int keys,int down,touchPosition *touch) {
         if(game.aim_x>249)game.aim_x=249;
         if(game.aim_y<6)game.aim_y=6;
         if(game.aim_y>184)game.aim_y=184;
-        /* A fires at clouds or at revealed encounter targets. Touch is reserved
-           for the original support-item and Back controls. */
-        if((keys&KEY_A) && (game.save.frames_played%5==0))game_fire(&game);
+        /* A is not a radar-screen firing action in the original game.
+           Keep the existing encounter fallback separate until the original
+           camera/touch firing input has been verified and ported. */
+        if(game.screen==STATE_SPHERE && (keys&KEY_A) &&
+           (game.save.frames_played%5==0))game_fire(&game);
         if((down&KEY_TOUCH) && game.screen==STATE_SPHERE && touch->py>=58 && !back_touch) {
             int best=dr_support_at(touch->px,touch->py);
             if(best>=0) game_use_support(&game,best);
