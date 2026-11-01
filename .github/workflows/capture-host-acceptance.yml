@@ -17,14 +17,11 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - name: Run portable gameplay and syntax checks
-        run: python3 tools/audit_capture_milestone.py --run-host
-      - name: Publish capture host evidence
-        if: always()
+      - name: Run host acceptance and retain its evidence
         run: |
           mkdir -p capture-evidence
-          python3 tools/audit_capture_milestone.py --run-host > capture-evidence/host-audit.json || true
           printf '%s\\n' "commit=$GITHUB_SHA" "run=$GITHUB_RUN_ID" > capture-evidence/build-context.txt
+          python3 tools/audit_capture_milestone.py --run-host > capture-evidence/host-audit.json
       - name: Upload capture host evidence
         if: always()
         uses: actions/upload-artifact@v4
