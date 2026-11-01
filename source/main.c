@@ -363,7 +363,16 @@ static int draw_encounter_mesh(int species,int x,int y) {
     if(encounter_texture.texels &&
        dr_texture_render_yaw(frame_mesh,&encounter_texture,top,
                              SW,SH,x,y,24,yaw_step))return 1;
-    return dr_mesh_solid_yaw(frame_mesh,top,SW,SH,x,y,24,CYAN,yaw_step);
+    /* Preserve the original mesh when animation output cannot be rasterized.
+       A damaged pose should never make an otherwise valid model invisible. */
+    if(frame_mesh!=&encounter_mesh) {
+        if(encounter_texture.texels &&
+           dr_texture_render_yaw(&encounter_mesh,&encounter_texture,top,
+                                 SW,SH,x,y,24,yaw_step))return 1;
+        if(dr_mesh_solid_yaw(frame_mesh,top,SW,SH,x,y,24,CYAN,yaw_step))return 1;
+        return dr_mesh_solid_yaw(&encounter_mesh,top,SW,SH,x,y,24,CYAN,yaw_step);
+    }
+    return dr_mesh_solid_yaw(&encounter_mesh,top,SW,SH,x,y,24,CYAN,yaw_step);
 }
 /* Source-authentic 3DS thumbnail fallback until real geometry has been
    imported and optimized for the DS GPU. Keep both camera paths identical. */
