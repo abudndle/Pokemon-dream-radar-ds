@@ -167,6 +167,8 @@ test-host:
 	python3 tests/test_bclan_panes.py
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/dr_ui_scene.c tests/test_dr_ui_scene.c -lm -o build/test_dr_ui_scene
 	python3 tests/test_stage_title_ui.py
+	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/dr_ui_scene.c tests/test_scanlist_ui.c -lm -o build/test_scanlist_ui
+	python3 tests/test_stage_scanlist_ui.py
 	python3 tests/test_feature_parity.py
 	python3 tests/test_original_pane_geometry.py
 	python3 tests/test_pane_retarget.py
