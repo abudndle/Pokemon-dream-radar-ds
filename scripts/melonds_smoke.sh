@@ -95,11 +95,9 @@ press_ds_key z
 snapshot 04-extensions
 press_ds_key z
 snapshot 05-radar
-# Verify an actual A-button cloud shot in the radar before backing out.
-# D-pad aims at a fixed cloud coordinate only if the deterministic scene
-# supports it; do not claim capture from an unverified screenshot.
-press_ds_key z
-snapshot 05-radar-after-fire
+# Radar is a search/aiming scene, not an A-button action prompt.
+# Do not synthesize a shot here: input parity requires an original-game
+# control mapping and a separate verified cloud encounter sequence.
 press_ds_key x
 snapshot 06-results
 press_ds_key x
