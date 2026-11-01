@@ -33,6 +33,28 @@ contain the emulator name and window ID, as recorded by
 `scripts/melonds_smoke.sh`. The smoke script alone **does not** produce the
 full capture evidence: its navigation screenshots are insufficient.
 
+## Optional live encounter instrumentation
+
+The Linux melonDS smoke workflow now tries screenshot-guided aiming on the
+known flat DS fallback scene and a bounded A-button shooting sweep after an
+actual sphere encounter. It records `05-sphere-sweep-*.png` and
+`sphere-progress-*.json` for the visible capture meter. Only a Results
+screen with an independently recognized `Caught: <catalog species>` or
+`Item: <catalog item>` label earns a `05-capture-reward.png` and
+`sphere-reward.json`. A generic Results heading, a moving target, or a
+partially filled meter is **not** a successful capture.
+
+Use `REQUIRE_CAPTURE=1` to turn a missing reward into a failing emulator
+acceptance test. The default smoke run remains non-strict because the live
+target moves and the fallback artwork is not consistently recognizable.
+Even a strict capture pass does **not** establish save/restart persistence;
+that requires the separate `save`, `restart` and `restored_reward`
+screenshots plus independent saved-data checks. Unknown or original
+textured backgrounds intentionally skip white-silhouette tracking instead
+of inventing a target. This is DS fallback verification, not DSi camera
+hardware testing.
+
+
 ```json
 {
   "emulator": "melonDS",
