@@ -114,7 +114,8 @@ static int radar_checkpoint_restore(const char *save_path,Game *g) {
        r.session.orb_chain_valid>1 ||
        r.session.orb_chain_stage>5 ||
        r.session.orb_group_target>5 ||
-       r.session.orb_group_collected>r.session.orb_group_target ||
+       /* Group collection can exceed the most recently spawned group's
+        * target when orbs from overlapping clouds remain active. */
        r.session.orb_total_collected>DREAM_ORB_CHAIN_LIMIT)return 0;
     /* A full-storage prompt must have an actionable, bounded replacement.
      * Without these checks a checksummed but inconsistent sidecar can
