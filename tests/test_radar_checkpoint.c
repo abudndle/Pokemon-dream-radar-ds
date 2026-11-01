@@ -263,6 +263,67 @@ int main(void) {
         assert(loaded.save.orbs==projectile.save.orbs);
     }
 
+    /* Capture reward metadata must survive a restart without inventing an
+     * unawardable Pokemon/item or turning a Simulator into a normal drop.
+     * All malformed sessions are checksummed through the real write path. */
+    for(int invalid=0;invalid<8;invalid++) {
+        Game malformed=projectile;
+        switch(invalid) {
+            case 0: malformed.session_species=-1;break;
+            case 1: malformed.session_species=26;break;
+            case 2: malformed.session_item=0;break;
+            case 3:
+                malformed.session_type=1;
+                malformed.session_item=0;
+                break; /* Item encounter still claims a Pokemon species. */
+            case 4:
+                malformed.session_type=1;
+                malformed.session_species=-1;
+                malformed.session_item=-1;
+                break;
+            case 5:
+                malformed.session_type=1;
+                malformed.session_species=-1;
+                malformed.session_item=RESEARCH_ITEM_TYPES;
+                break;
+            case 6:
+                malformed.ext_selection=EXT_SIM_TORNADUS;
+                malformed.session_item=-1;
+                break;
+            case 7:
+                malformed.ext_selection=EXT_SIM_THUNDURUS;
+                malformed.session_item=4;
+                break; /* Simulator species must match its extension. */
+        }
+        assert(save_backend_write(&backend,&malformed));
+        reload(&backend,&loaded);
+        assert(loaded.screen==STATE_EXTENSIONS);
+        assert(loaded.save.orbs==projectile.save.orbs);
+    }
+    Game item_sphere=projectile;
+    item_sphere.ext_selection=EXT_DOWSING;
+    item_sphere.session_type=1;
+    item_sphere.session_species=-1;
+    item_sphere.session_item=0; /* Item zero is valid, not a sentinel. */
+    item_sphere.projectile_active=0;
+    for(int i=0;i<MAX_EXTRA_PROJECTILES;i++)
+        item_sphere.projectile_extra[i].active=0;
+    assert(save_backend_write(&backend,&item_sphere));
+    reload(&backend,&loaded);
+    assert(loaded.screen==STATE_SPHERE && loaded.session_type==1);
+    assert(loaded.session_species==-1 && loaded.session_item==0);
+
+    Game simulator_sphere=item_sphere;
+    simulator_sphere.ext_selection=EXT_SIM_TORNADUS;
+    simulator_sphere.session_type=0;
+    simulator_sphere.session_species=LEGEND_SPECIES_START;
+    simulator_sphere.session_item=4;
+    assert(save_backend_write(&backend,&simulator_sphere));
+    reload(&backend,&loaded);
+    assert(loaded.screen==STATE_SPHERE && loaded.session_type==0);
+    assert(loaded.session_species==LEGEND_SPECIES_START);
+    assert(loaded.session_item==4);
+
     /* A sidecar for a different save cannot revive old entities. */
     assert(save_backend_write(&backend,&g)); /* Replace corrupted sidecar. */
     Game newer=g;
