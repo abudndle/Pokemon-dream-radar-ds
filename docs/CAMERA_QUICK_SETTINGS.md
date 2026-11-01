@@ -37,7 +37,7 @@ The image selection persists in the existing homebrew save's previously reserved
 
 ## Verification
 
-The Linux host suite includes `tests/test_camera_quick.c` for title-only input gating, hitboxes, safe paths, BMP decoding, and invalid-file protection, plus `tests/test_camera_quick_ui.py` to verify title-only routing and camera/BMP persistence. The emulator smoke workflow now exercises title X → camera settings → B → title and checks that X in the intro does nothing. A real DSi camera and writable FAT BMP import remain separate end-to-end tests.
+The Linux host suite includes `tests/test_camera_quick.c` for title-only input gating, hitboxes, safe paths, BMP decoding, and invalid-file protection, plus `tests/test_camera_quick_ui.py` to verify title-only routing and camera/BMP persistence. The Linux emulator smoke workflow attempts title X or a real gear tap, checks title return only if the menu actually opens, and logs input delivery as **unverified** when those events cannot be confirmed; it also checks a title-to-intro Start transition and observes whether intro X leaves the frame unchanged. A real DSi camera and writable FAT BMP import remain separate end-to-end tests.
 
 ## Transactional BMP selection (milestone #21)
 
@@ -47,4 +47,4 @@ The import and save selection now share a portable, host-tested transaction in `
 
 ## Milestone #22 — title-only camera access
 
-The camera settings gear and X shortcut exist exclusively on the title screen. The DS/DSi Options menu no longer offers camera or custom-photo entries; optical aim and DS cartridge/SD game pairing remain. Existing selected images and saves are still restored by the original background loader on launch. Camera toggling and BMP imports are unchanged once the title-only menu is open. Portable tests cover rejection from other states; real emulator smoke validation checks title entry/return and intro rejection.
+The camera settings gear and X shortcut exist exclusively on the title screen. The DS/DSi Options menu no longer offers camera or custom-photo entries; optical aim and DS cartridge/SD game pairing remain. Existing selected images and saves are still restored by the original background loader on launch. Camera toggling and BMP imports are unchanged once the title-only menu is open. Portable tests cover rejection from other states; real emulator smoke validation attempts title entry/return and intro rejection without claiming success for unregistered SDL input.
