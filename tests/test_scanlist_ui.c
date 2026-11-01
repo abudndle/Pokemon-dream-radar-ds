@@ -26,13 +26,13 @@ int main(int argc, char **argv) {
     assert(clip);
     assert_scanlist(clip, moving);
     assert(dr_ui_four_row_rects(clip, 10, moving));
-    assert(moving[0].y >= rects[0].y+7 && moving[0].y <= rects[0].y+9);
+    assert(moving[0].y >= rects[0].y-9 && moving[0].y <= rects[0].y-7);
     for (int i = 1; i < 4; i++) {
         assert(moving[i].x == rects[i].x);
         assert(moving[i].y == rects[i].y);
     }
     assert(dr_ui_four_row_rects(clip, 100, moving));
-    assert(moving[0].y >= rects[0].y+7 && moving[0].y <= rects[0].y+9);
+    assert(moving[0].y >= rects[0].y-9 && moving[0].y <= rects[0].y-7);
     assert(!dr_ui_scene_load(argv[3]));
     dr_ui_scene_free(clip);
     dr_ui_scene_free(base);
