@@ -2,7 +2,7 @@ name: Linux melonDS boot and screenshots
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, milestone-next-parity-audit-20261101]
   pull_request:
     paths:
       - '.github/workflows/melonds-smoke.yml'
