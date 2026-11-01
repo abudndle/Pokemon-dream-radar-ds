@@ -10,7 +10,7 @@ import json
 import re
 from pathlib import Path
 
-NAME = re.compile(r"pokemon_(0[0-9]|1[0-9]|2[0-5])\\.(drm|drk)\\Z")
+NAME = re.compile(r"pokemon_(0[0-9]|1[0-9]|2[0-5])\.(drm|drk)\Z")
 
 
 def verify(directory: Path, manifest: str, expected_format: str, extension: str):
