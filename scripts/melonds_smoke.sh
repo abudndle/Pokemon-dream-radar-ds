@@ -192,10 +192,10 @@ else
   fi
 fi
 # The initial pink cloud can produce Orbs instead of an encounter. Try at
-# most two additional clouds, always using fresh actual emulator screenshots.
+# most three additional clouds, always using fresh actual emulator screenshots.
 # Stop before clearing the entire search so the existing Results navigation
 # remains independently testable. Never assert a sphere without class+timer.
-for attempt in 1 2; do
+for attempt in 1 2 3; do
   [[ -f "$out/05-sphere-encounter.png" ]] && break
   if ! python3 tools/verify_melonds_navigation.py "$out" \
       --observe-search-screenshot "$latest_radar" >"$out/search-retry-$attempt-before.json"; then
