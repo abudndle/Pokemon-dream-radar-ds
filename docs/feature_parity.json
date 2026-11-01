@@ -385,6 +385,20 @@
       ]
     },
     {
+      "id": "camera_quick_settings",
+      "feature": "DS-only bottom-left camera options and placeholder BMP import",
+      "status": "host_tested",
+      "gap": "The requested two-action DS menu, fixed 256x192 BMP path and save restoration have host tests. Live DSi hardware and full emulator input testing remain outstanding. This is intentionally new, not original 3DS UI.",
+      "evidence": [
+        "source/main.c",
+        "source/platform_compat.c",
+        "source/photo_album.c",
+        "tests/test_camera_quick.c",
+        "tests/test_camera_quick_ui.py",
+        "docs/CAMERA_QUICK_SETTINGS.md"
+      ]
+    },
+    {
       "id": "device_and_emulator_tests",
       "feature": "Boot, input, performance, save tests on DS/DSi and emulator",
       "status": "unverified",

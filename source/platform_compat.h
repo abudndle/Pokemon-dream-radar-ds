@@ -1,8 +1,15 @@
 /* Runtime DS/DSi feature policy. No camera is EVER required for gameplay. */
 #ifndef DR_PLATFORM_COMPAT_H
 #define DR_PLATFORM_COMPAT_H
+#include <stddef.h>
 
 enum {DR_SETTING_CAMERA,DR_SETTING_OPTICAL,DR_SETTING_CART,DR_SETTING_SD,DR_SETTING_PLACEHOLDER};
+/* Bottom-left camera settings icon: fixed touch-screen hitbox. */
+int dr_camera_quick_icon_hit(int x,int y);
+/* Exactly two choices: 0=camera toggle, 1=import local placeholder BMP. */
+int dr_camera_quick_row_hit(int x,int y);
+/* Only a fixed, storage-root-relative BMP path is accepted. */
+int dr_placeholder_path(char *out,size_t cap,const char *storage_root);
 int dr_lab_count(int dsi_mode);
 int dr_lab_action(int dsi_mode,int selection);
 int dr_settings_count(int dsi_mode);

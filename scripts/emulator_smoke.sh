@@ -57,18 +57,74 @@ snapshot() {
   import -silent -window "$window" "$outdir/$name.png"
   identify "$outdir/$name.png" >>"$outdir/runtime.log"
 }
-# Capture actual emulator window, not simulated original UI images.
+# Capture actual DeSmuME window, never reference art or synthetic mockups.
 sleep 7
 snapshot 01-title
-xdotool windowfocus "$window" 2>/dev/null || true
-xdotool key --window "$window" Return 2>/dev/null || true
+# Hold synthetic keys across several emulated VBlanks to avoid lost taps.
+send_ds_key() {
+  local name="$1"
+  xdotool windowfocus "$window" 2>/dev/null || true
+  xdotool keydown --window "$window" "$name"
+  sleep 0.35
+  xdotool keyup --window "$window" "$name"
+}
+# DS Start -> intro (on a fresh save). A real screen transition is required.
+send_ds_key Return
 sleep 6
 snapshot 02-after-start
-# DeSmuME default key binding for DS A is X.
-xdotool key --window "$window" x 2>/dev/null || true
-sleep 6
+if cmp -s "$outdir/01-title.png" "$outdir/02-after-start.png"; then
+  echo "DS Start did not advance the real emulator; smoke test failed" >&2
+  exit 1
+fi
+# On intro, DS X ('s') is another camera shortcut. A headless Xvfb
+# environment may not deliver SDL synthetic events: retain evidence but
+# never treat a non-changing image as proof that the camera menu opened.
+send_ds_key s
+sleep 2
+snapshot 04-camera-settings
+if cmp -s "$outdir/02-after-start.png" "$outdir/04-camera-settings.png"; then
+  # Lower panel begins at y=192 in this 256x384 DeSmuME SDL window.
+  xdotool mousemove --window "$window" 20 372
+  xdotool mousedown 1
+  sleep 0.35
+  xdotool mouseup 1
+  sleep 2
+  snapshot 04-camera-settings
+fi
+if cmp -s "$outdir/02-after-start.png" "$outdir/04-camera-settings.png"; then
+  send_ds_key Shift_R
+  sleep 2
+  snapshot 04-camera-settings
+fi
+camera_input_changed=0
+if ! cmp -s "$outdir/02-after-start.png" "$outdir/04-camera-settings.png"; then
+  camera_input_changed=1
+else
+  echo "WARNING: camera menu input not confirmed under headless DeSmuME" | tee -a "$outdir/runtime.log"
+fi
+# B returns from the optional menu (or skips intro if no menu opened);
+# retain a final gameplay screenshot, regardless of input responsiveness.
+send_ds_key z
+sleep 2
+send_ds_key x
+sleep 5
 snapshot 03-after-a
 python3 tools/verify_emulator_screenshots.py \
   --output "$outdir/report.json" \
-  "$outdir/01-title.png" "$outdir/02-after-start.png" "$outdir/03-after-a.png"
-echo "Real DeSmuME screenshot capture and validation complete"
+  "$outdir/01-title.png" "$outdir/02-after-start.png" \
+  "$outdir/03-after-a.png" "$outdir/04-camera-settings.png"
+# The report distinguishes tested startup from an unverified menu transition.
+python3 - "$outdir/report.json" "$camera_input_changed" <<'PY'
+import json
+from pathlib import Path
+import sys
+p=Path(sys.argv[1])
+report=json.loads(p.read_text())
+report["camera_settings_input_changed_frame"]=bool(int(sys.argv[2]))
+if not report["camera_settings_input_changed_frame"]:
+    report["limitations"].append(
+        "Camera settings control was NOT verified by injected SDL input; "
+        "Xvfb screenshot after camera shortcut matched the intro")
+p.write_text(json.dumps(report,indent=2)+"\n")
+PY
+echo "Real DeSmuME boot and screenshot validation completed"

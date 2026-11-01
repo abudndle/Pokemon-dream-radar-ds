@@ -106,6 +106,8 @@ test-host:
 	./build/test_photo_album
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/platform_compat.c tests/test_platform_compat.c -o build/test_platform_compat
 	./build/test_platform_compat
+	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/platform_compat.c source/photo_album.c tests/test_camera_quick.c -o build/test_camera_quick
+	./build/test_camera_quick
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/dr_mesh.c tests/test_dr_mesh.c -o build/test_dr_mesh
 	./build/test_dr_mesh
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/dr_mesh.c tests/test_mesh_extremes.c -o build/test_mesh_extremes
@@ -131,6 +133,7 @@ test-host:
 	./build/test_reference_layout
 	python3 tests/test_title_asset_geometry.py
 	python3 tests/test_original_ui_audit.py
+	python3 tests/test_camera_quick_ui.py
 	python3 tests/test_pack_drt1.py
 	python3 tests/test_pack_dra1.py
 	python3 tests/test_pack_drb1.py
