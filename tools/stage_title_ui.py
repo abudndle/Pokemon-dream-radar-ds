@@ -15,7 +15,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 TARGET = "MnIf_S_TitleList.bclyt"
 ROOT_NAME = "RootPane"
-PANE_NAMES = {ROOT_NAME, "Pos", "SRT00"} | {f"L{i:02d}" for i in range(4)} | {f"Touch{i:02d}" for i in range(4)}
+PANE_NAMES = {ROOT_NAME, "Pos", "SRT00"} | {f"L{i:02d}" for i in range(4)} | {f"List{i:02d}" for i in range(4)} | {f"Touch{i:02d}" for i in range(4)}
 PROPERTIES = ("translate_x", "translate_y", "translate_z", "rotate_x", "rotate_y",
               "rotate_z", "scale_x", "scale_y", "size_x", "size_y")
 MAX_PANES, MAX_TRACKS, MAX_KEYS, MAX_BYTES = 96, 256, 2048, 65536
