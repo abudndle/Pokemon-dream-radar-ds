@@ -28,6 +28,8 @@ jobs:
         with:
           name: capture-host-evidence
           path: capture-evidence/
+      - name: Reject incomplete emulator capture evidence
+        run: python3 tests/test_capture_emulator_evidence.py
       - name: Guard radar input parity
         run: python3 tests/test_radar_input_parity.py
       - name: Run screenshot recognition regression checks
