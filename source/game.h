@@ -24,6 +24,8 @@
  * reserved[13]=marker; session tallies are runtime-only. */
 #define SAVE_MAGIC 0x44525244u
 #define SAVE_VERSION 3u
+/* v3 reserved[16..19]: marker, last screen, extension, menu page. */
+#define SAVE_UI_CHECKPOINT_MARKER 0xC5u
 
 typedef enum { GAME_DIAMOND, GAME_PEARL, GAME_PLATINUM, GAME_HEARTGOLD,
                GAME_SOULSILVER, GAME_BLACK, GAME_WHITE,
