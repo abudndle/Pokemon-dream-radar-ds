@@ -171,6 +171,8 @@ test-host:
 	python3 tests/test_stage_title_ui.py
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/dr_ui_scene.c tests/test_scanlist_ui.c -lm -o build/test_scanlist_ui
 	python3 tests/test_stage_scanlist_ui.py
+	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/dr_ui_scene.c tests/test_mainmenu_ui.c -lm -o build/test_mainmenu_ui
+	python3 tests/test_stage_mainmenu_ui.py
 	python3 tests/test_feature_parity.py
 	python3 tests/test_original_pane_geometry.py
 	python3 tests/test_pane_retarget.py

@@ -11,7 +11,8 @@ rm -rf build
 if command -v python3 >/dev/null 2>&1; then
     python3 tools/stage_title_ui.py ui_mapping/original_pane_geometry.json nitrofs/title.drui
     python3 tools/stage_title_ui.py ui_mapping/original_pane_geometry.json nitrofs/scanlist.drui --layout MnIf_S_ScanList.bclyt
-elif [ ! -s nitrofs/title.drui ] || [ ! -s nitrofs/scanlist.drui ]; then
+    python3 tools/stage_title_ui.py ui_mapping/original_pane_geometry.json nitrofs/mainmenu.drui --layout MnIf_S_MainMenuList.bclyt --offset-y 24
+elif [ ! -s nitrofs/title.drui ] || [ ! -s nitrofs/scanlist.drui ] || [ ! -s nitrofs/mainmenu.drui ]; then
     echo "Stage both title.drui and scanlist.drui before entering the SDK-only Docker image" >&2
     exit 1
 fi

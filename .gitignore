@@ -3,3 +3,5 @@ nitrofs/title.drui
 *.nds
 *.elf
 *.map
+nitrofs/scanlist.drui
+nitrofs/mainmenu.drui
