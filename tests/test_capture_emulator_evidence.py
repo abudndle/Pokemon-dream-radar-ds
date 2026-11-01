@@ -117,6 +117,51 @@ with tempfile.TemporaryDirectory() as temp:
     assert len({item["sha256"] for item in repeated["captures"].values()}) == len(REQUIRED)
     assert status(repeated)["status"] == "reused_captures"
 
+    # PNG filters 0..4 can represent *identical pixels* with different
+    # compressed scanline bytes. Verify the audit normalizes those encodings,
+    # including their first-row and previous-row predictors.
+    from audit_capture_milestone import _valid_png
+
+    def filtered_png(kind):
+        row = bytes((17, 91, 213)) * 256
+        previous = bytes(len(row))
+        scanlines = bytearray()
+        for _ in range(384):
+            scanlines.append(kind)
+            for index, value in enumerate(row):
+                left = row[index - 3] if index >= 3 else 0
+                above = previous[index]
+                upper_left = previous[index - 3] if index >= 3 else 0
+                if kind == 1:
+                    predictor = left
+                elif kind == 2:
+                    predictor = above
+                elif kind == 3:
+                    predictor = (left + above) // 2
+                elif kind == 4:
+                    candidate = left + above - upper_left
+                    dl, da, dul = (abs(candidate - left), abs(candidate - above),
+                                   abs(candidate - upper_left))
+                    predictor = (left if dl <= da and dl <= dul else
+                                 above if da <= dul else upper_left)
+                else:
+                    predictor = 0
+                scanlines.append((value - predictor) & 255)
+            previous = row
+        return (b"\\x89PNG\\r\\n\\x1a\\n" +
+                png_chunk(b"IHDR", struct.pack(">IIBBBBB", 256, 384, 8, 2, 0, 0, 0)) +
+                png_chunk(b"IDAT", zlib.compress(bytes(scanlines))) +
+                png_chunk(b"IEND", b""))
+
+    variants = [filtered_png(kind) for kind in range(5)]
+    assert len(set(variants)) == 5
+    assert len({_valid_png(png) for png in variants}) == 1
+    filtered_reuse = copy.deepcopy(good)
+    for i, stage in enumerate(REQUIRED):
+        filtered_reuse["captures"][stage] = artifact(
+            root / f"filtered-{i}.png", variants[i % 5])
+    assert status(filtered_reuse)["status"] == "reused_captures"
+
 
 
     # A valid PNG container is not enough: the compressed image itself must
