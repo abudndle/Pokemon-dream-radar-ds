@@ -5,6 +5,9 @@ on:
     branches:
       - main
       - 'codex/**'
+      - 'feature/**'
+      - 'fix/**'
+      - 'dev/**'
   pull_request:
   schedule:
     - cron: '*/5 * * * *'
@@ -14,7 +17,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: dream-radar-five-minute-host-validation
+  group: dream-radar-host-${{ github.workflow }}-${{ github.event_name == 'schedule' && 'scheduled-main' || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -32,3 +35,7 @@ jobs:
         run: make test-host
       - name: Run DS and DSi syntax checks
         run: make test-syntax
+      - name: Validate ROM header test and asset references
+        run: |
+          python3 tests/test_nds_header.py
+          python3 tools/verify_assets.py
