@@ -6,6 +6,7 @@ on:
     paths:
       - 'source/**'
       - 'tests/**'
+      - 'scripts/melonds_smoke.sh'
       - 'tools/audit_capture_milestone.py'
       - 'Makefile'
       - '.github/workflows/capture-host-acceptance.yml'
