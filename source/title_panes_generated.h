@@ -11,7 +11,7 @@ static const DrPaneRect dr_title_panes[4] = {
     {13,109,229,27},
     {13,141,229,27},
  };
-static int dr_title_hit(int x,int y) {
+static inline int dr_title_hit(int x,int y) {
     for(int i=0;i<4;i++) {
         const DrPaneRect *r=&dr_title_panes[i];
         if(x>=r->x && x<r->x+r->w && y>=r->y && y<r->y+r->h)return i;

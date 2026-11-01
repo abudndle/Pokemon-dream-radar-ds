@@ -6,7 +6,7 @@ The source-of-truth checklist is [`feature_parity.json`](feature_parity.json), c
 
 | Original feature | Current status | Remaining gap |
 |---|---|---|
-| Title, intro and research lab navigation | partial | Screens and D-pad/touch routing implemented; not frame-perfect. |
+| Title, intro and research lab navigation | partial | Original-derived TitleList Touch00..03 panes now share runtime drawing/touch rectangles; original entrance offset and other screens remain incomplete. |
 | Professor Burnet story and tutorials | partial | Dialogue and tips exist; exact original scene sequencing not independently verified. |
 | Dream Cloud generation and shooting | partial | Clouds and collectible Orbs remain after an intermediate sphere encounter; A resumes the same scan, B abandons remaining targets. Original distribution and pacing are not fully matched. |
 | Aim/beam input and capture | partial | Stylus/D-pad/A inputs work; original gyroscopic aiming is absent. |
@@ -34,8 +34,8 @@ The source-of-truth checklist is [`feature_parity.json`](feature_parity.json), c
 | Original 3DS gyroscope aiming | hardware limited | DS/DSi has no built-in 3DS gyroscope; needs explicitly designed alternative. |
 | Original stereoscopic 3DS rendering | hardware limited | Nintendo DS/DSi has no autostereoscopic 3D display; 2D adaptation only. |
 | Original BCLIM graphics mapped to DS assets | partial | Conversion and SD override exist; wholesale original UI integration is incomplete. |
-| Original BCLYT screen positions and pane hierarchy | investigation only | 135 original layouts inventoried; runtime compositor retargeting not integrated. |
-| Original BCLAN animation keyframes and playback | investigation only | Native CLPA transform curves decode and sample from all 417 private clips. Other tag types, composition, looping policy and DS runtime playback remain unfinished; these are UI curves, not skeletons. |
+| Original BCLYT screen positions and pane hierarchy | partial | Bounded 2D pane runtime composes parent transforms, origins, clipping and alpha; source-derived title touch geometry is integrated. Other screens, material bindings and original animation placement remain incomplete. |
+| Original BCLAN animation keyframes and playback | partial | Portable DS runtime supports CLPA interpolation/looping and optional privately staged title clips without redistributing original keys. No original BCLAN clip is bundled; other tracks, full pane timelines and pixel-accurate playback remain incomplete. |
 | Original Pokémon 3D geometry and animations | partial | Converted DRM1/DRA1/DRB1/DRK1 and strict glTF retargeting exist. Original NCCH ExeFS contains 14 verified CGFX Home Menu banner assets and a separate 16-file logo DARC; these are not confirmed Pokémon encounter rigs. Native gameplay model/skeletal animation decoding remains unverified. |
 | Original music, sound effects and timing | unimplemented | No verified original 3DS audio conversion and playback across scenes. |
 | Real Black 2/White 2 Nintendo 3DS Link transfers | unimplemented | Only a safe text archive is exported; no retail transfer, save injection or handshake. |
