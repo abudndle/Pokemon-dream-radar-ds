@@ -449,10 +449,10 @@ static void spawn_dream_orbs(Game *g,int x,int y,int count,int chain) {
         if(slot<0)break;
         DreamOrb *o=&g->dream_orbs[slot];
         o->x=x+ox[i];o->y=y+oy[i];
-        if(o->x<8)o->x=8;
-        if(o->x>247)o->x=247;
-        if(o->y<8)o->y=8;
-        if(o->y>183)o->y=183;
+        if(o->x<16)o->x=16;
+        if(o->x>239)o->x=239;
+        if(o->y<16)o->y=16;
+        if(o->y>175)o->y=175;
         o->vx=(i%2)?1:-1;
         o->vy=(i%3)?-1:1;
         o->ttl=chain?120-25*chain:210;
@@ -1141,14 +1141,14 @@ void game_tick(Game *g) {
             if(o->ttl<=1){o->alive=0;g->orb_chain_valid=0;continue;}
             o->ttl--;
             o->x+=o->vx;o->y+=o->vy;
-            if(o->x<=8 || o->x>=247) {
-                if(o->x<8)o->x=8;
-                if(o->x>247)o->x=247;
+            if(o->x<=16 || o->x>=239) {
+                if(o->x<16)o->x=16;
+                if(o->x>239)o->x=239;
                 o->vx=-o->vx;
             }
-            if(o->y<=8 || o->y>=183) {
-                if(o->y<8)o->y=8;
-                if(o->y>183)o->y=183;
+            if(o->y<=16 || o->y>=175) {
+                if(o->y<16)o->y=16;
+                if(o->y>175)o->y=175;
                 o->vy=-o->vy;
             }
         }

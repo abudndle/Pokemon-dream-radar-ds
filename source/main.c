@@ -377,6 +377,8 @@ static int draw_encounter_mesh(int species,int x,int y) {
 /* Source-authentic 3DS thumbnail fallback until real geometry has been
    imported and optimized for the DS GPU. Keep both camera paths identical. */
 static void draw_original_encounter_art(void) {
+    /* Encounter rewards stay hidden throughout cloud search. */
+    if(game.screen!=STATE_SPHERE)return;
     int art=-1;
     if(game.session_type==0 && game.session_species>=0 && game.session_species<26)
         art=S_ORIGINAL_POKEMON_FIRST+game.session_species;
@@ -555,7 +557,14 @@ static void render_search_bottom(void) {
     /* Original bottom-screen art only. D-pad aims and A fires; no new joystick. */
     /* Keep the original Back hotspot at the bottom right. */
 }
+/* Keep the complete target near the visible playfield. The clamped edge
+ * marker is a direction cue; firing still uses the true world position. */
+static int sandbox_edge(int value,int low,int high) {
+    return value<low ? low : (value>high ? high : value);
+}
 static void draw_floating_dream_orbs(void) {
+    /* Dream Orbs are released by shot clouds, never pre-shown in other states. */
+    if(game.screen!=STATE_RADAR)return;
     static const u16 colors[ORB_COLOR_COUNT]={
         0xC1DF, /* pink */ 0x83E0, /* green */
         0x829F, /* orange */ 0xFC00 /* blue */
@@ -565,7 +574,12 @@ static void draw_floating_dream_orbs(void) {
         if(!orb->alive)continue;
         int sx=orb->x-game.aim_x+128;
         int sy=orb->y-game.aim_y+96;
-        if(sx<7 || sx>=249 || sy<7 || sy>=185)continue;
+        int edge=(sx<7 || sx>=249 || sy<7 || sy>=185);
+        if(edge) {
+            int ex=sandbox_edge(sx,7,248),ey=sandbox_edge(sy,7,184);
+            border(top,ex-3,ey-3,7,7,GOLD);
+            continue;
+        }
         OrbColor color=game_dream_orb_color(&game,i);
         if(color<0 || color>=ORB_COLOR_COUNT)color=ORB_PINK;
         rect(top,sx-4,sy-4,9,9,colors[color]);
@@ -594,6 +608,9 @@ static void render_ds_search_sandbox(int show_clouds) {
         if(!c->alive)continue;
         const int sx=c->x-game.aim_x+128;
         const int sy=c->y-game.aim_y+96;
+        if(sx < 16 || sx > SW-17 || sy < 16 || sy > SH-17)
+            border(top,sandbox_edge(sx,16,SW-17)-5,
+                   sandbox_edge(sy,16,SH-17)-5,11,11,GOLD);
         if(sx>=-32 && sx<SW && sy>=-32 && sy<SH)
             draw_sprite(top,c->kind ? S_CLOUD_PINK : S_CLOUD_WHITE,
                         sx-16,sy-16+dr_cloud_bob(game.save.frames_played,i));
@@ -1179,7 +1196,7 @@ static void update_optical_motion(void) {
         }
         // Extremely crude optical-flow estimate, not a gyro replacement.
         if(best<150000) {
-            game.aim_x+=bestx*3;game.aim_y+=besty*3;
+            game.aim_x+=bestx*6;game.aim_y+=besty*6;
             if(game.aim_x<6)game.aim_x=6;
             if(game.aim_x>250)game.aim_x=250;
             if(game.aim_y<6)game.aim_y=6;
@@ -1418,10 +1435,14 @@ static void handle_key(int keys,int down,touchPosition *touch) {
         int back_touch = (down & KEY_TOUCH) && touch->px>=188 && touch->py>=174;
         /* Hardware controls work in BOTH cloud search and Pokémon/item encounters.
            No stylus aiming or synthetic joystick overrides the original touch UI. */
-        if(keys&KEY_LEFT) game.aim_x-=3;
-        if(keys&KEY_RIGHT)game.aim_x+=3;
-        if(keys&KEY_UP)   game.aim_y-=3;
-        if(keys&KEY_DOWN) game.aim_y+=3;
+        /* DSi camera aiming replaces the D-pad while live motion tracking
+           is active. DS and camera-disabled DSi retain D-pad aiming. */
+        if(!(running_dsi && game.camera_active && game.camera_ok)) {
+            if(keys&KEY_LEFT) game.aim_x-=6;
+            if(keys&KEY_RIGHT)game.aim_x+=6;
+            if(keys&KEY_UP)   game.aim_y-=6;
+            if(keys&KEY_DOWN) game.aim_y+=6;
+        }
         if(game.aim_x<6)game.aim_x=6;
         if(game.aim_x>249)game.aim_x=249;
         if(game.aim_y<6)game.aim_y=6;
