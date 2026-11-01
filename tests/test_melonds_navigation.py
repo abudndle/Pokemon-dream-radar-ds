@@ -1,6 +1,11 @@
 """Validate heading recognition, especially wrong-screen and blank-frame failures."""
 from pathlib import Path
 import sys
+import json
+import struct
+import subprocess
+import tempfile
+import zlib
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 from verify_melonds_navigation import (check_heading, font_rows, read_radar_counters,
                                        compare_radar_counters, compare_orb_counters,
@@ -179,6 +184,42 @@ assert read_capture_reward(results_reward_frame("pokemon", "Munna"),
 assert read_capture_reward(results_reward_frame("item", "Rare Candy"),
                            width, height, font) == {
                                "reward_kind": "item", "reward_name": "Rare Candy"}
+
+# Exercise the actual command-line entry point, not just imported helpers.
+# A missing argparse flag must fail CI before the emulator smoke test boots.
+def write_png(path, raw):
+    def chunk(kind, data):
+        return (struct.pack(">I", len(data)) + kind + data +
+                struct.pack(">I", zlib.crc32(kind + data) & 0xffffffff))
+    rows = b"".join(
+        b"\\x00" + bytes(raw[y * width * 3:(y + 1) * width * 3])
+        for y in range(height))
+    header = struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0)
+    path.write_bytes(b"\\x89PNG\\r\\n\\x1a\\n" +
+                     chunk(b"IHDR", header) +
+                     chunk(b"IDAT", zlib.compress(rows)) +
+                     chunk(b"IEND", b""))
+
+with tempfile.TemporaryDirectory() as tmp:
+    png = Path(tmp) / "live.png"
+    command = [sys.executable, str(Path(__file__).resolve().parents[1] /
+                                   "tools" / "verify_melonds_navigation.py"), tmp]
+    write_png(png, results_reward_frame("pokemon", "Munna"))
+    reward = subprocess.run(command + ["--observe-reward-screenshot", str(png)],
+                            capture_output=True, text=True, check=True)
+    assert json.loads(reward.stdout)["reward_name"] == "Munna"
+    results = subprocess.run(command + ["--observe-results-screenshot", str(png)],
+                             capture_output=True, text=True, check=True)
+    assert json.loads(results.stdout)["state"] == "results"
+    write_png(png, meter)
+    progress_cli = subprocess.run(command + ["--observe-capture-progress", str(png)],
+                                  capture_output=True, text=True, check=True)
+    assert json.loads(progress_cli.stdout)["filled_pixels"] == 88
+    rejected = subprocess.run(command + ["--observe-reward-screenshot", str(png)],
+                              capture_output=True, text=True)
+    assert rejected.returncode != 0
+print("PASS: PNG-backed capture/reward CLI flags are registered and functional")
+
 for invalid in (
     sphere_frame("SWIFT", "90"),
     results_reward_frame("pokemon", "NotASpecies"),
