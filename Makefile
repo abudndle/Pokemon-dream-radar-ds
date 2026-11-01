@@ -138,6 +138,9 @@ test-host:
 	./build/test_reference_layout
 	python3 tests/test_title_asset_geometry.py
 	python3 tests/test_original_ui_audit.py
+	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/dr_title_art.c tests/test_dr_title_art.c -o build/test_dr_title_art
+	./build/test_dr_title_art
+	python3 tests/test_stage_original_title_art.py
 	python3 tests/test_camera_quick_ui.py
 	python3 tests/test_pack_drt1.py
 	python3 tests/test_pack_dra1.py
