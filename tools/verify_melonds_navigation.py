@@ -327,8 +327,14 @@ def main():
     args = parser.parse_args()
     if sum(v is not None for v in
            (args.observe_search_screenshot, args.observe_reward_screenshot,
-            args.observe_capture_progress)) > 1:
+            args.observe_capture_progress, args.observe_results_screenshot)) > 1:
         parser.error("Select only one screenshot observation")
+    if args.observe_results_screenshot:
+        pixels, width, height = decode_native_capture(args.observe_results_screenshot)
+        check_heading(pixels, width, height, 10, 8, "RESEARCH RESULTS", font_rows())
+        print(json.dumps({"state": "results",
+                          "limitations": "A Results screen alone does not prove a capture."}))
+        return
     if args.observe_reward_screenshot:
         pixels, width, height = decode_native_capture(args.observe_reward_screenshot)
         print(json.dumps(read_capture_reward(pixels, width, height, font_rows())))
