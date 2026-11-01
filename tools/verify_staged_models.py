@@ -79,9 +79,8 @@ def verify(directory: Path, manifest: str, expected_format: str, extension: str)
                 reserved_bone = payload[bone_offset + index * 8 + 7]
                 if reserved_bone != 0 or (parent != 255 and parent >= index):
                     raise ValueError("Invalid DRK1 bone hierarchy: " + name)
-            if all(payload[bone_offset + index * 8 + 6] != 255
-                   for index in range(bones)):
-                raise ValueError("DRK1 skeleton has no root bone: " + name)
+            if payload[bone_offset + 6] != 255:
+                raise ValueError("DRK1 first bone must be a root: " + name)
             influence_offset = bone_offset + 8 * bones
             for index in range(vertices):
                 base = influence_offset + index * 3
