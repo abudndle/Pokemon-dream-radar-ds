@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-"""Camera quick-settings integration regression checks.
-
-Focus on the touch UI, camera lifecycle, and persistent image source:
-the extra bottom-left icon must never change the existing menu structure.
-"""
+"""Hidden title Select+X camera-settings integration regression checks."""
 from pathlib import Path
 import re
 
@@ -15,17 +11,13 @@ background=(root/'source/dr_background.c').read_text()
 
 assert 'STATE_CAMERA_QUICK } GameScreen;' in game
 assert 'case STATE_CAMERA_QUICK:' in main
-assert 'render_camera_quick_icon' in main
-assert 'if(camera_quick_icon_visible())render_camera_quick_icon();' in main
-assert 'dr_camera_quick_icon_hit(x,y)' in platform
-assert 'return game.screen==STATE_TITLE;' in main
+assert 'render_camera_quick_icon' not in main
+assert 'camera_quick_icon_visible' not in main
+assert 'dr_camera_quick_icon_hit' not in platform
 assert 'dr_camera_quick_open(game.screen==STATE_TITLE,' in main
-assert '(down&KEY_TOUCH)!=0,(down&KEY_X)!=0,' in main
-assert 'dr_camera_intro_start_shortcut' not in main
-assert 'dr_camera_intro_start_shortcut' not in platform
-assert '(down&KEY_SELECT) ||' not in main
-assert 'int dr_camera_quick_open(int is_title,int touched,int pressed_x,int x,int y)' in platform
-assert 'return is_title && (pressed_x || (touched && dr_camera_quick_icon_hit(x,y)));' in platform
+assert 'keys,down,KEY_SELECT,KEY_X)' in main
+assert 'int dr_camera_quick_open(int is_title,int held,int down,' in platform
+assert '(held&chord)==chord && (down&chord)!=0;' in platform
 assert 'dr_camera_quick_row_hit(touch->px,touch->py)' in main
 assert 'camera_quick_return=game.screen;' in main
 assert 'camera_quick_return_selection=game.selection;' in main
@@ -51,9 +43,6 @@ assert 'CUSTOM_BG_MARKER 0xB6' in main
 assert 'STATE_RADAR' in main and 'STATE_SPHERE' in main
 assert 'if(was_search && !is_search)camera_off();' in main
 assert 'if(!was_search && is_search)camera_on();' in main
-assert re.search(r'const int cx=20,cy=180;',main)
-assert 'rect(bottom,3,168,34,24,0x8421);' in main
-assert 'border(bottom,3,168,34,24,WHITE);' in main
 assert 'for(int row=0;row<2;row++)' in main
 assert 'IMPORT PLACEHOLDER BMP' in main
 assert '256x192 / 24-BIT BMP ONLY' in main
@@ -75,11 +64,10 @@ assert 'for(int i=0;i<dr_settings_count(running_dsi);i++)' in main
 
 # The filename and hitbox helpers are uniform between DS/DSi builds.
 assert 'DreamRadarDSi/placeholder.bmp' in platform
-assert 'return x>=3 && x<37 && y>=168 && y<192;' in platform
 assert 'if(y>=40 && y<68)return 0;' in platform
 assert 'if(y>=86 && y<114)return 1;' in platform
 assert 'int dr_settings_count(int dsi_mode){return dsi_mode?3:2;}' in platform
 assert 'return dsi_mode?selection+1:selection+2;' in platform
 assert 'if(action==DR_SETTING_CAMERA)' not in main
 assert 'if(action==DR_SETTING_PLACEHOLDER)' not in main
-print('PASS: title-only camera gear and shortcut, no gameplay/Options entry, BMP persistence')
+print('PASS: hidden Select+X camera options, no gear/gameplay shortcut, BMP persistence')
