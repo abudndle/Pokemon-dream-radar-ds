@@ -18,7 +18,8 @@ def verify(directory: Path, manifest: str, expected_format: str, extension: str)
     if manifest_path.is_symlink() or not manifest_path.is_file():
         raise ValueError("Missing or symlinked staged manifest: " + manifest)
     report = json.loads(manifest_path.read_text(encoding="utf-8"))
-    if report.get("format") != expected_format or not isinstance(report.get("models"), list):
+    if (not isinstance(report, dict) or report.get("format") != expected_format
+            or not isinstance(report.get("models"), list)):
         raise ValueError("Invalid staged asset manifest format")
     seen = set()
     for entry in report["models"]:
