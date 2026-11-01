@@ -138,10 +138,42 @@ static int radar_checkpoint_restore(const char *save_path,Game *g) {
                 if(!r.session.save.pending_items[i])return 0;
         } else return 0;
     }
-    if(r.session.screen==STATE_SPHERE &&
-       (r.session.capture_timeout<=0 ||
-        r.session.sphere_x<0 || r.session.sphere_x>255 ||
-        r.session.sphere_y<0 || r.session.sphere_y>191))return 0;
+    if(r.session.screen==STATE_SPHERE) {
+        if(r.session.capture_timeout<=0 ||
+           r.session.sphere_x<0 || r.session.sphere_x>255 ||
+           r.session.sphere_y<0 || r.session.sphere_y>191 ||
+           /* Captured targets move at no more than three pixels per tick.
+            * Reject corrupted velocities before their next movement. */
+           r.session.sphere_vx< -3 || r.session.sphere_vx>3 ||
+           r.session.sphere_vy< -3 || r.session.sphere_vy>3 ||
+           r.session.freeze_frames<0 || r.session.freeze_frames>300 ||
+           r.session.slow_frames<0 || r.session.slow_frames>300 ||
+           r.session.projectile_enabled<0 || r.session.projectile_enabled>1 ||
+           r.session.projectile_active<0 || r.session.projectile_active>1 ||
+           r.session.projectile_queued<0 || r.session.projectile_queued>2 ||
+           r.session.projectile_cooldown<0 || r.session.projectile_cooldown>160 ||
+           (r.session.projectile_active &&
+            (!r.session.projectile_enabled ||
+             r.session.projectile_x<0 || r.session.projectile_x>255 ||
+             r.session.projectile_y<0 || r.session.projectile_y>191 ||
+             r.session.projectile_vx< -3 || r.session.projectile_vx>3 ||
+             r.session.projectile_vy< -3 || r.session.projectile_vy>3 ||
+             r.session.projectile_lifetime<=0 ||
+             r.session.projectile_lifetime>90)))return 0;
+        for(int i=0;i<MAX_EXTRA_PROJECTILES;i++) {
+            const ExtraProjectile *ball=&r.session.projectile_extra[i];
+            if(ball->active!=0 && ball->active!=1)return 0;
+            /* These use signed position updates on every sphere tick.
+             * A checksum alone cannot make impossible velocity safe. */
+            if(ball->active &&
+               (!r.session.projectile_enabled ||
+                ball->x<0 || ball->x>255 ||
+                ball->y<0 || ball->y>191 ||
+                ball->vx< -3 || ball->vx>3 ||
+                ball->vy< -3 || ball->vy>3 ||
+                ball->ttl<=0 || ball->ttl>90))return 0;
+        }
+    }
     for(int i=0;i<MAX_CLOUDS;i++) {
         const Cloud *cloud=&r.session.clouds[i];
         if(cloud->alive!=0 && cloud->alive!=1)return 0;
