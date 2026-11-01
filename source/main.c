@@ -1502,8 +1502,8 @@ static void handle_key(int keys,int down,touchPosition *touch) {
     }
     if(game.screen==STATE_RADAR || game.screen==STATE_SPHERE){
         int back_touch = (down & KEY_TOUCH) && touch->px>=188 && touch->py>=174;
-        /* Hardware controls work in BOTH cloud search and Pokémon/item encounters.
-           No stylus aiming or synthetic joystick overrides the original touch UI. */
+        /* DS fallback directional aiming applies in both search and encounters.
+           Original camera/touch shooting controls still require parity work. */
         /* DSi camera aiming replaces the D-pad while live motion tracking
            is active. DS and camera-disabled DSi retain D-pad aiming. */
         if(!(running_dsi && game.camera_active && game.camera_ok)) {
