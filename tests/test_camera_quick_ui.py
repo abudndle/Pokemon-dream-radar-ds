@@ -83,3 +83,15 @@ assert 'return dsi_mode?selection+1:selection+2;' in platform
 assert 'if(action==DR_SETTING_CAMERA)' not in main
 assert 'if(action==DR_SETTING_PLACEHOLDER)' not in main
 print('PASS: title-only camera gear and shortcut, no gameplay/Options entry, BMP persistence')
+
+# Milestone 23: the bottom-screen title is the sole deliberately recreated UI.
+# Keep its live DS menu, extracted pane hitboxes and existing title background;
+# original 3DS asset/layout integration must target every other screen.
+title=main.split('case STATE_TITLE: {',1)[1].split('case STATE_',1)[0]
+assert 'load_bg("title_menu_bottom.raw",bottom,0x8424);' in title
+assert 'const char *opts[]={"Start","Send Research Data","Credits","Records"};' in title
+assert 'const DrPaneRect *r=&dr_title_panes[i];' in title
+assert 'render_camera_quick_icon' in main
+assert 'load_bg("title_original_top.raw",top,0x8824);' in title
+assert 'load_bg("menu_top.raw",top,0x8824);' in main
+print('PASS: recreated bottom title preserved; original assets remain available for other screens')
