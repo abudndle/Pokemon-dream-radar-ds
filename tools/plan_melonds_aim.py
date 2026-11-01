@@ -112,6 +112,8 @@ def plan_orb(pixels, width, height):
             "horizontal_seconds": round(min(0.5, abs(dx) / 360), 3),
             "vertical_seconds": round(min(0.5, abs(dy) / 360), 3),
             "candidate_orbs": len(targets),
+            "reticle_distance_squared": dx * dx + dy * dy,
+            "within_safe_fire_radius": dx * dx + dy * dy <= 8 * 8,
             "limitations": "Approximate screenshot aim; Orb collection must be confirmed by counters."}
 
 
