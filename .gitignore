@@ -1,0 +1,4 @@
+# Keep the owner's locally staged proprietary BCLAN animation keys private.
+source/private_title_clpa.h
+# Local output from private source audits and ROM conversions.
+build/
