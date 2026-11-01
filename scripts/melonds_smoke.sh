@@ -247,11 +247,75 @@ for attempt in 1 2; do
     break
   fi
 done
-press_ds_key x
-snapshot 06-results
+# A sphere screenshot proves only an encounter. Exercise real A-button firing
+# during a bounded directional sweep, then inspect each actual frame for the
+# capture meter and for a catalog-backed Results reward. The sweep is a
+# fallback, not an assertion of a capture; the target may move or evade it.
+capture_last=""
+if [[ -f "$out/05-sphere-encounter.png" ]]; then
+  echo "INFO: exercising bounded live sphere shooting; reward not yet verified" | tee -a "$out/runtime.log"
+  xdotool windowfocus "$window"
+  xdotool keydown --clearmodifiers z
+  for step in $(seq 1 12); do
+    case "$step" in
+      1)  direction=Right; seconds=0.40 ;;
+      2)  direction=Up;    seconds=0.17 ;;
+      3)  direction=Left;  seconds=0.70 ;;
+      4)  direction=Down;  seconds=0.14 ;;
+      5)  direction=Right; seconds=0.70 ;;
+      6)  direction=Down;  seconds=0.14 ;;
+      7)  direction=Left;  seconds=0.70 ;;
+      8)  direction=Down;  seconds=0.14 ;;
+      9)  direction=Right; seconds=0.70 ;;
+      10) direction=Up;    seconds=0.20 ;;
+      11) direction=Left;  seconds=0.70 ;;
+      12) direction=Down;  seconds=0.18 ;;
+    esac
+    aim_ds_key "$direction" "$seconds"
+    capture_last="$out/05-sphere-sweep-$step.png"
+    snapshot "05-sphere-sweep-$step"
+    if python3 tools/verify_melonds_navigation.py "$out" \
+        --observe-reward-screenshot "$capture_last" \
+        >"$out/sphere-reward.json" 2>/dev/null; then
+      cp "$capture_last" "$out/05-capture-reward.png"
+      echo "PASS: real emulator Results screen contains a catalog-backed capture reward" | tee -a "$out/runtime.log"
+      break
+    fi
+    if python3 tools/verify_melonds_navigation.py "$out" \
+        --observe-capture-progress "$capture_last" \
+        >"$out/sphere-progress-$step.json" 2>/dev/null; then
+      echo "INFO: sphere sweep $step meter observed" >>"$out/runtime.log"
+    elif python3 tools/verify_melonds_navigation.py "$out" --stage 06-results \
+        >/dev/null 2>&1; then
+      echo "INFO: encounter ended without a verified capture reward" | tee -a "$out/runtime.log"
+      break
+    else
+      echo "WARNING: unrecognized sphere/reward frame at step $step" | tee -a "$out/runtime.log"
+      break
+    fi
+  done
+  xdotool keyup z
+fi
+if [[ -f "$out/05-capture-reward.png" ]]; then
+  cp "$out/05-capture-reward.png" "$out/06-results.png"
+elif [[ -n "$capture_last" ]] &&
+     python3 tools/verify_melonds_navigation.py "$out" \
+       --observe-reward-screenshot "$capture_last" >/dev/null 2>&1; then
+  cp "$capture_last" "$out/06-results.png"
+elif [[ -n "$capture_last" ]] &&
+     python3 tools/verify_melonds_navigation.py "$out" --stage 06-results >/dev/null 2>&1; then
+  cp "$capture_last" "$out/06-results.png"
+else
+  press_ds_key x
+  snapshot 06-results
+fi
 press_ds_key x
 snapshot 07-lab-return
 python3 tools/verify_melonds_navigation.py "$out" --touch-verified "$touch_verified"
+if [[ "${REQUIRE_CAPTURE:-0}" == 1 && ! -f "$out/05-capture-reward.png" ]]; then
+  echo "Strict capture acceptance failed: no verified reward screenshot" >&2
+  exit 1
+fi
 if [[ "${REQUIRE_TOUCH:-0}" == 1 && "$touch_verified" != 1 ]]; then
   echo "Strict stylus check failed; keyboard navigation passed independently" >&2
   exit 1
