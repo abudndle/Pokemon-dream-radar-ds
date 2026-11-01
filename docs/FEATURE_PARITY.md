@@ -35,7 +35,7 @@ The source-of-truth checklist is [`feature_parity.json`](feature_parity.json), c
 | Original stereoscopic 3DS rendering | hardware limited | Nintendo DS/DSi has no autostereoscopic 3D display; 2D adaptation only. |
 | Original BCLIM graphics mapped to DS assets | partial | Conversion and SD override exist; wholesale original UI integration is incomplete. |
 | Original BCLYT screen positions and pane hierarchy | investigation only | 135 original layouts inventoried; runtime compositor retargeting not integrated. |
-| Original BCLAN animation keyframes and playback | investigation only | 417 CLAN files in the validated private 177-DARC set are 2D UI/pane animations, not Pokémon skeletons; clip timing identified, runtime pane-keyframe playback pending. |
+| Original BCLAN animation keyframes and playback | investigation only | Native CLPA transform curves decode and sample from all 417 private clips. Other tag types, composition, looping policy and DS runtime playback remain unfinished; these are UI curves, not skeletons. |
 | Original Pokémon 3D geometry and animations | partial | Converted DRM1/DRA1/DRB1/DRK1 and strict glTF retargeting exist. Original NCCH ExeFS contains 14 verified CGFX Home Menu banner assets and a separate 16-file logo DARC; these are not confirmed Pokémon encounter rigs. Native gameplay model/skeletal animation decoding remains unverified. |
 | Original music, sound effects and timing | unimplemented | No verified original 3DS audio conversion and playback across scenes. |
 | Real Black 2/White 2 Nintendo 3DS Link transfers | unimplemented | Only a safe text archive is exported; no retail transfer, save injection or handshake. |

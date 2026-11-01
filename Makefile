@@ -159,6 +159,7 @@ test-host:
 	python3 tests/test_original_ncch_exefs_report.py
 	python3 tests/test_bclim_spr_converter.py
 	python3 tests/test_original_ui_layouts.py
+	python3 tests/test_bclan_panes.py
 	python3 tests/test_feature_parity.py
 	python3 tests/test_original_pane_geometry.py
 	python3 tests/test_pane_retarget.py

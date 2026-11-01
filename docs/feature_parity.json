@@ -296,11 +296,14 @@
       "id": "bclan_keyframes",
       "feature": "Original BCLAN animation keyframes and playback",
       "status": "investigation_only",
-      "gap": "417 CLAN files in the validated private 177-DARC set are 2D UI/pane animations, not Pok\u00e9mon skeletons; clip timing identified, runtime pane-keyframe playback pending.",
+      "gap": "Native pane-target CLPA translation/rotation/scale/size curves now decode and sample Hermite/step keys from all 417 private CLAN clips (4871 transform tracks). Equal-time keys are preserved. Material/color/other tags, looping policy, parent composition, DS pane rendering and runtime playback remain unimplemented; these are 2D UI curves, not Pokemon skeletal animation.",
       "evidence": [
         "tools/map_original_ui_layouts.py",
         "tools/audit_darc_asset_kinds.py",
-        "docs/ORIGINAL_DARC_ASSET_KIND_AUDIT.json"
+        "docs/ORIGINAL_DARC_ASSET_KIND_AUDIT.json",
+        "tools/decode_bclan_panes.py",
+        "tests/test_bclan_panes.py",
+        "docs/BCLAN_PANE_CURVES.md"
       ]
     },
     {
