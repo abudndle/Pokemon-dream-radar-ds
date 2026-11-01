@@ -6,6 +6,25 @@
 #include <sys/stat.h>
 #include <errno.h>
 
+int dr_camera_quick_icon_hit(int x,int y){
+    return x>=3 && x<37 && y>=168 && y<192;
+}
+int dr_camera_quick_row_hit(int x,int y){
+    if(x<12 || x>=244)return -1;
+    if(y>=40 && y<68)return 0;
+    if(y>=86 && y<114)return 1;
+    return -1;
+}
+int dr_placeholder_path(char *out,size_t cap,const char *storage_root){
+    if(!out || !cap || !storage_root || !*storage_root)return 0;
+    /* The UI intentionally offers no arbitrary path browsing: only this
+       one user-owned filename can replace the camera-free background. */
+    static const char suffix[]="DreamRadarDSi/placeholder.bmp";
+    size_t n=strlen(storage_root);
+    int length=snprintf(out,cap,"%s%s%s",storage_root,
+                        storage_root[n-1]=='/'?"":"/",suffix);
+    return length>0 && (size_t)length<cap;
+}
 int dr_lab_count(int dsi_mode){return dsi_mode?7:6;}
 int dr_lab_action(int dsi_mode,int selection){
     if(selection<0 || selection>=dr_lab_count(dsi_mode))return -1;
