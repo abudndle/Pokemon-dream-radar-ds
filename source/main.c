@@ -23,6 +23,7 @@
 #include "story_dialogue.h"
 #include "reference_layout.h"
 #include "dr_ui_scene.h"
+#include "dr_title_art.h"
 #include "cloud_animation.h"
 #include "burnet_tips_generated.h"
 #include "dr_mesh.h"
@@ -1852,6 +1853,15 @@ running_dsi=isDSiMode();
         }
     }
     if(have_storage)save_backend_init(&save_backend,storage_root,argc>0?argv[0]:NULL);
+    /* Stage a matched pair of private original 3DS title backdrops only
+       after storage mounting. Never mix one original screen with a
+       recreated fallback; the strict loader is all-or-nothing. */
+    if(have_storage && storage_root &&
+       dr_title_art_load(storage_root,bg_cache[7],bg_cache[5],PIXELS)){
+        bg_valid[7]=1;
+        bg_valid[5]=1;
+    }
+
     for(int i=0;i<68;i++)load_sprite(i);
     /* Geometry-only title scene is generated during the build. Private
        user-staged original CLPA animations override it from SD/FAT. */
