@@ -55,6 +55,19 @@ int main(void) {
             for(int xx=rx;xx<rx+rw;xx++)
                 assert(dr_transfer_slot_at(xx,yy)==i);
     }
+    /* Separate eight-cell legendary row never overlaps the archive footer. */
+    for(int i=0;i<MAX_LEGENDARY;i++) {
+        int x,y,w,h;
+        dr_legendary_slot_rect(i,&x,&y,&w,&h);
+        assert(x==8+30*i && y==119 && w==28 && h==31);
+        assert(dr_legendary_slot_at(x,y)==i);
+        assert(dr_legendary_slot_at(x+w-1,y+h-1)==i);
+        assert(dr_legendary_slot_at(x+w,y)==-1);
+    }
+    assert(dr_legendary_slot_at(8,118)==-1);
+    assert(dr_legendary_slot_at(8,150)==-1);
+    assert(dr_legendary_slot_at(255,149)==-1);
+    assert(dr_legendary_slot_at(-1,119)==-1);
     /* Exhaustively preserve both shop and lab row selection, including gaps. */
     for(int y=0;y<192;y++)for(int x=0;x<256;x++) {
         int expected_shop=-1;
