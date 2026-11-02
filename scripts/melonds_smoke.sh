@@ -87,9 +87,6 @@ else
   # settling period to distinguish a delayed transition from a missed tap.
   sleep 2
   snapshot 02-title-touch-delayed
-  if python3 tools/verify_melonds_navigation.py "$out" --stage 02-intro --screenshot "$out/02-title-touch-delayed.png" >/dev/null 2>&1; then
-    echo "INFO: delayed stylus transition observed; retaining diagnostic frame" | tee -a "$out/runtime.log"
-  fi
   press_ds_key Return
   snapshot 02-intro
   python3 tools/verify_melonds_navigation.py "$out" --stage 02-intro
