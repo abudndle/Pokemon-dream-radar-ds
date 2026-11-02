@@ -148,7 +148,7 @@ jobs:
               dbus-run-session -- bash scripts/melonds_smoke.sh "$GITHUB_WORKSPACE/melonds-dldi/dream_radar.nds" melonds-restart-results
             python3 tools/verify_melonds_clean_restart.py \
               melonds-results melonds-restart-results \
-              melonds-dldi/saves/dream_radar.dreamradar.sav \
+              melonds-dldi/saves/dream_radar.dreamradar.sav --verify-pixels \
               > melonds-restart-results/clean-restart-report.txt
             cat melonds-restart-results/clean-restart-report.txt
           fi
