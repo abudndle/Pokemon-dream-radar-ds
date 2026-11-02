@@ -347,3 +347,33 @@ for invalid_balance in (True, -1, 4294967296, "2"):
     else:
         raise AssertionError("Invalid restarted Orb balance accepted")
 print("PASS: clean-restart Orb proof rejects same-process, missing-save and stale-balance evidence")
+
+
+# Exercise the exact restarted-emulator CLI used by the smoke harness.
+# The second process must not continue after an absent or invalid balance.
+restart_cli = (Path(__file__).resolve().parents[1] /
+               "tools" / "check_restored_orbs.py")
+with tempfile.TemporaryDirectory() as tmp:
+    observation = Path(tmp) / "restart-orbs.json"
+    for balance in (1, 2, 4294967295):
+        observation.write_text(json.dumps({"saved_orbs": balance}))
+        result = subprocess.run([sys.executable, str(restart_cli), str(observation)],
+                                capture_output=True, text=True)
+        assert result.returncode == 0, result.stderr
+        assert f"{balance} previously saved" in result.stdout
+    for invalid in (0, -1, 4294967296, True, "2", None):
+        observation.write_text(json.dumps({"saved_orbs": invalid}))
+        result = subprocess.run([sys.executable, str(restart_cli), str(observation)],
+                                capture_output=True, text=True)
+        assert result.returncode != 0, invalid
+    observation.write_text("{invalid json")
+    assert subprocess.run([sys.executable, str(restart_cli), str(observation)],
+                          capture_output=True).returncode != 0
+    observation.unlink()
+    assert subprocess.run([sys.executable, str(restart_cli), str(observation)],
+                          capture_output=True).returncode != 0
+smoke_source = (Path(__file__).resolve().parents[1] /
+                "scripts" / "melonds_smoke.sh").read_text()
+assert 'if [[ "${REQUIRE_PREEXISTING_ORB:-0}" == 1 ]]' in smoke_source
+assert 'python3 tools/check_restored_orbs.py "$out/orb-balance-before.json"' in smoke_source
+print("PASS: second-process Orb CLI rejects absent, zero and malformed saved balances")
