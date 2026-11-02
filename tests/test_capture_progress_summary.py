@@ -48,7 +48,7 @@ with tempfile.TemporaryDirectory() as tmp:
                 return_value={"reward_kind": "item", "reward_name": "Test Item"}) as read_reward):
         assert summarize(root)["reward_screen_observed"]
         assert not summarize(root)["reward_persisted_after_restart"]
-        read_reward.assert_called_once()
+        assert read_reward.call_count == 2  # Two independent summaries read pixels
         # The displayed reward must match the sidecar exactly; no swapping
         # Pokémon for items or substituting a different catalog entry.
         read_reward.return_value = {"reward_kind": "pokemon", "reward_name": "Test Item"}
