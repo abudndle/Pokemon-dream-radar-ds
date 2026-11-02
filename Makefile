@@ -204,6 +204,7 @@ test-host:
 	python3 tests/test_prefire_workflow_coverage.py
 	python3 tests/test_capture_progress_summary.py
 	python3 tests/test_sphere_motion_diagnostics.py
+	python3 tests/test_projectile_interference.py
 	python3 tests/test_capture_sweep_budget.py
 	python3 tests/test_capture_extension.py
 	python3 tests/test_melonds_reward_restart.py
