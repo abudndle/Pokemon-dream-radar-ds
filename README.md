@@ -1,3 +1,9 @@
+## Project build and asset documentation
+
+- [Build instructions](docs/BUILD.md)
+- [Original asset pipeline and private-resource policy](docs/ASSET_PIPELINE.md)
+- [Port completion status and remaining fidelity gaps](PORT_COMPLETION_STATUS.md)
+
 ## Camera-free placeholder image and bottom-left settings icon
 
 The **title screen only** shows a bottom-left gear icon (or press X on title) for a two-option camera menu on DS/DSi: toggle the DSi camera (unavailable on DS), or import a single 256x192 24-bit BMP from `sd:/DreamRadarDSi/placeholder.bmp` or `fat:/DreamRadarDSi/placeholder.bmp`. Imported images replace the camera-free radar background and persist in the homebrew save. Press Select inside this menu to reset and B to return to title; the camera menu never opens during gameplay or intro, and ordinary Options has no camera row. See [camera settings/import guide](docs/CAMERA_QUICK_SETTINGS.md). This DS-specific addition is not a claim of original 3DS feature parity.
