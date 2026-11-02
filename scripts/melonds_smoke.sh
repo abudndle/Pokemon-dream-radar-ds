@@ -430,7 +430,7 @@ from verify_melonds_navigation import compare_shop_orb_balances
 before = json.loads(Path(sys.argv[1]).read_text())
 after = json.loads(Path(sys.argv[2]).read_text())
 result = compare_shop_orb_balances(before, after)
-Path(sys.argv[3]).write_text(json.dumps(result, indent=2) + "\\n")
+Path(sys.argv[3]).write_text(json.dumps(result, indent=2) + "\n")
 print("PASS: persistent Orb balance increased" if result["orb_collection_observed"]
       else "INFO: no persistent Orb balance gain observed")
 PY
