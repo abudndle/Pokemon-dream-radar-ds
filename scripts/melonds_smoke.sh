@@ -87,9 +87,19 @@ else
   # settling period to distinguish a delayed transition from a missed tap.
   sleep 2
   snapshot 02-title-touch-delayed
-  press_ds_key Return
-  snapshot 02-intro
-  python3 tools/verify_melonds_navigation.py "$out" --stage 02-intro
+  # A slow transition can complete after the first screenshot. Accept only
+  # independently verified intro pixels; do not mask a successful stylus tap
+  # by sending a second Start input that could advance the scene again.
+  if cp "$out/02-title-touch-delayed.png" "$out/02-intro.png" &&
+     python3 tools/verify_melonds_navigation.py "$out" --stage 02-intro >>"$out/runtime.log" 2>&1; then
+    touch_verified=1
+    echo "PASS: delayed title stylus input entered the intro" | tee -a "$out/runtime.log"
+  else
+    rm -f "$out/02-intro.png"
+    press_ds_key Return
+    snapshot 02-intro
+    python3 tools/verify_melonds_navigation.py "$out" --stage 02-intro
+  fi
 fi
 # Explicit workflow mappings: DS B=X, DS A=Z. Each action is checked against
 # the real screen heading so animation alone cannot satisfy the smoke test.
