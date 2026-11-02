@@ -57,9 +57,12 @@ def verify_reward_restart(first_dir, restart_dir, save_file):
         raise ValueError("Same emulator process cannot prove restart")
     for label, log, pid in (("first", first_log, first_pid),
                             ("restart", second_log, second_pid)):
-        if (f"Emulator launcher PID {pid} force-killed" in log
-                or f"Emulator launcher PID {pid} still running" in log
-                or f"Emulator launcher PID {pid} terminated" not in log):
+        # Require an exact, standalone clean-exit record. A substring such as
+        # "terminated unexpectedly" must not count as a clean shutdown.
+        termination = rf"^Emulator launcher PID {pid} terminated$"
+        if (re.search(rf"^Emulator launcher PID {pid} (?:force-killed|still running)$",
+                      log, re.M)
+                or len(re.findall(termination, log, re.M)) != 1):
             raise ValueError(f"{label} emulator did not terminate cleanly")
     first_sidecar = _json(first_dir / "sphere-reward.json")
     preserved_sidecar = _json(first_dir / "reward-preserved-before-exit.json")
