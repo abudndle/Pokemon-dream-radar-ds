@@ -7,11 +7,12 @@ import subprocess
 import tempfile
 import zlib
 import shutil
+from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 from verify_melonds_navigation import (check_heading, font_rows, read_radar_counters,
                                        compare_radar_counters, compare_orb_counters,
                                        read_sphere_state, observe_search_state,
-                                       read_capture_reward, read_capture_progress,
+                                       read_capture_reward, read_capture_progress, decode_native_capture,
                                        read_shop_orb_balance, compare_shop_orb_balances,
                                        compare_restart_shop_orb_balances)
 
@@ -215,7 +216,52 @@ if shutil.which("identify") and shutil.which("convert"):
         png = Path(tmp) / "live.png"
         command = [sys.executable, str(Path(__file__).resolve().parents[1] /
                                        "tools" / "verify_melonds_navigation.py"), tmp]
-        write_png(png, results_reward_frame("pokemon", "Munna"))
+        source_pixels = results_reward_frame("pokemon", "Munna")
+        write_png(png, source_pixels)
+        # The decoder must invoke only one external process, convert.
+        # This is a latency regression guard, not an emulator hit claim.
+        original_run = subprocess.run
+        with patch("verify_melonds_navigation.subprocess.run",
+                   wraps=original_run) as calls:
+            decoded, decoded_width, decoded_height = decode_native_capture(png)
+        assert len(calls.call_args_list) == 1, calls.call_args_list
+        assert calls.call_args_list[0].args[0][0] == "convert"
+        assert (decoded_width, decoded_height) == (256, 403)
+        assert decoded == bytes(source_pixels)
+        with patch("verify_melonds_navigation.subprocess.run") as broken:
+            broken.return_value.stdout = b"short"
+            try:
+                decode_native_capture(png)
+            except ValueError as exc:
+                assert "RGB length mismatch" in str(exc)
+            else:
+                raise AssertionError("Truncated decoded RGB frame accepted")
+        # A valid IHDR alone does not establish valid RGB pixels.
+        good_png = png.read_bytes()
+        png.write_bytes(good_png[:33])
+        try:
+            decode_native_capture(png)
+        except (ValueError, subprocess.CalledProcessError):
+            pass
+        else:
+            raise AssertionError("Truncated PNG IHDR was accepted as pixels")
+        png.write_bytes(b"not-a-png")
+        try:
+            decode_native_capture(png)
+        except ValueError as exc:
+            assert "PNG IHDR" in str(exc)
+        else:
+            raise AssertionError("Non-PNG frame accepted")
+        bad_size = bytearray(good_png)
+        bad_size[16:20] = struct.pack(">I", 512)
+        png.write_bytes(bad_size)
+        try:
+            decode_native_capture(png)
+        except ValueError as exc:
+            assert "Unscaled DS capture" in str(exc)
+        else:
+            raise AssertionError("Wrong-width frame accepted")
+        png.write_bytes(good_png)
         reward = subprocess.run(command + ["--observe-reward-screenshot", str(png)],
                                 capture_output=True, text=True)
         assert reward.returncode == 0, reward.stderr
@@ -232,7 +278,29 @@ if shutil.which("identify") and shutil.which("convert"):
         rejected = subprocess.run(command + ["--observe-reward-screenshot", str(png)],
                                   capture_output=True, text=True)
         assert rejected.returncode != 0
-    print("PASS: PNG-backed capture/reward CLI flags are registered and functional")
+        # The same single-convert decoder is used by the cloud/Orb/sphere
+        # planner CLI. Test a real PNG-backed temporal Orb pair, not only
+        # in-memory synthetic motion functions.
+        def orb_pixels(cx):
+            frame = bytearray(width * height * 3)
+            for yy in range(93 + OFFSET, 100 + OFFSET):
+                for xx in range(cx - 3, cx + 4):
+                    at = (yy * width + xx) * 3
+                    frame[at:at + 3] = bytes((251, 113, 130))
+            return frame
+        old_png = Path(tmp) / "orb-before.png"
+        write_png(old_png, orb_pixels(100))
+        write_png(png, orb_pixels(110))
+        planner = [sys.executable, str(Path(__file__).resolve().parents[1] /
+                                      "tools" / "plan_melonds_aim.py")]
+        tracked = subprocess.run(planner + [str(png), "--target", "orb",
+                                           "--previous-screenshot", str(old_png)],
+                                 capture_output=True, text=True)
+        assert tracked.returncode == 0, tracked.stderr
+        motion = json.loads(tracked.stdout)
+        assert motion["observed_target_screen"] == {"x": 110, "y": 96}
+        assert motion["motion_prediction"] == "bounded"
+    print("PASS: PNG-backed capture/reward CLI and temporal Orb planner decode real PNGs")
 else:
     print("SKIP: PNG CLI integration requires ImageMagick; tested after installation in melonDS CI")
 

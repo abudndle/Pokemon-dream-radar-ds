@@ -7,7 +7,7 @@ not recognize original proprietary sprites or prove that firing hits a cloud.
 import argparse
 import json
 from pathlib import Path
-import subprocess
+from verify_melonds_navigation import decode_native_capture
 
 # Source-derived DS reticle center: main.c draws S_RETICLE at (112, 80)
 # on a 256x192 screen; the renderer places world-space targets at
@@ -611,27 +611,22 @@ def main():
     parser.add_argument("--previous-screenshot", type=Path,
                         help="Earlier stationary Orb frame or sphere frame for bounded motion lead")
     args = parser.parse_args()
-    size = subprocess.run(["identify", "-format", "%w %h", str(args.screenshot)],
-                          capture_output=True, text=True, check=True, timeout=12)
-    width, height = map(int, size.stdout.split())
-    raw = subprocess.run(["convert", str(args.screenshot), "-depth", "8", "rgb:-"],
-                         capture_output=True, check=True, timeout=12)
+    # Share the validated single-convert PNG decoder with the fresh prefire
+    # inspector. Two separate identify/convert pairs per temporal aim update
+    # previously wasted subprocess time while the sphere kept moving.
+    pixels, width, height = decode_native_capture(args.screenshot)
     planner = {"cloud": plan, "orb": plan_orb, "sphere": plan_sphere}[args.target]
     if args.previous_screenshot:
         if args.target not in ("orb", "sphere"):
             parser.error("--previous-screenshot is only valid with --target orb or sphere")
-        previous_size = subprocess.run(
-            ["identify", "-format", "%w %h", str(args.previous_screenshot)],
-            capture_output=True, text=True, check=True, timeout=12)
-        if tuple(map(int, previous_size.stdout.split())) != (width, height):
+        previous_pixels, previous_width, previous_height = decode_native_capture(
+            args.previous_screenshot)
+        if (previous_width, previous_height) != (width, height):
             raise ValueError("Aim frames have different dimensions")
-        previous_raw = subprocess.run(
-            ["convert", str(args.previous_screenshot), "-depth", "8", "rgb:-"],
-            capture_output=True, check=True, timeout=12)
         result = (plan_orb_motion if args.target == "orb" else plan_sphere_motion)(
-            previous_raw.stdout, raw.stdout, width, height)
+            previous_pixels, pixels, width, height)
     else:
-        result = planner(raw.stdout, width, height)
+        result = planner(pixels, width, height)
     print(json.dumps(result, indent=2))
 
 

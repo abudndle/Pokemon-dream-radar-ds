@@ -10,6 +10,7 @@ import json
 from pathlib import Path
 import re
 import subprocess
+import struct
 
 ROOT = Path(__file__).resolve().parents[1]
 STAGES = {
@@ -325,13 +326,25 @@ def compare_orb_counters(before, after):
 
 
 def decode_native_capture(path):
-    size = subprocess.run(["identify", "-format", "%w %h", str(path)],
-                          capture_output=True, text=True, check=True, timeout=12)
-    width, height = map(int, size.stdout.split())
+    # Native PNG IHDR already stores the dimensions in its first 24 bytes.
+    # Read them directly instead of spawning ImageMagick 'identify' before
+    # every 'convert' call. This removes one subprocess from every live
+    # screenshot-to-A-button path without trusting PNG sidecars or file names.
+    path = Path(path)
+    with path.open("rb") as stream:
+        header = stream.read(33)
+    if (len(header) != 33 or header[:8] != b"\x89PNG\r\n\x1a\n"
+            or header[8:16] != b"\x00\x00\x00\x0dIHDR"):
+        raise ValueError(f"Expected native PNG IHDR: {path.name}")
+    width, height = struct.unpack(">II", header[16:24])
     if width != 256 or not 384 <= height <= 480:
         raise ValueError(f"Unscaled DS capture required: {path.name}")
+    # The PNG decoder still validates compressed image contents; the IHDR
+    # shortcut is only geometry discovery, never evidence of a valid frame.
     raw = subprocess.run(["convert", str(path), "-depth", "8", "rgb:-"],
                          capture_output=True, check=True, timeout=12)
+    if len(raw.stdout) != width * height * 3:
+        raise ValueError(f"Decoded DS RGB length mismatch: {path.name}")
     return raw.stdout, width, height
 
 

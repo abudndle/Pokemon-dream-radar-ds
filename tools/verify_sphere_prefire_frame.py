@@ -87,8 +87,14 @@ def main():
     try:
         pixels, width, height = decode_native_capture(args.screenshot)
         result = inspect_frame(pixels, width, height, font_rows())
-        status = write_evidence(paths, result)
+        status = result[0]
+        # The unique-target gate has already been evaluated from this fresh
+        # decoded frame. Pulse immediately: serializing three JSON sidecars
+        # before keydown previously added avoidable moving-target latency.
+        # Evidence is written only after the bounded pulse has released A;
+        # any pulse/write failure is still a hard error, never a claimed hit.
         fired = pulse_if_aligned(status) if args.fire_aligned else False
+        write_evidence(paths, result)
     except (OSError, ValueError, subprocess.CalledProcessError,
             subprocess.TimeoutExpired) as exc:
         # A failed key pulse must never leave an authorized gate sidecar.

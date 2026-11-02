@@ -20,7 +20,8 @@ def decision(x, y=96):
 
 assert not should_retry(decision(128))
 assert not should_retry(decision(141))
-assert should_retry(decision(142))
+assert not should_retry(decision(142))
+assert should_retry(decision(144))
 assert should_retry(decision(154))
 assert not should_retry(decision(155))
 assert not should_retry(decision(200))
@@ -41,7 +42,7 @@ for bad in (None, {}, {"observed_target_screen": {"x": True, "y": 96}},
 with tempfile.TemporaryDirectory() as tmp:
     path = Path(tmp) / "gate.json"
     cmd = [sys.executable, str(ROOT / "tools/check_stationary_retry.py"), str(path)]
-    for evidence, status in ((decision(142), 0), (decision(155), 3),
+    for evidence, status in ((decision(144), 0), (decision(155), 3),
                              (decision(128), 3), ({}, 2)):
         path.write_text(json.dumps(evidence))
         run = subprocess.run(cmd, capture_output=True, text=True)

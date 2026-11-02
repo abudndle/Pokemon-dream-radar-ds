@@ -14,6 +14,8 @@ from sphere_prefire_gate import evaluate as evaluate_prefire
 with tempfile.TemporaryDirectory() as tmp:
     root = Path(tmp)
     assert summarize(root)["samples"] == 0
+    assert summarize(root)["paired_positive_pulse_fraction"] is None
+    assert summarize(root)["postfire_meter_effectiveness_by_class"] == {}
     assert summarize(root)["max_meter_observation"] is None
     assert summarize(root)["prefire_gate_evaluations"] == 0
     def observation(name, value, klass="swift"):
@@ -147,6 +149,25 @@ with tempfile.TemporaryDirectory() as tmp:
     assert result["unpaired_fire_pulses"] == 1
     assert result["positive_postfire_meter_deltas"] == 1
     assert result["max_postfire_meter_gain_pixels"] == 6
+    assert result["negative_postfire_meter_deltas"] == 1
+    assert result["zero_postfire_meter_deltas"] == 0
+    assert result["paired_positive_pulse_fraction"] == 0.5
+    assert result["postfire_meter_effectiveness_by_class"] == {
+        "erratic": {"reported_pulses": 3, "paired_meter_observations": 2,
+                    "positive_meter_deltas": 1, "negative_meter_deltas": 1,
+                    "unpaired_pulses": 1}}
+    # A different encounter class in the postfire screenshot cannot be
+    # correlated with the prefire pulse, even if its meter is larger.
+    (root / "sphere-progress-1.json").write_text(json.dumps({
+        "encounter": {"capture_class": "swift"},
+        "filled_pixels": 14, "bar_width": 177}))
+    try:
+        summarize(root)
+    except ValueError as exc:
+        assert "Cross-encounter" in str(exc)
+    else:
+        raise AssertionError("Cross-encounter pulse gain was accepted")
+    meter("sphere-progress-1.json", 14)
     assert result["postfire_meter_delta_samples"] == [
         {"step": 1, "prefire_meter": 8, "postfire_meter": 14, "meter_delta": 6},
         {"step": 2, "prefire_meter": 12, "postfire_meter": None, "meter_delta": None},

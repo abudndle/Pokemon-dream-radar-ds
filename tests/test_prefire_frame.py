@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'tools'))
-from verify_sphere_prefire_frame import inspect_frame, write_evidence, pulse_if_aligned, EXIT_CODES
+from verify_sphere_prefire_frame import inspect_frame, write_evidence, pulse_if_aligned, main, EXIT_CODES
 
 pixels = b'synthetic-rgb'
 progress = {'filled_pixels': 7, 'bar_width': 177}
@@ -98,6 +98,29 @@ with patch('verify_sphere_prefire_frame.subprocess.run',
         raise AssertionError('Failed keydown must not report a pulse')
     assert run.call_count == 2
     assert run.call_args_list[-1].args[0] == ['xdotool', 'keyup', 'z']
+
+# A fresh-frame authorization must pulse before writing JSON sidecars.
+# Mock every external operation; this checks ordering, not emulator hits.
+with tempfile.TemporaryDirectory() as tmp:
+    paths = [str(Path(tmp) / (name + ".json"))
+             for name in ("reward", "progress", "aim", "gate")]
+    args = ["verify_sphere_prefire_frame.py", str(Path(tmp) / "frame.png"),
+            "--reward", paths[0], "--progress", paths[1],
+            "--aim", paths[2], "--gate", paths[3], "--fire-aligned"]
+    events = []
+    with patch("sys.argv", args), \
+         patch("verify_sphere_prefire_frame.decode_native_capture",
+               return_value=(pixels, 256, 403)), \
+         patch("verify_sphere_prefire_frame.font_rows", return_value=[]), \
+         patch("verify_sphere_prefire_frame.inspect_frame",
+               side_effect=lambda *a: (events.append("inspect") or
+                                       ("aligned", None, progress, aim, {}))), \
+         patch("verify_sphere_prefire_frame.pulse_if_aligned",
+               side_effect=lambda status: (events.append("pulse") or True)), \
+         patch("verify_sphere_prefire_frame.write_evidence",
+               side_effect=lambda *a: (events.append("write") or "aligned")):
+        assert main() == 0
+    assert events == ["inspect", "pulse", "write"], events
 
 assert EXIT_CODES == {'aligned':0,'unaligned':10,'ambiguous':11,'not_encounter':12,'reward':20}
 print('PASS: one fresh frame classifies reward/encounter/target/gate without stale authorization')
