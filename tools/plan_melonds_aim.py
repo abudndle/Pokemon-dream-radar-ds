@@ -321,7 +321,13 @@ def locate_spheres(pixels, width, height):
     for y in range(offset + 35, offset + 184):
         for x in range(12, 244):
             r, g, b = pixel(x, y)
-            if r >= 245 and b >= 210 and r >= g + 10 and b >= g + 7:
+            # DRIFTING can be pink, while actual ERRATIC emulator frames
+            # contain a compact pastel violet sprite (e.g. 211,178,243).
+            # Require blue dominance over green to reject cyan/white clouds.
+            pastel_pink = r >= 245 and b >= 210 and r >= g + 10 and b >= g + 7
+            pastel_violet = (b >= 225 and b - g >= 28 and r >= 180
+                             and r - g >= 12 and g <= 225)
+            if pastel_pink or pastel_violet:
                 pink.add((x, y))
     while pink:
         stack = [pink.pop()]
