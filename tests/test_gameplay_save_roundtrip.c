@@ -81,6 +81,27 @@ int main(void) {
     assert(game_load(&loaded,path));
     assert(loaded.save.pending_count==0 && game_legendary_at(&loaded,0)==15);
     assert(game_item_slot_kind(&loaded,0)==7);
+    /* An interrupted save can leave a stale staging file behind. Do not
+       destroy the previously committed reward state or reuse that file. */
+    char staging[sizeof(path)+5];
+    assert(snprintf(staging,sizeof staging,"%s.tmp",path)>0);
+    FILE *stale=fopen(staging,"wb");
+    assert(stale);
+    assert(fputs("incomplete-save",stale)>=0);
+    assert(fclose(stale)==0);
+    Game attempted=g;
+    attempted.save.orbs=saved_orbs+23;
+    assert(!game_save(&attempted,path));
+    game_new(&loaded,1234);
+    assert(game_load(&loaded,path));
+    assert(loaded.save.orbs==saved_orbs);
+    assert(unlink(staging)==0);
+    /* Once stale media is explicitly cleared, a fresh commit can replace
+       the previous save and must survive an entirely new Game instance. */
+    assert(game_save(&attempted,path));
+    game_new(&loaded,5678);
+    assert(game_load(&loaded,path));
+    assert(loaded.save.orbs==saved_orbs+23);
     /* Corrupt the stored Pokémon ID without updating its checksum.
        A second load must reject it and leave a fresh game unchanged. */
     FILE *corrupt=fopen(path,"r+b");
