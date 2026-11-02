@@ -362,7 +362,10 @@ int save_backend_write(SaveBackend *backend,Game *g) {
        nested .tmp.tmp on FAT. Neither is committed: the primary/backup pair
        remains authoritative. Discard only these staging files before retry. */
     char nested_stage[TW_MAX_PATH];
-    snprintf(nested_stage,sizeof nested_stage,"%s.tmp",temp);
+    /* Length was checked for both suffixes above; avoid a compiler-
+       dependent truncation warning from formatting a bounded path. */
+    memcpy(nested_stage,temp,len+4);
+    memcpy(nested_stage+len+4,".tmp",sizeof(".tmp"));
     if(remove(nested_stage)!=0 && errno!=ENOENT)return 0;
     if(remove(temp)!=0 && errno!=ENOENT)return 0;
     if(!game_save(g,temp)) {remove(temp);return 0;}
