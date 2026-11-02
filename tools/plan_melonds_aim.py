@@ -350,7 +350,7 @@ def locate_spheres(pixels, width, height):
     # a compact connected silhouette and the same verified flat backdrop.
     # Scan down to y=183: the sphere can travel below the old y=168 cutoff.
     pink = set()
-    for y in range(offset + 35, offset + 184):
+    for y in range(offset + 35, offset + 192):
         for x in range(12, 244):
             r, g, b = pixel(x, y)
             if r >= 245 and b >= 210 and r >= g + 10 and b >= g + 7:
@@ -382,7 +382,7 @@ def locate_spheres(pixels, width, height):
     # 13px hostile projectiles must not become aim targets.
     violet = set()
     top_edge_violet = []
-    for y in range(offset, offset + 184):
+    for y in range(offset, offset + 192):
         for x in range(12, 244):
             r, g, b = pixel(x, y)
             if (180 <= r <= 245 and 135 <= g <= 215 and b >= 215
