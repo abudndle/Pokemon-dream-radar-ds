@@ -35,9 +35,11 @@ with tempfile.TemporaryDirectory() as tmp:
         write(root / f"sphere-prefire-{variant}inspection-{step}.json",
               {"status": "aligned", "fire_authorized": True,
                "fire_executed": True})
+        before = 2 if delta is not None and delta < 0 else 0
         report["postfire_meter_delta_samples"].append(
-            {"step": step, "prefire_meter": 0,
-             "postfire_meter": delta, "meter_delta": delta})
+            {"step": step, "prefire_meter": before,
+             "postfire_meter": before + delta if delta is not None else None,
+             "meter_delta": delta})
 
     fired(1, "", delta=3)
     fired(2, "corrected-", delta=0)
