@@ -48,11 +48,12 @@ on:
       - 'tests/test_restored_orbs_gate.py'
       - 'tools/check_restored_orbs.py'
       - 'source/font6.h'
-# Keep the running emulator evidence intact while replacing redundant pending
-# PR revisions. Full melonDS gameplay sweeps are expensive on hosted runners.
+# Superseded PR/push runs are expensive and should not block newer fixes.
+# Manual strict restart runs retain their own run-id group and are never
+# canceled by a new push, preserving acceptance evidence.
 concurrency:
-  group: melonds-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: false
+  group: melonds-${{ github.workflow }}-${{ github.event_name == 'workflow_dispatch' && github.run_id || github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}
 jobs:
   melonds-boot:
     runs-on: ubuntu-24.04
