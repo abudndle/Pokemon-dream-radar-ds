@@ -159,7 +159,11 @@ jobs:
           # Keep save-media diagnostics even when the randomized outing
           # gained no Orbs; filenames and sizes reveal whether DLDI wrote.
           echo "DLDI save inventory (relative paths and byte sizes):"
-          find melonds-dldi/saves -maxdepth 2 -type f -printf '%P %s bytes\n' || true
+          for directory in melonds-dldi/saves melonds-dldi/DreamRadarDSi; do
+            if [[ -d "$directory" ]]; then
+              find "$directory" -maxdepth 2 -type f -printf '%p %s bytes\n'
+            fi
+          done
           # Opportunistically verify a clean restart on ordinary CI runs that
           # actually gained Orbs. Strict manual mode still fails when no gain
           # exists; a no-gain smoke run is never reported as persistence proof.
