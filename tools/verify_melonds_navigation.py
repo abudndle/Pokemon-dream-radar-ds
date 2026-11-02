@@ -252,10 +252,12 @@ def compare_shop_orb_balances(before, after):
     return {"before": before, "after": after,
             "saved_orbs_gained": max(0, gained),
             "orb_collection_observed": gained > 0,
-            "status": ("persistent_orb_balance_increased" if gained > 0
-                       else "persistent_orb_balance_unchanged" if gained == 0
-                       else "persistent_orb_balance_decreased"),
-            "limitations": "Displayed saved balance change during this emulator route, not restart or retail parity."}
+            "balance_increased": gained > 0,
+            "persistence_verified": False,
+            "status": ("session_balance_increased_persistence_unverified" if gained > 0
+                       else "session_balance_unchanged" if gained == 0
+                       else "session_balance_decreased"),
+            "limitations": "A displayed balance increase within one emulator session does not prove it was written to save media or survives restart. Require a clean emulator restart and independent reread before claiming persistence."}
 
 
 def compare_orb_counters(before, after):
