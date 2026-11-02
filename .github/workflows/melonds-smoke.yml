@@ -84,10 +84,15 @@ jobs:
           binary="$(find "$RUNNER_TEMP/melonds-appimage" -type f -iname '*.AppImage' -print -quit)"
           test -n "$binary"
           chmod +x "$binary"
-          echo "MELONDS_BIN=$binary" >> "$GITHUB_ENV"
-          # Avoid requiring FUSE on a hosted CI runner; use bundled Qt instead
-          # of the native Ubuntu build that hung before creating a DS window.
-          echo 'APPIMAGE_EXTRACT_AND_RUN=1' >> "$GITHUB_ENV"
+          # Extract the signed-release archive's AppImage payload explicitly.
+          # The hosted runner has no FUSE mount, and some AppImage runtimes
+          # silently exit before spawning the GUI in extract-and-run mode.
+          (cd "$RUNNER_TEMP/melonds-appimage" && "$binary" --appimage-extract)
+          runner="$RUNNER_TEMP/melonds-appimage/squashfs-root/AppRun"
+          test -x "$runner"
+          echo "MELONDS_BIN=$runner" >> "$GITHUB_ENV"
+          echo "APPDIR=$RUNNER_TEMP/melonds-appimage/squashfs-root" >> "$GITHUB_ENV"
+          ls -l "$runner"
       - name: Build latest DS/DSi ROM
         run: |
           python3 tools/stage_title_ui.py ui_mapping/original_pane_geometry.json nitrofs/title.drui
