@@ -70,10 +70,12 @@ acceptance test. The default smoke run remains non-strict because the live
 target moves and the fallback artwork is not consistently recognizable.
 Even a strict capture pass does **not** establish save/restart persistence;
 that requires the separate `save`, `restart` and `restored_reward`
-screenshots plus independent saved-data checks. Unknown or original
-textured backgrounds intentionally skip white-silhouette tracking instead
-of inventing a target. This is DS fallback verification, not DSi camera
-hardware testing.
+screenshots plus independent saved-data checks. The moving target is now recognized by its high-contrast, colored
+artwork rather than the large **static white cloud** in the DS background.
+A small red hostile projectile (13×13) must not be mistaken for encounter
+art. Unknown or original textured backgrounds intentionally skip tracking
+instead of inventing a target. This is DS fallback verification, not DSi
+camera hardware testing.
 
 
 ```json
