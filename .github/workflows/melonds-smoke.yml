@@ -154,7 +154,11 @@ jobs:
           xvfb-run -a -s '-screen 0 1280x900x24' \
             env QT_QPA_PLATFORM=xcb QT_QPA_PLATFORMTHEME=generic QT_OPENGL=software QT_XCB_GL_INTEGRATION=none GSETTINGS_BACKEND=memory MESA_LOADER_DRIVER_OVERRIDE=softpipe \
             dbus-run-session -- bash scripts/melonds_smoke.sh "$GITHUB_WORKSPACE/melonds-dldi/dream_radar.nds" melonds-results
-          if [[ "${{ inputs.require_restart_persistence && '1' || '0' }}" == 1 ]]; then
+          # Opportunistically verify a clean restart on ordinary CI runs that
+          # actually gained Orbs. Strict manual mode still fails when no gain
+          # exists; a no-gain smoke run is never reported as persistence proof.
+          if [[ "${{ inputs.require_restart_persistence && '1' || '0' }}" == 1 ]] || \
+             python3 -c 'import json; from pathlib import Path; p=Path("melonds-results/orb-balance-change.json"); assert p.is_file(); r=json.loads(p.read_text()); assert r.get("balance_increased") is True'; then
             test -s melonds-dldi/saves/dream_radar.dreamradar.sav
             expected_orbs="$(python3 -c 'import json; from pathlib import Path; p=json.loads(Path("melonds-results/orb-balance-change.json").read_text()); assert p.get("balance_increased") is True, "No first-session Orb gain"; n=p["after"]["saved_orbs"]; assert type(n) is int and 0 < n <= 0xffffffff; print(n)')"
             xvfb-run -a -s '-screen 0 1280x900x24' \
@@ -165,6 +169,8 @@ jobs:
               melonds-dldi/saves/dream_radar.dreamradar.sav --verify-pixels \
               > melonds-restart-results/clean-restart-report.txt
             cat melonds-restart-results/clean-restart-report.txt
+          else
+            echo "INFO: no verified first-session Orb gain; clean-restart persistence unverified"
           fi
       - name: Publish melonDS screenshot and logs
         if: always()
