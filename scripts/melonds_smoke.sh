@@ -924,7 +924,8 @@ import json,sys
 from pathlib import Path
 original=json.loads(Path(sys.argv[1]).read_text())
 visible=json.loads(Path(sys.argv[2]).read_text())
-assert original == visible, "Results reward changed before save/restart"
+if original != visible:
+    raise SystemExit("Results reward changed before save/restart")
 PY
   echo "PASS: catalog-backed reward remains visible on Results at first-process shutdown; restart still unverified" | tee -a "$out/runtime.log"
   exit 0
