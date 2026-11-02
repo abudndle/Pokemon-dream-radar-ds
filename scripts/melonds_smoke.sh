@@ -541,8 +541,9 @@ before = json.loads(Path(sys.argv[1]).read_text())
 after = json.loads(Path(sys.argv[2]).read_text())
 result = compare_shop_orb_balances(before, after)
 Path(sys.argv[3]).write_text(json.dumps(result, indent=2) + "\n")
-print("PASS: persistent Orb balance increased" if result["orb_collection_observed"]
-      else "INFO: no persistent Orb balance gain observed")
+print("PASS: session Orb balance increased; restart persistence unverified"
+      if result["balance_increased"]
+      else "INFO: no session Orb balance gain observed")
 PY
   else
     rm -f "$out/orb-balance-after.json"
