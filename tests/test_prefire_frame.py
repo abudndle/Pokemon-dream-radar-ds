@@ -73,7 +73,7 @@ with patch('verify_sphere_prefire_frame.subprocess.run') as run, \
     assert run.call_args_list[0].args[0] == [
         'xdotool', 'keydown', '--clearmodifiers', 'z']
     assert run.call_args_list[1].args[0] == ['xdotool', 'keyup', 'z']
-    sleep.assert_called_once_with(0.16)
+    sleep.assert_called_once_with(0.10)
 
 # Even if a pulse fails midway, A is released. This is a host regression,
 # not evidence that a moving sphere was hit in a real emulator.

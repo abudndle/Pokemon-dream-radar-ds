@@ -66,7 +66,7 @@ def pulse_if_aligned(status):
     try:
         subprocess.run(["xdotool", "keydown", "--clearmodifiers", "z"],
                        check=True, timeout=3)
-        time.sleep(0.16)
+        time.sleep(0.10)
     finally:
         subprocess.run(["xdotool", "keyup", "z"], check=True, timeout=3)
     return True
