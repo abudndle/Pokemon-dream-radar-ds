@@ -42,11 +42,23 @@ def analyze(directory):
         if step < 1 or step in seen:
             raise ValueError("Duplicate or invalid fired pulse step")
         seen.add(step)
+        before, after, delta = (row.get("prefire_meter"),
+                                row.get("postfire_meter"), row.get("meter_delta"))
+        if (type(before) is not int or not 0 <= before <= 177
+                or (after is not None and (type(after) is not int or not 0 <= after <= 177))
+                or (delta is not None and type(delta) is not int)
+                or delta != (after - before if after is not None else None)):
+            raise ValueError(f"Contradictory pre/postfire meter row at step {step}")
         candidates = []
         for variant in VARIANTS:
             path = directory / f"sphere-prefire-{variant}inspection-{step}.json"
-            if path.is_file() and _read_object(path).get("fire_executed") is True:
-                candidates.append(variant)
+            if path.is_file():
+                inspector = _read_object(path)
+                if inspector.get("fire_executed") is True:
+                    if (inspector.get("status") != "aligned"
+                            or inspector.get("fire_authorized") is not True):
+                        raise ValueError(f"Contradictory firing inspector at step {step}")
+                    candidates.append(variant)
         if len(candidates) != 1:
             raise ValueError(f"Fired step {step} lacks unique inspector evidence")
         gate = _read_object(directory / f"sphere-prefire-gate-{step}.json")
@@ -105,9 +117,35 @@ def analyze(directory):
                                     target["y"] - point["y"]), 2),
                 })
         observations.append(entry)
+    if ("inspector_reported_fire_pulses" in report
+            and report["inspector_reported_fire_pulses"] != len(observations)):
+        raise ValueError("Capture summary pulse count disagrees with fired rows")
     recognized = [o for o in observations if o["postfire_status"] == "unique_target"]
     distances = [o["postfire_reticle_distance_pixels"] for o in recognized]
     inspected = [o for o in observations if o["prefire_projectile_status"] == "inspected"]
+    # Stratify measured meter changes by observed projectile proximity.
+    # This is correlation, not a causal claim about projectile interception.
+    # Missing prefire screenshots are UNKNOWN, never counted as clear.
+    by_projectile = {}
+    for label, selected in (
+        ("near_reticle", [o for o in observations if o["prefire_projectile_near_reticle"] is True]),
+        ("not_near_reticle", [o for o in observations if o["prefire_projectile_near_reticle"] is False]),
+        ("unknown", [o for o in observations if o["prefire_projectile_near_reticle"] is None]),
+    ):
+        paired = [o for o in selected if o["meter_delta"] is not None]
+        tracked = [o for o in selected if o["postfire_status"] == "unique_target"]
+        by_projectile[label] = {
+            "reported_pulses": len(selected),
+            "paired_meter_observations": len(paired),
+            "positive_meter_changes": sum(o["meter_delta"] > 0 for o in paired),
+            "zero_meter_changes": sum(o["meter_delta"] == 0 for o in paired),
+            "negative_meter_changes": sum(o["meter_delta"] < 0 for o in paired),
+            "unpaired_pulses": len(selected) - len(paired),
+            "postfire_targets_recognized": len(tracked),
+            "median_postfire_displacement_pixels": (
+                median(o["postfire_target_displacement_pixels"] for o in tracked)
+                if tracked else None),
+        }
     return {
         "kind": "melonDS-postfire-target-motion-diagnostics",
         "inspector_reported_pulses": len(observations),
@@ -122,6 +160,7 @@ def analyze(directory):
             bool(o["prefire_projectile_centers"]) for o in inspected),
         "prefire_projectiles_near_reticle": sum(
             o["prefire_projectile_near_reticle"] is True for o in inspected),
+        "meter_response_by_projectile_proximity": by_projectile,
         "median_postfire_reticle_distance_pixels": median(distances) if distances else None,
         "postfire_near_reticle_observations": sum(d <= 15 for d in distances),
         "shots": observations,
