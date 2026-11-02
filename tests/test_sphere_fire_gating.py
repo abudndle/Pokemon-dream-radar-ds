@@ -31,7 +31,7 @@ assert loop.index('    if ! python3 tools/sphere_prefire_gate.py') < fire_at
 assert 'sphere_fire_skipped=$((sphere_fire_skipped + 1))' in loop[:fire_at]
 assert '      continue' in loop[:fire_at]
 assert loop.index('    sphere_fire_authorized=$((sphere_fire_authorized + 1))') < fire_at
-assert loop.index('    aim_ds_key "$horizontal" "$horizontal_seconds" 0.06') < loop.index('    snapshot "05-sphere-prefire-$step"')
+assert loop.index('    aim_ds_pair "$horizontal" "$horizontal_seconds" "$vertical" "$vertical_seconds" 0.06') < loop.index('    snapshot "05-sphere-prefire-$step"')
 
 # A fresh observation and all stationary/edge recovery must be no-fire.
 assert loop.index('  xdotool keyup z') < loop.index('  capture_last="$out/05-sphere-encounter.png"')
