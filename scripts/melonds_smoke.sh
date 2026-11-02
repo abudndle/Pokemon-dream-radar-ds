@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Launch the built DS ROM in the official melonDS Flatpak and capture its
+# Launch the built DS ROM in the official melonDS runtime and capture its
 # real application window. This is a boot/screenshot smoke test, not gameplay
 # parity or DSi camera verification.
 set -euo pipefail
@@ -28,7 +28,21 @@ fi
 pid=$!
 printf 'Emulator launcher PID: %s\n' "$pid" >>"$out/runtime.log"
 cleanup(){
-  kill "$pid" 2>/dev/null || true
+  # SIGTERM allows melonDS to flush FAT/DLDI saves. AppImage runtimes can
+  # ignore it; waiting indefinitely previously exhausted the 30-minute job.
+  trap - EXIT
+  local state attempt
+  kill -TERM "$pid" 2>/dev/null || true
+  for attempt in {1..40}; do
+    state="$(ps -o stat= -p "$pid" 2>/dev/null || true)"
+    [[ -z "$state" || "$state" == Z* ]] && break
+    sleep 0.1
+  done
+  state="$(ps -o stat= -p "$pid" 2>/dev/null || true)"
+  if [[ -n "$state" && "$state" != Z* ]]; then
+    kill -KILL "$pid" 2>/dev/null || true
+    printf 'WARNING: Emulator launcher PID %s force-killed after SIGTERM timeout; save flush unverified\n' "$pid" >>"$out/runtime.log"
+  fi
   wait "$pid" 2>/dev/null || true
   if kill -0 "$pid" 2>/dev/null; then
     printf 'Emulator launcher PID %s still running after cleanup\n' "$pid" >>"$out/runtime.log"
