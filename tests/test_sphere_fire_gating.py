@@ -26,8 +26,11 @@ assert loop.index('    read -r horizontal horizontal_seconds vertical vertical_s
 # but only a new post-movement frame can authorize the single beam pulse.
 assert loop.index('    snapshot "05-sphere-prefire-$step"') < fire_at
 assert loop.index('    snapshot "05-sphere-prefire-corrected-$step"') < fire_at
-assert loop.count('python3 tools/sphere_prefire_gate.py') == 2
-assert loop.index('    if ! python3 tools/sphere_prefire_gate.py') < fire_at
+assert loop.count('python3 tools/verify_sphere_prefire_frame.py') == 2
+assert loop.index('    prefire_code=0') < fire_at
+assert loop.index('    case "$prefire_code" in') < fire_at
+assert loop.index('      corrected_code=0') < fire_at
+assert loop.index('      case "$corrected_code" in') < fire_at
 assert 'sphere_fire_skipped=$((sphere_fire_skipped + 1))' in loop[:fire_at]
 assert '      continue' in loop[:fire_at]
 assert loop.index('    sphere_fire_authorized=$((sphere_fire_authorized + 1))') < fire_at
