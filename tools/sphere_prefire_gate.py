@@ -10,7 +10,11 @@ import json
 from pathlib import Path
 
 RETICLE_X, RETICLE_Y = 128, 96
-SAFE_RADIUS = 13
+# The smallest runtime CaptureProfile hit radius is 16 (ERRATIC and
+# LEGENDARY in source/game.c). game_fire uses a STRICT distance < radius,
+# so 15 pixels is the largest integer-safe screenshot gate across classes.
+# This expands the former 13px window without changing gameplay hitboxes.
+SAFE_RADIUS = 15
 
 
 def evaluate(plan):
