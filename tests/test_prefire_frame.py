@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'tools'))
-from verify_sphere_prefire_frame import inspect_frame, write_evidence, pulse_if_aligned, main, EXIT_CODES
+from verify_sphere_prefire_frame import inspect_frame, write_evidence, pulse_if_aligned, correct_if_unaligned, main, EXIT_CODES
 
 pixels = b'synthetic-rgb'
 progress = {'filled_pixels': 7, 'bar_width': 177}
@@ -121,6 +121,86 @@ with tempfile.TemporaryDirectory() as tmp:
                side_effect=lambda *a: (events.append("write") or "aligned")):
         assert main() == 0
     assert events == ["inspect", "pulse", "write"], events
+
+
+# A first unaligned screenshot can move the camera without firing A. Only
+# an independent second screenshot can authorize the eventual pulse.
+with patch('verify_sphere_prefire_frame.subprocess.run') as run, \
+     patch('verify_sphere_prefire_frame.time.sleep') as sleep:
+    for status in ('aligned', 'reward', 'not_encounter', 'ambiguous'):
+        assert correct_if_unaligned(status, unaligned) is False
+    run.assert_not_called()
+    assert correct_if_unaligned('unaligned', unaligned) is True
+    assert [c.args[0] for c in run.call_args_list] == [
+        ['xdotool', 'keyup', 'z'],
+        ['xdotool', 'keydown', '--clearmodifiers', 'Right'],
+        ['xdotool', 'keyup', 'Right']]
+    sleep.assert_called_once_with(0.061)
+
+# Both camera axes move concurrently; the shorter key releases first.
+diagonal = {'candidate_spheres': 1, 'target_screen': {'x': 164, 'y': 114},
+            'offset': {'x': 36, 'y': 18}}
+with patch('verify_sphere_prefire_frame.subprocess.run') as run, \
+     patch('verify_sphere_prefire_frame.time.sleep') as sleep:
+    assert correct_if_unaligned('unaligned', diagonal) is True
+    assert [c.args[0] for c in run.call_args_list] == [
+        ['xdotool', 'keyup', 'z'],
+        ['xdotool', 'keydown', '--clearmodifiers', 'Right'],
+        ['xdotool', 'keydown', '--clearmodifiers', 'Down'],
+        ['xdotool', 'keyup', 'Down'], ['xdotool', 'keyup', 'Right']]
+    assert [round(c.args[0], 3) for c in sleep.call_args_list] == [0.05, 0.05]
+
+# Predicted, ambiguous, aligned or forged offsets can never request a
+# camera correction; no input is sent on any validation failure.
+with patch('verify_sphere_prefire_frame.subprocess.run') as run:
+    for bad in (aim, {**unaligned, 'motion_prediction': 'bounded'},
+                {**unaligned, 'candidate_spheres': 2},
+                {**unaligned, 'offset': {'x': 21, 'y': 0}},
+                {**unaligned, 'target_screen': {'x': True, 'y': 96}}):
+        try:
+            correct_if_unaligned('unaligned', bad)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError('Invalid correction gate accepted')
+    run.assert_not_called()
+
+# A failed keydown might still reach the emulator; release that axis.
+with patch('verify_sphere_prefire_frame.subprocess.run',
+           side_effect=[None, subprocess.CalledProcessError(1, 'xdotool'), None]) as run:
+    try:
+        correct_if_unaligned('unaligned', unaligned)
+    except subprocess.CalledProcessError:
+        pass
+    else:
+        raise AssertionError('Failed correction must propagate')
+    assert run.call_args_list[-1].args[0] == ['xdotool', 'keyup', 'Right']
+
+# The initial inspector corrects before serializing its evidence. Its
+# unaligned status remains a no-fire decision despite camera movement.
+with tempfile.TemporaryDirectory() as tmp:
+    paths = [str(Path(tmp) / (name + ".json"))
+             for name in ("reward", "progress", "aim", "gate")]
+    args = ["verify_sphere_prefire_frame.py", str(Path(tmp) / "frame.png"),
+            "--reward", paths[0], "--progress", paths[1],
+            "--aim", paths[2], "--gate", paths[3],
+            "--fire-aligned", "--correct-unaligned"]
+    events = []
+    with patch("sys.argv", args), \
+         patch("verify_sphere_prefire_frame.decode_native_capture",
+               return_value=(pixels, 256, 403)), \
+         patch("verify_sphere_prefire_frame.font_rows", return_value=[]), \
+         patch("verify_sphere_prefire_frame.inspect_frame",
+               side_effect=lambda *a: (events.append("inspect") or
+                                       ("unaligned", None, progress, unaligned, {}))), \
+         patch("verify_sphere_prefire_frame.pulse_if_aligned",
+               side_effect=lambda status: (events.append("no-fire") or False)), \
+         patch("verify_sphere_prefire_frame.correct_if_unaligned",
+               side_effect=lambda *a: (events.append("correct") or True)), \
+         patch("verify_sphere_prefire_frame.write_evidence",
+               side_effect=lambda *a: (events.append("write") or "unaligned")):
+        assert main() == 10
+    assert events == ["inspect", "no-fire", "correct", "write"], events
 
 assert EXIT_CODES == {'aligned':0,'unaligned':10,'ambiguous':11,'not_encounter':12,'reward':20}
 print('PASS: one fresh frame classifies reward/encounter/target/gate without stale authorization')

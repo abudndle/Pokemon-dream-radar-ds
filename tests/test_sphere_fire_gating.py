@@ -36,7 +36,11 @@ assert third < loop.index('case "$stationary_code" in')
 assert loop.index('tools/check_stationary_retry.py') < third
 assert 'sphere_stationary_retries=$((sphere_stationary_retries + 1))' in loop
 assert loop.index('aim_ds_pair "$horizontal"') < first
-assert loop.index('aim_ds_pair "$fix_h"') < second
+assert 'aim_ds_pair "$fix_h"' not in loop
+assert loop.index('--correct-unaligned') < loop.index('snapshot_fast "05-sphere-prefire-corrected-$step"')
+assert loop.count('--correct-unaligned') == 1
+assert 'camera_correction_executed' in loop
+assert 'sphere_inline_corrections=$((sphere_inline_corrections + 1))' in loop
 assert loop.index('sphere_fire_authorized=$((sphere_fire_authorized + 1))') > third
 assert loop.index('snapshot "05-sphere-sweep-$step"') > third
 
@@ -62,6 +66,9 @@ assert inspector.index('fired = pulse_if_aligned(status)') < inspector.index(
     '        write_evidence(paths, result)')
 assert 'finally:\n        subprocess.run(["xdotool", "keyup", "z"]' in inspector
 assert 'paths["gate"].unlink(missing_ok=True)' in inspector
+assert inspector.index('corrected = correct_if_unaligned(status, result[3])') < inspector.index('        write_evidence(paths, result)')
+assert 'if status != "unaligned":' in inspector
+assert 'gate = evaluate(aim)' in inspector
 
 subprocess.run(["bash", "-n", str(ROOT / "scripts/melonds_smoke.sh")], check=True)
 print("PASS: fresh-frame inspector pulses once, releases A and fails closed")

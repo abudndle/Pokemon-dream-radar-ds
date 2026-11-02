@@ -590,6 +590,7 @@ if [[ -f "$out/05-sphere-encounter.png" ]]; then
   sphere_stationary_aligned=0
   sphere_diagonal_pulses=0
   sphere_single_axis_pulses=0
+  sphere_inline_corrections=0
   last_sphere_plan=""
   capture_steps="${CAPTURE_SWEEP_STEPS:-440}"
   if ! [[ "$capture_steps" =~ ^[0-9]+$ ]] || (( capture_steps < 1 || capture_steps > 440 )); then
@@ -770,10 +771,10 @@ if [[ -f "$out/05-sphere-encounter.png" ]]; then
     snapshot_fast "05-sphere-prefire-$step"
     prefire_frame="$out/05-sphere-prefire-$step.png"
     # One fresh PNG decode now checks reward, capture scene, unique target
-    # and observed-only 13px gate. Separate ImageMagick/JSON subprocesses
+    # and observed-only 15px gate. Separate ImageMagick/JSON subprocesses
     # previously let fast spheres drift between observation and A-button.
     prefire_code=0
-    python3 tools/verify_sphere_prefire_frame.py "$prefire_frame" --fire-aligned \
+    python3 tools/verify_sphere_prefire_frame.py "$prefire_frame" --fire-aligned --correct-unaligned \
       --reward "$out/sphere-reward-attempt.json" \
       --progress "$out/sphere-prefire-progress-$step.json" \
       --aim "$out/sphere-prefire-aim-$step.json" \
@@ -800,19 +801,13 @@ if [[ -f "$out/05-sphere-encounter.png" ]]; then
       *) echo "ERROR: prefire inspection failed ($prefire_code)" >&2; exit 1 ;;
     esac
     if [[ "$prefire_code" == 10 ]]; then
-      # The first observation is not aligned. A stays released; correct
-      # once and require an independent SECOND screenshot before any shot.
-      read -r fix_h fix_h_seconds fix_v fix_v_seconds < <(
-        python3 -c 'import json,sys; p=json.load(open(sys.argv[1])); print(p["horizontal_key"],round(min(0.12,p["horizontal_seconds"]),3),p["vertical_key"],round(min(0.12,p["vertical_seconds"]),3))' \
-          "$out/sphere-prefire-aim-$step.json"
-      )
-      aim_ds_pair "$fix_h" "$fix_h_seconds" "$fix_v" "$fix_v_seconds" 0.04
-      if [[ "$fix_h" != none && "$fix_v" != none &&
-            "$fix_h_seconds" != 0 && "$fix_v_seconds" != 0 ]]; then
-        sphere_diagonal_pulses=$((sphere_diagonal_pulses + 1))
-      else
-        sphere_single_axis_pulses=$((sphere_single_axis_pulses + 1))
-      fi
+      # The first inspector already moved the camera directly after its
+      # observed-only gate, BEFORE serializing JSON or returning to Bash.
+      # It never fired on an unaligned frame. This is NOT authorization:
+      # only the independent corrected screenshot may fire A.
+      python3 -c 'import json,sys; p=json.load(open(sys.argv[1])); assert p["status"]=="unaligned" and p["camera_correction_executed"] is True and p["fire_executed"] is False' \
+        "$out/sphere-prefire-inspection-$step.json"
+      sphere_inline_corrections=$((sphere_inline_corrections + 1))
       snapshot_fast "05-sphere-prefire-corrected-$step"
       prefire_frame="$out/05-sphere-prefire-corrected-$step.png"
       corrected_code=0
@@ -920,7 +915,7 @@ if [[ -f "$out/05-sphere-encounter.png" ]]; then
   echo "INFO: guided sphere aim used $guided_sphere_steps of $capture_steps allowed attempts" | tee -a "$out/runtime.log"
   echo "INFO: fresh aligned prefire shots $sphere_fire_authorized; unaligned/ambiguous skipped $sphere_fire_skipped" | tee -a "$out/runtime.log"
   echo "INFO: near-miss stationary retries=$sphere_stationary_retries aligned_shots=$sphere_stationary_aligned (fresh-frame gated)" | tee -a "$out/runtime.log"
-  echo "INFO: sphere camera pulses diagonal=$sphere_diagonal_pulses single_axis_or_none=$sphere_single_axis_pulses (not proof of hits)" | tee -a "$out/runtime.log"
+  echo "INFO: initial sphere camera pulses diagonal=$sphere_diagonal_pulses single_axis_or_none=$sphere_single_axis_pulses; inline fresh-frame corrections=$sphere_inline_corrections (not proof of hits)" | tee -a "$out/runtime.log"
   echo "INFO: sphere reacquisition succeeded $reacquire_successes of $reacquire_attempts attempts" | tee -a "$out/runtime.log"
   echo "INFO: no-fire edge camera recovery succeeded $edge_recovery_successes of $edge_recovery_attempts attempts" | tee -a "$out/runtime.log"
 fi

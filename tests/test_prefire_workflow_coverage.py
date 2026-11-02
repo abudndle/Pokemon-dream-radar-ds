@@ -5,6 +5,7 @@ import re
 
 ROOT = Path(__file__).resolve().parents[1]
 workflow = (ROOT / ".github/workflows/melonds-smoke.yml").read_text()
+desmume = (ROOT / ".github/workflows/emulator-smoke.yml").read_text()
 script = (ROOT / "scripts/melonds_smoke.sh").read_text()
 makefile = (ROOT / "Makefile").read_text()
 
@@ -25,6 +26,13 @@ for path in (
 ):
     assert f"      - '{path}'" in workflow, f"Missing pull-request path trigger: {path}"
 
+# Changes to the inline camera mover must exercise both actual emulator
+# workflows, not just fast host checks.
+for path in ("tools/verify_sphere_prefire_frame.py",
+             "tests/test_prefire_frame.py", "scripts/melonds_smoke.sh"):
+    assert f"      - '{path}'" in desmume, f"Missing DeSmuME PR trigger: {path}"
+assert script.count("--correct-unaligned") == 1
+assert script.count("camera_correction_executed") == 1
 assert "python3 -m py_compile" in workflow
 assert re.search(r"python3 -m py_compile[^\n]*tools/sphere_prefire_gate.py", workflow)
 for test in ("test_sphere_prefire_gate.py", "test_sphere_fire_gating.py",

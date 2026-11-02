@@ -15,6 +15,9 @@ on:
       # Capture-planner changes also need a fresh ROM/emulator smoke result,
       # even when they do not modify source/ or the renderer.
       - 'tools/plan_melonds_aim.py'
+      - 'tools/verify_sphere_prefire_frame.py'
+      - 'tests/test_prefire_frame.py'
+      - 'scripts/melonds_smoke.sh'
       - 'tools/summarize_capture_attempt.py'
       - 'tools/detect_projectile_interference.py'
       - 'tools/analyze_prefire_drift.py'
