@@ -51,12 +51,12 @@ snapshot() {
   test -s "$out/$name.png"
 }
 press_ds_key() {
-  local key="$1"
+  local key="$1" settle="${2:-2}"
   xdotool windowfocus "$window"
   xdotool keydown --clearmodifiers "$key"
   sleep 0.2
   xdotool keyup "$key"
-  sleep 2
+  sleep "$settle"
 }
 touch_ds() {
   local x="$1" y="$2"
@@ -99,13 +99,13 @@ snapshot 05-radar
 # The planner is intentionally non-fatal: a missing/unrecognized cloud is
 # evidence of a limitation, not permission to fabricate a successful shot.
 aim_ds_key() {
-  local key="$1" seconds="$2"
+  local key="$1" seconds="$2" settle="${3:-0.4}"
   [[ "$key" == none ]] && return 0
   xdotool windowfocus "$window"
   xdotool keydown --clearmodifiers "$key"
   sleep "$seconds"
   xdotool keyup "$key"
-  sleep 0.4
+  sleep "$settle"
 }
 if python3 tools/plan_melonds_aim.py "$out/05-radar.png" >"$out/aim-plan.json"; then
   read -r horizontal horizontal_seconds vertical vertical_seconds < <(
@@ -140,7 +140,7 @@ if python3 tools/plan_melonds_aim.py "$out/05-radar-prefire.png" \
     >"$out/cloud-fire-check.json" &&
    python3 -c 'import json,sys; p=json.load(open(sys.argv[1])); sys.exit(not (p["target_type"]=="cloud" and p["within_safe_fire_radius"]))' \
     "$out/cloud-fire-check.json"; then
-  press_ds_key z
+  press_ds_key z 0.12
 else
   echo "WARNING: cloud not aligned or only an offscreen marker; skipped blind shot" | tee -a "$out/runtime.log"
 fi
@@ -159,17 +159,19 @@ if python3 tools/verify_melonds_navigation.py "$out" \
 else
   echo "WARNING: postfire frame was neither a recognized radar nor encounter" | tee -a "$out/runtime.log"
 fi
-# Dream Orbs appear only after a cloud is hit. Attempt a separate Orb shot
-# from the actual post-fire screenshot; never infer collection from the input.
+# Dream Orbs live only 210 DS frames (~3.5 seconds). Avoid the usual
+# two-second navigation settle after cloud fire and use short aim settles so
+# the screenshot-guided Orb attempt occurs before the target expires. Verify
+# collection independently from the counters, never from the input alone.
 if [[ ! -f "$out/05-sphere-encounter.png" ]] && \
    python3 tools/plan_melonds_aim.py "$out/05-radar-postfire.png" --target orb >"$out/orb-aim-plan.json"; then
   read -r horizontal horizontal_seconds vertical vertical_seconds < <(
     python3 -c 'import json,sys; p=json.load(open(sys.argv[1])); print(p["horizontal_key"], p["horizontal_seconds"], p["vertical_key"], p["vertical_seconds"])' "$out/orb-aim-plan.json"
   )
-  aim_ds_key "$horizontal" "$horizontal_seconds"
-  aim_ds_key "$vertical" "$vertical_seconds"
+  aim_ds_key "$horizontal" "$horizontal_seconds" 0.06
+  aim_ds_key "$vertical" "$vertical_seconds" 0.06
   snapshot 05-radar-orb-aimed
-  for correction in 1 2 3 4; do
+  for correction in 1 2 3; do
     if ! python3 tools/plan_melonds_aim.py "$out/05-radar-orb-aimed.png" --target orb >"$out/orb-aim-correction-$correction.json"; then
       break
     fi
@@ -177,8 +179,8 @@ if [[ ! -f "$out/05-sphere-encounter.png" ]] && \
       python3 -c 'import json,sys; p=json.load(open(sys.argv[1])); x=p["offset"]["x"]; y=p["offset"]["y"]; done=abs(x)<=4 and abs(y)<=4; print("none" if done else p["horizontal_key"], 0 if done else round(min(0.4,p["horizontal_seconds"]*1.5),3), "none" if done else p["vertical_key"], 0 if done else round(min(0.4,p["vertical_seconds"]*1.5),3))' "$out/orb-aim-correction-$correction.json"
     )
     [[ "$horizontal" == none && "$vertical" == none ]] && break
-    aim_ds_key "$horizontal" "$horizontal_seconds"
-    aim_ds_key "$vertical" "$vertical_seconds"
+    aim_ds_key "$horizontal" "$horizontal_seconds" 0.06
+    aim_ds_key "$vertical" "$vertical_seconds" 0.06
     snapshot 05-radar-orb-aimed
   done
   # A moving Orb can leave the reticle during correction. Do not fire at a
@@ -188,7 +190,7 @@ if [[ ! -f "$out/05-sphere-encounter.png" ]] && \
       >"$out/orb-fire-check.json" &&
      python3 -c 'import json,sys; sys.exit(not json.load(open(sys.argv[1]))["within_safe_fire_radius"])' \
       "$out/orb-fire-check.json"; then
-    press_ds_key z
+    press_ds_key z 0.12
     snapshot 05-radar-orb-postfire
     latest_radar="$out/05-radar-orb-postfire.png"
   else
@@ -253,7 +255,7 @@ for attempt in 1 2 3 4 5 6 7 8; do
     echo "WARNING: retry $attempt cloud still offscreen or unaligned; moving to next acquisition" | tee -a "$out/runtime.log"
     continue
   fi
-  press_ds_key z
+  press_ds_key z 0.12
   snapshot "05-radar-retry-$attempt-postfire"
   latest_radar="$out/05-radar-retry-$attempt-postfire.png"
   if ! python3 tools/verify_melonds_navigation.py "$out" \
