@@ -9,6 +9,12 @@ import json
 from pathlib import Path
 import subprocess
 
+# Source-derived DS reticle center: main.c draws S_RETICLE at (112, 80)
+# on a 256x192 screen; the renderer places world-space targets at
+# (world_x - aim_x + 128, world_y - aim_y + 96). Keep these anchors in sync.
+RETICLE_CENTER_X = 128
+RETICLE_CENTER_Y = 96
+
 
 def locate_clouds(pixels, width, height):
     if width != 256 or not 384 <= height <= 480 or len(pixels) != width * height * 3:
@@ -99,7 +105,7 @@ def plan(pixels, width, height):
     if not targets and not markers:
         raise ValueError("No visible cloud or offscreen cloud marker; aim unverified")
     x, y, count = (targets or markers)[0]
-    dx, dy = x - 128, y - 96
+    dx, dy = x - RETICLE_CENTER_X, y - RETICLE_CENTER_Y
     visible = bool(targets)
     return {"target_screen": {"x": x, "y": y},
             "target_type": "cloud" if visible else "edge_marker",
@@ -180,7 +186,7 @@ def plan_orb(pixels, width, height):
     if not targets:
         raise ValueError("No pink Dream Orb found; orb collection unverified")
     x, y, count = targets[0]
-    dx, dy = x - 128, y - 96
+    dx, dy = x - RETICLE_CENTER_X, y - RETICLE_CENTER_Y
     return {"target_screen": {"x": x, "y": y},
             "offset": {"x": dx, "y": dy},
             "horizontal_key": "Right" if dx > 0 else "Left" if dx < 0 else "none",
@@ -231,7 +237,7 @@ def plan_orb_motion(previous_pixels, pixels, width, height):
     lead_y = max(-12, min(12, round(dy * 0.5)))
     x = max(12, min(243, observed["x"] + lead_x))
     y = max(24, min(173, observed["y"] + lead_y))
-    offset_x, offset_y = x - 128, y - 96
+    offset_x, offset_y = x - RETICLE_CENTER_X, y - RETICLE_CENTER_Y
     current.update({
         "target_screen": {"x": x, "y": y},
         "offset": {"x": offset_x, "y": offset_y},
@@ -426,7 +432,7 @@ def plan_sphere(pixels, width, height):
     if len(targets) != 1:
         raise ValueError("No unique high-contrast encounter artwork; guided aim unverified")
     x, y, count = targets[0]
-    dx, dy = x - 128, y - 96
+    dx, dy = x - RETICLE_CENTER_X, y - RETICLE_CENTER_Y
     return {"target_screen": {"x": x, "y": y},
             "offset": {"x": dx, "y": dy},
             "horizontal_key": "Right" if dx > 0 else "Left" if dx < 0 else "none",
@@ -477,7 +483,7 @@ def plan_sphere_motion(previous_pixels, pixels, width, height):
                 sqrt(matches[1][0]) - sqrt(matches[0][0]) < 18):
             raise ValueError("Ambiguous sphere motion association")
         _, x, y, _ = matches[0]
-        dx, dy = x - 128, y - 96
+        dx, dy = x - RETICLE_CENTER_X, y - RETICLE_CENTER_Y
         current = {
             "target_screen": {"x": x, "y": y},
             "offset": {"x": dx, "y": dy},
@@ -506,7 +512,7 @@ def plan_sphere_motion(previous_pixels, pixels, width, height):
     lead_y = max(-18, min(18, round(dy * 0.5)))
     x = max(20, min(236, observed["x"] + lead_x))
     y = max(30, min(164, observed["y"] + lead_y))
-    offset_x, offset_y = x - 128, y - 96
+    offset_x, offset_y = x - RETICLE_CENTER_X, y - RETICLE_CENTER_Y
     current.update({
         "target_screen": {"x": x, "y": y},
         "offset": {"x": offset_x, "y": offset_y},
