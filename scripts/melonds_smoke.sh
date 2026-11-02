@@ -414,6 +414,8 @@ if [[ -f "$out/05-sphere-encounter.png" ]]; then
   # immediately on a verified reward; otherwise cap this live pursuit at
   # 160 screenshot-backed attempts (override downward for quick smoke runs).
   guided_sphere_steps=0
+  reacquire_attempts=0
+  reacquire_successes=0
   capture_steps="${CAPTURE_SWEEP_STEPS:-160}"
   if ! [[ "$capture_steps" =~ ^[0-9]+$ ]] || (( capture_steps < 1 || capture_steps > 160 )); then
     echo "CAPTURE_SWEEP_STEPS must be an integer from 1 to 160" >&2
@@ -476,6 +478,7 @@ if [[ -f "$out/05-sphere-encounter.png" ]]; then
     if ! python3 tools/plan_melonds_aim.py "$current_sphere" --target sphere \
         --previous-screenshot "$previous_sphere" \
         >"$out/sphere-aim-$step.json" 2>"$out/sphere-aim-error-$step.txt"; then
+      reacquire_attempts=$((reacquire_attempts + 1))
       xdotool keyup z
       sleep 0.12
       snapshot "05-sphere-reacquire-$step"
@@ -502,6 +505,7 @@ if [[ -f "$out/05-sphere-encounter.png" ]]; then
         echo "WARNING: sphere target still ambiguous after one stationary retry at step $step" | tee -a "$out/runtime.log"
         break
       fi
+      reacquire_successes=$((reacquire_successes + 1))
       echo "INFO: recovered guided sphere tracking after fresh frame $step" | tee -a "$out/runtime.log"
       xdotool keydown --clearmodifiers z
     fi
@@ -539,6 +543,7 @@ if [[ -f "$out/05-sphere-encounter.png" ]]; then
   done
   xdotool keyup z
   echo "INFO: guided sphere aim used $guided_sphere_steps of $capture_steps allowed attempts" | tee -a "$out/runtime.log"
+  echo "INFO: sphere reacquisition succeeded $reacquire_successes of $reacquire_attempts attempts" | tee -a "$out/runtime.log"
 fi
 if [[ -f "$out/05-capture-reward.png" ]]; then
   cp "$out/05-capture-reward.png" "$out/06-results.png"
