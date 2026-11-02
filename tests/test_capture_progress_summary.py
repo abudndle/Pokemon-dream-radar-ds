@@ -115,6 +115,85 @@ with tempfile.TemporaryDirectory() as tmp:
         else:
             raise AssertionError("Accepted empty reward name")
 
+
+# Report observed meter response to actual inspector-reported A pulses.
+# This is diagnostic correlation, never a substitute for Results/restart proof.
+with tempfile.TemporaryDirectory() as tmp:
+    root = Path(tmp)
+    def meter(name, value):
+        (root / name).write_text(json.dumps({
+            "encounter": {"capture_class": "erratic"},
+            "filled_pixels": value, "bar_width": 177}))
+    aligned = evaluate_prefire({"candidate_spheres": 1,
+                                "target_screen": {"x": 128, "y": 96},
+                                "offset": {"x": 0, "y": 0}})
+    for step in (1, 2, 3):
+        (root / f"sphere-prefire-gate-{step}.json").write_text(json.dumps(aligned))
+    def fired(name):
+        (root / name).write_text(json.dumps({
+            "status": "aligned", "fire_authorized": True, "fire_executed": True}))
+    meter("sphere-prefire-progress-1.json", 8)
+    meter("sphere-progress-1.json", 14)
+    fired("sphere-prefire-inspection-1.json")
+    meter("sphere-prefire-corrected-progress-2.json", 12)
+    fired("sphere-prefire-corrected-inspection-2.json")
+    # No postfire frame: not a zero-damage shot and not a proven gain.
+    meter("sphere-prefire-stationary-progress-3.json", 16)
+    meter("sphere-progress-3.json", 13)
+    fired("sphere-prefire-stationary-inspection-3.json")
+    result = summarize(root)
+    assert result["inspector_reported_fire_pulses"] == 3
+    assert result["paired_postfire_meter_observations"] == 2
+    assert result["unpaired_fire_pulses"] == 1
+    assert result["positive_postfire_meter_deltas"] == 1
+    assert result["max_postfire_meter_gain_pixels"] == 6
+    assert result["postfire_meter_delta_samples"] == [
+        {"step": 1, "prefire_meter": 8, "postfire_meter": 14, "meter_delta": 6},
+        {"step": 2, "prefire_meter": 12, "postfire_meter": None, "meter_delta": None},
+        {"step": 3, "prefire_meter": 16, "postfire_meter": 13, "meter_delta": -3},
+    ]
+    # A gate alone never establishes an executed pulse.
+    (root / "sphere-prefire-inspection-1.json").write_text(json.dumps({
+        "status": "aligned", "fire_authorized": True, "fire_executed": False}))
+    assert summarize(root)["inspector_reported_fire_pulses"] == 2
+    fired("sphere-prefire-inspection-1.json")
+    # A second claimed pulse on the same step cannot inflate evidence.
+    fired("sphere-prefire-corrected-inspection-1.json")
+    try:
+        summarize(root)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("Duplicate pulse accepted")
+    (root / "sphere-prefire-corrected-inspection-1.json").unlink()
+    # A mismatched gate or an unaligned firing claim is rejected.
+    (root / "sphere-prefire-gate-1.json").write_text(json.dumps({
+        **aligned, "fire_authorized": False}))
+    try:
+        summarize(root)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("Forged gate accepted")
+    (root / "sphere-prefire-gate-1.json").write_text(json.dumps(aligned))
+    (root / "sphere-prefire-inspection-1.json").write_text(json.dumps({
+        "status": "unaligned", "fire_authorized": False, "fire_executed": True}))
+    try:
+        summarize(root)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("Unaligned firing claim accepted")
+    fired("sphere-prefire-inspection-1.json")
+    # A missing prefire meter cannot silently become a measured shot.
+    (root / "sphere-prefire-progress-1.json").unlink()
+    try:
+        summarize(root)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("Fired pulse without baseline meter accepted")
+
 with tempfile.TemporaryDirectory() as tmp:
     assert subprocess.run([sys.executable, str(ROOT / "tools/summarize_capture_attempt.py"), tmp],
                           capture_output=True).returncode == 0
