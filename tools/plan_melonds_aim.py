@@ -117,38 +117,60 @@ def plan(pixels, width, height):
 
 
 def locate_orbs(pixels, width, height):
-    """Locate red/pink 9px Dream Orb interiors, excluding UI and clouds."""
+    """Locate the four 9px Dream Orb colors used by the DS fallback renderer.
+
+    The old pink-only classifier lost moving targets as their color cycled
+    to green, orange or blue (every 45 DS frames). These thresholds come
+    from the four RGB555 fills in source/main.c, not from original 3DS art.
+    Keep palettes separate so adjacent different-color orbs do not fuse.
+    """
     if width != 256 or not 384 <= height <= 480 or len(pixels) != width * height * 3:
         raise ValueError("Expected an unscaled 256px-wide DS screenshot")
     offset = height - 384
-    marked = set()
+    marked_by_color = {name: set() for name in ("pink", "green", "orange", "blue")}
     for y in range(offset + 24, offset + 174):
         for x in range(12, 244):
             at = (y * width + x) * 3
             r, g, b = pixels[at:at + 3]
             if r >= 235 and 75 <= g <= 155 and 90 <= b <= 180 and r >= g + 80:
-                marked.add((x, y))
+                color = "pink"
+            elif g >= 235 and r <= 30 and b <= 30:
+                color = "green"
+            elif r >= 235 and 135 <= g <= 195 and b <= 35:
+                color = "orange"
+            elif b >= 235 and r <= 30 and g <= 30:
+                color = "blue"
+            else:
+                continue
+            marked_by_color[color].add((x, y))
     found = []
-    while marked:
-        first = marked.pop()
-        stack = [first]
-        component = [first]
-        while stack:
-            x, y = stack.pop()
-            for ny in (y - 1, y, y + 1):
-                for nx in (x - 1, x, x + 1):
-                    p = (nx, ny)
-                    if p in marked:
-                        marked.remove(p)
-                        stack.append(p)
-                        component.append(p)
-        if not 20 <= len(component) <= 150:
-            continue
-        xs, ys = zip(*component)
-        if not 4 <= max(xs) - min(xs) <= 16 or not 4 <= max(ys) - min(ys) <= 16:
-            continue
-        found.append((round(sum(xs) / len(xs)),
-                      round(sum(ys) / len(ys)) - offset, len(component)))
+    for color, marked in marked_by_color.items():
+        while marked:
+            first = marked.pop()
+            stack = [first]
+            component = [first]
+            while stack:
+                x, y = stack.pop()
+                for ny in (y - 1, y, y + 1):
+                    for nx in (x - 1, x, x + 1):
+                        p = (nx, ny)
+                        if p in marked:
+                            marked.remove(p)
+                            stack.append(p)
+                            component.append(p)
+            if not 20 <= len(component) <= 150:
+                continue
+            xs, ys = zip(*component)
+            w, h = max(xs) - min(xs), max(ys) - min(ys)
+            if not 4 <= w <= 16 or not 4 <= h <= 16:
+                continue
+            # Nonpink colors are also used in HUD/reticle graphics. Require
+            # the >=8px filled silhouette of an actual 9x9 Orb, not a small
+            # colored label glyph. Keep the existing pink fallback tolerance.
+            if color != "pink" and (w < 7 or h < 7 or len(component) < 50):
+                continue
+            found.append((round(sum(xs) / len(xs)),
+                          round(sum(ys) / len(ys)) - offset, len(component)))
     return sorted(found, key=lambda c: ((c[0] - 128) ** 2 + (c[1] - 96) ** 2, -c[2]))
 
 
