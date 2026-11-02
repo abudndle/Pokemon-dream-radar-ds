@@ -395,7 +395,9 @@ else:
 print("PASS: real-style split blue/orange artwork is tracked, distinct sprites remain ambiguous")
 
 
-# The DS renderer draws 9x9 Dream Orbs in four RGB555 fills:
+# The DS renderer draws 9x9 fills under a two-pixel 11x11 white border;
+# the visible interior is 7x7, as confirmed in actual melonDS screenshots.
+# The four RGB555 fills are:
 # 0xC1DF pink, 0x83E0 green, 0x829F orange, 0xFC00 blue.
 # Live screenshots may span several 45-frame color cycles while aiming.
 ORB_RGB = {
@@ -406,7 +408,7 @@ ORB_RGB = {
 }
 
 
-def colored_orb_frame(orbs, size=9):
+def colored_orb_frame(orbs, size=7):
     pixels = bytearray(WIDTH * HEIGHT * 3)
     radius = size // 2
     for cx, cy, color in orbs:
@@ -445,9 +447,9 @@ for old_color, new_color in (
 for color in ORB_RGB:
     aligned = plan_orb(colored_orb_frame([(128, 96, color)]), WIDTH, HEIGHT)
     assert aligned["within_safe_fire_radius"], color
-    # Colored HUD glyphs are smaller than the 9x9 Orb silhouette.
+    # Colored HUD glyphs are smaller than the visible 7x7 Orb interior.
     if color != "pink":
-        assert locate_orbs(colored_orb_frame([(120, 95, color)], size=7),
+        assert locate_orbs(colored_orb_frame([(120, 95, color)], size=5),
                            WIDTH, HEIGHT) == []
 
 # White, cyan, gold and red projectile colors are not Dream Orb targets.
