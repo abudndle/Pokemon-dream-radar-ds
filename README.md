@@ -539,3 +539,6 @@ The six item-stack storage slots can now hold any of **23 item types named in th
 The Research Lab contains **Talk to Burnet**, which cycles through **30 original English Burnet messages** decoded from the supplied `Event.msbt` data. Press **A/touch** to advance and **B** to close. You can also replay the intro excerpt with the title-screen Burnet button or **X**. Story milestone dialogue remains available.
 
 To regenerate these textual assets from the packaged English message TSV, run `make item-catalog burnet-tips` (pre-generated headers are included for normal builds). This is a source-only milestone and not a verified `.nds`. See `MILESTONE_2026-10-30_ORIGINAL_ITEMS_DIALOGUE.md`.
+
+
+<!-- CI note: headless melonDS starts Xvfb before D-Bus so desktop portals inherit DISPLAY. -->
