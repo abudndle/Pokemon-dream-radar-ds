@@ -517,16 +517,18 @@ if [[ -f "$out/05-sphere-encounter.png" ]]; then
   capture_last="$out/05-sphere-encounter.png"
   # Capture needs up to 240 HP, not merely one successful beam hit. Stop
   # immediately on a verified reward; otherwise cap this live pursuit at
-  # 160 screenshot-backed attempts (override downward for quick smoke runs).
+  # 220 screenshot-backed attempts (override downward for quick smoke runs).
+  # The prior 160-step live ITEM encounter reached 170/177 meter pixels
+  # without a reward; extend the bounded attempt rather than claim capture.
   guided_sphere_steps=0
   reacquire_attempts=0
   reacquire_successes=0
   edge_recovery_attempts=0
   edge_recovery_successes=0
   last_sphere_plan=""
-  capture_steps="${CAPTURE_SWEEP_STEPS:-160}"
-  if ! [[ "$capture_steps" =~ ^[0-9]+$ ]] || (( capture_steps < 1 || capture_steps > 160 )); then
-    echo "CAPTURE_SWEEP_STEPS must be an integer from 1 to 160" >&2
+  capture_steps="${CAPTURE_SWEEP_STEPS:-220}"
+  if ! [[ "$capture_steps" =~ ^[0-9]+$ ]] || (( capture_steps < 1 || capture_steps > 220 )); then
+    echo "CAPTURE_SWEEP_STEPS must be an integer from 1 to 220" >&2
     exit 2
   fi
   for step in $(seq 1 "$capture_steps"); do

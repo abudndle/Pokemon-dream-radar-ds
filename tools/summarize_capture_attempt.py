@@ -60,9 +60,11 @@ def summarize(directory):
                         "reward_name": reward["reward_name"]}:
             raise ValueError("Capture reward sidecar disagrees with visible Results")
         reward_observed = True
+    peak = max(observations, key=lambda o: o["filled_pixels"], default=None)
     return {"kind": "melonDS-sphere-capture-progress",
             "samples": len(observations),
-            "max_meter_pixels": max((o["filled_pixels"] for o in observations), default=0),
+            "max_meter_pixels": peak["filled_pixels"] if peak else 0,
+            "max_meter_observation": peak["file"] if peak else None,
             "meter_width_pixels": 177,
             "capture_classes_observed": sorted({o["capture_class"] for o in observations}),
             "reward_screen_observed": reward_observed,
