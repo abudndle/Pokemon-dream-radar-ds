@@ -103,4 +103,12 @@ with tempfile.TemporaryDirectory() as temporary:
     else:
         raise AssertionError("Invalid screenshot accepted")
 
+# melonDS config's DLDI.ImageSize is a combobox index (0=auto, 1=256MB,
+# 2=512MB, 3=1GB, 4=2GB, 5=4GB), NOT a byte count.
+import re
+workflow = (Path(__file__).resolve().parents[1] /
+            ".github/workflows/melonds-smoke.yml").read_text()
+sizes = re.findall(r"^\\s*ImageSize = ([0-9]+)$", workflow, re.M)
+assert len(sizes) == 1 and 0 <= int(sizes[0]) <= 5, sizes
+assert "FolderSync = true" in workflow and "ReadOnly = false" in workflow
 print("PASS: clean-restart gate rejects same PID, missing save, false balance and invalid screenshots")
