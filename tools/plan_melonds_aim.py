@@ -255,7 +255,11 @@ def locate_spheres(pixels, width, height):
                     max(r, g, b) - min(r, g, b) > 85 and
                     max(r, g, b) > 120 and min(r, g, b) < 150):
                 marked.add((x, y))
-    candidates = []
+    # Real emulator artwork can be split into blue upper and dark/orange
+    # lower components by a thin white highlight. Neither fragment alone
+    # spans 14px vertically, so the old detector rejected every one of
+    # 160 live pursuit frames despite a visible 23x24 encounter sprite.
+    fragments = []
     while marked:
         stack = [marked.pop()]
         xs, ys = [], []
@@ -268,11 +272,46 @@ def locate_spheres(pixels, width, height):
                 if (nx, ny) in marked:
                     marked.remove((nx, ny))
                     stack.append((nx, ny))
-        # Require an artwork footprint larger than the 13x13 enemy ball.
-        if len(xs) >= 35 and max(xs) - min(xs) >= 14 and max(ys) - min(ys) >= 14:
-            candidates.append((round(sum(xs) / len(xs)),
-                               round(sum(ys) / len(ys)) - offset, len(xs),
-                               (min(xs), min(ys), max(xs), max(ys))))
+        if len(xs) >= 20 and max(xs) - min(xs) >= 5 and max(ys) - min(ys) >= 4:
+            fragments.append((round(sum(xs) / len(xs)),
+                              round(sum(ys) / len(ys)),
+                              len(xs), (min(xs), min(ys), max(xs), max(ys))))
+
+    # Merge only vertically adjacent fragments with substantial horizontal
+    # overlap. This recognizes a single disconnected-color sprite without
+    # merging side-by-side hostile projectiles or distant encounter objects.
+    candidates = []
+    pending = sorted(fragments, key=lambda p: -p[2])
+    while pending:
+        group = [pending.pop(0)]
+        changed = True
+        while changed:
+            changed = False
+            left = min(f[3][0] for f in group)
+            top = min(f[3][1] for f in group)
+            right = max(f[3][2] for f in group)
+            bottom = max(f[3][3] for f in group)
+            group_x = sum(f[0] * f[2] for f in group) / sum(f[2] for f in group)
+            for fragment in pending:
+                fx, fy, area, (fl, ft, fr, fb) = fragment
+                overlap_x = max(0, min(right, fr) - max(left, fl) + 1)
+                gap_y = max(0, max(top, ft) - min(bottom, fb) - 1)
+                if (overlap_x >= 0.5 * min(right - left + 1, fr - fl + 1)
+                        and gap_y <= 6 and abs(fx - group_x) <= 12):
+                    group.append(fragment)
+                    pending.remove(fragment)
+                    changed = True
+                    break
+        left = min(f[3][0] for f in group)
+        top = min(f[3][1] for f in group)
+        right = max(f[3][2] for f in group)
+        bottom = max(f[3][3] for f in group)
+        area = sum(f[2] for f in group)
+        if (35 <= area <= 800 and 14 <= right - left <= 42
+                and 14 <= bottom - top <= 42):
+            cx = round(sum(f[0] * f[2] for f in group) / area)
+            cy = round(sum(f[1] * f[2] for f in group) / area) - offset
+            candidates.append((cx, cy, area, (left, top, right, bottom)))
     # The real DS fallback DRIFTING sphere uses a pale pink 22x18 sprite,
     # not the dark 21x21 fixture. Its pixels have a pink-violet tint even
     # where it overlaps the large static white background cloud. Require

@@ -352,3 +352,44 @@ except ValueError:
 else:
     raise AssertionError("Two distinct encounter sprites were deduplicated")
 print("PASS: overlapping palette components collapse, separate spheres stay ambiguous")
+
+# Actual melonDS DRIFTING encounter screenshots show a blue upper sprite
+# and dark/orange lower sprite separated by a few background-colored rows.
+# Both individually fail the original 14px-height test; together they form
+# one visible capture target. No original sprite data is included here.
+def split_color_sphere_frame(centers):
+    pixels = bytearray(sphere_frame(False))
+    for cx, cy in centers:
+        for y in range(cy - 11, cy + 2):
+            for x in range(cx - 8, cx + 9):
+                at = ((y + OFFSET) * WIDTH + x) * 3
+                pixels[at:at + 3] = bytes((81, 170, 219))
+        for y in range(cy + 6, cy + 14):
+            for x in range(cx - 11, cx + 12):
+                at = ((y + OFFSET) * WIDTH + x) * 3
+                pixels[at:at + 3] = bytes((24, 24, 32))
+    return pixels
+
+
+split = split_color_sphere_frame([(96, 107)])
+split_targets = locate_spheres(split, WIDTH, HEIGHT)
+assert len(split_targets) == 1
+assert split_targets[0][0] == 96
+assert 100 <= split_targets[0][1] <= 114
+assert plan_sphere(split, WIDTH, HEIGHT)["candidate_spheres"] == 1
+split_motion = plan_sphere_motion(split,
+                                  split_color_sphere_frame([(105, 110)]),
+                                  WIDTH, HEIGHT)
+assert split_motion["motion_prediction"] == "bounded"
+assert split_motion["observed_target_screen"]["x"] == 105
+
+# Two separated blue/orange sprites must NOT be joined into one target.
+separate_split = split_color_sphere_frame([(65, 107), (185, 107)])
+assert len(locate_spheres(separate_split, WIDTH, HEIGHT)) == 2
+try:
+    plan_sphere(separate_split, WIDTH, HEIGHT)
+except ValueError:
+    pass
+else:
+    raise AssertionError("Distinct fragmented encounter targets merged")
+print("PASS: real-style split blue/orange artwork is tracked, distinct sprites remain ambiguous")

@@ -256,8 +256,50 @@ for attempt in 1 2 3 4 5 6 7 8; do
   )
   [[ "$search_state" == radar && "$clouds" -gt 0 ]] || break
   if ! python3 tools/plan_melonds_aim.py "$latest_radar" >"$out/aim-retry-$attempt.json"; then
-    echo "WARNING: no recognizable cloud for retry $attempt" | tee -a "$out/runtime.log"
-    break
+    # A remaining cloud can be outside the current camera viewport without
+    # exposing a detectable gold edge cue. Reacquire by bounded D-pad camera
+    # movement only; NEVER shoot unless a fresh cloud frame is subsequently
+    # recognized and independently passes the existing safe-fire gate.
+    echo "INFO: cloud not visible on retry $attempt; bounded camera reacquisition" | tee -a "$out/runtime.log"
+    reacquired=0
+    scan_step=0
+    for scan_direction in Right Down Left Up; do
+      scan_step=$((scan_step + 1))
+      aim_ds_key "$scan_direction" 0.32 0.04
+      snapshot "05-radar-retry-$attempt-scan-$scan_step"
+      latest_radar="$out/05-radar-retry-$attempt-scan-$scan_step.png"
+      if ! python3 tools/verify_melonds_navigation.py "$out" \
+          --observe-search-screenshot "$latest_radar" \
+          >"$out/search-retry-$attempt-scan-$scan_step.json"; then
+        if python3 tools/verify_melonds_navigation.py "$out" \
+            --observe-results-screenshot "$latest_radar" >/dev/null 2>&1; then
+          cp "$latest_radar" "$out/06-results.png"
+          echo "INFO: Results appeared during camera reacquisition" | tee -a "$out/runtime.log"
+        fi
+        break
+      fi
+      read -r scan_state scan_clouds < <(
+        python3 -c 'import json,sys; s=json.load(open(sys.argv[1])); print(s["state"], s.get("radar_counters",{}).get("clouds",0))' \
+          "$out/search-retry-$attempt-scan-$scan_step.json"
+      )
+      if [[ "$scan_state" == sphere ]]; then
+        cp "$latest_radar" "$out/05-sphere-encounter.png"
+        echo "PASS: delayed sphere encounter recognized during camera reacquisition" | tee -a "$out/runtime.log"
+        break
+      fi
+      [[ "$scan_state" == radar && "$scan_clouds" -gt 0 ]] || break
+      if python3 tools/plan_melonds_aim.py "$latest_radar" \
+          >"$out/aim-retry-$attempt.json" 2>"$out/aim-retry-$attempt-scan-error.txt"; then
+        reacquired=1
+        echo "INFO: cloud or edge marker reacquired on scan $scan_step" | tee -a "$out/runtime.log"
+        break
+      fi
+    done
+    [[ -f "$out/05-sphere-encounter.png" ]] && break
+    if [[ "$reacquired" != 1 ]]; then
+      echo "WARNING: no recognizable cloud after bounded camera scan; no blind shot" | tee -a "$out/runtime.log"
+      break
+    fi
   fi
   read -r horizontal horizontal_seconds vertical vertical_seconds < <(
     python3 -c 'import json,sys; p=json.load(open(sys.argv[1])); print(p["horizontal_key"],p["horizontal_seconds"],p["vertical_key"],p["vertical_seconds"])' \
