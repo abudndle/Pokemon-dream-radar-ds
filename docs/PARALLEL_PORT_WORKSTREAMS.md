@@ -1,6 +1,6 @@
 # Dream Radar DS — parallel port integration plan
 
-Primary integration PR: #57. All five tracks are open and may proceed independently. **Issues do not automatically run coding agents.**
+Primary integration PR #57 merged on 2026-11-01. Five dependency-ordered milestone issues #62–#66 remain open; no issue is closed without its specific acceptance evidence. **Issues do not automatically run coding agents.**
 
 | Track | Issue | Main outputs | Acceptance gate |
 | --- | --- | --- | --- |
@@ -15,14 +15,14 @@ Primary integration PR: #57. All five tracks are open and may proceed independen
 1. Each track uses a separate Git branch and PR to avoid concurrent edits to `source/game.c` and `source/main.c`.
 2. Asset conversion and renderer work must agree on memory and texture contracts before integration. Keep copyrighted 3DS assets in the owner's private workspace, never in public Git history.
 3. Gameplay and persistence can share test fixtures, but each branch must pass `make test-host test-syntax` before merge.
-4. The build/test track continuously integrates approved changes into PR #57 and runs real melonDS checks. External emulator screenshots are allowed; **do not implement in-game screenshot capture**.
+4. The build/test track integrates follow-up PRs into `main` after PR #57 and runs real melonDS checks. Capture-specific host acceptance now runs on each `main` push, PR changes and manual dispatch. External emulator screenshots are allowed; **do not implement in-game screenshot capture**.
 5. A green host test is not a green emulator test. The ten-stage capture acceptance gate remains open until independently verified from a real emulator session.
 6. Actual Pokémon Black 2/White 2 transfer support requires verified protocol implementation, not a custom text export.
 
 ## Integration blockers
 
 - Original decrypted NCCH files and extracted copyrighted assets must be accessible privately to the converter.
-- BlocksDS, melonDS, and DSi camera-capable test hardware/emulation must be available for final verification.
+- BlocksDS ROM builds and native melonDS 1.1 navigation/restart checks have passed in Linux Actions; physical DSi camera testing, full capture/reward restart and hardware performance verification remain outstanding.
 - Workstream issues currently have no assigned autonomous coding worker; creation of issues is planning, not completed implementation.
 
 ## Definition of done
