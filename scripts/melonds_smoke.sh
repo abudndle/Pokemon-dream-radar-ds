@@ -582,34 +582,51 @@ if [[ -f "$out/05-sphere-encounter.png" ]]; then
         --previous-screenshot "$previous_sphere" \
         >"$out/sphere-aim-$step.json" 2>"$out/sphere-aim-error-$step.txt"; then
       reacquire_attempts=$((reacquire_attempts + 1))
+      # Keep the beam OFF while the target is obscured. The sphere may cross
+      # the HUD or overlap a projectile for several consecutive frames.
+      # Three bounded, stationary screenshots are safer than blind firing or
+      # abandoning the entire encounter after one ambiguous sample.
       xdotool keyup z
-      sleep 0.12
-      snapshot "05-sphere-reacquire-$step"
-      reacquired="$out/05-sphere-reacquire-$step.png"
-      if python3 tools/verify_melonds_navigation.py "$out" \
-          --observe-reward-screenshot "$reacquired" \
-          >"$out/sphere-reward-attempt.json" 2>/dev/null; then
-        mv "$out/sphere-reward-attempt.json" "$out/sphere-reward.json"
-        cp "$reacquired" "$out/05-capture-reward.png"
-        capture_last="$reacquired"
-        echo "PASS: capture reward observed during sphere reacquisition $step" | tee -a "$out/runtime.log"
+      reacquire_state=ambiguous
+      for reacquire_sample in 1 2 3; do
+        sleep 0.12
+        snapshot "05-sphere-reacquire-$step-$reacquire_sample"
+        reacquired="$out/05-sphere-reacquire-$step-$reacquire_sample.png"
+        if python3 tools/verify_melonds_navigation.py "$out" \
+            --observe-reward-screenshot "$reacquired" \
+            >"$out/sphere-reward-attempt.json" 2>/dev/null; then
+          mv "$out/sphere-reward-attempt.json" "$out/sphere-reward.json"
+          cp "$reacquired" "$out/05-capture-reward.png"
+          capture_last="$reacquired"
+          reacquire_state=ended
+          echo "PASS: capture reward observed during sphere reacquisition $step/$reacquire_sample" | tee -a "$out/runtime.log"
+          break
+        fi
+        rm -f "$out/sphere-reward-attempt.json"
+        if ! python3 tools/verify_melonds_navigation.py "$out" \
+            --observe-capture-progress "$reacquired" \
+            >"$out/sphere-reacquire-progress-$step-$reacquire_sample.json" 2>/dev/null; then
+          echo "WARNING: reacquisition frame $step/$reacquire_sample is not a live sphere encounter" | tee -a "$out/runtime.log"
+          reacquire_state=ended
+          break
+        fi
+        if python3 tools/plan_melonds_aim.py "$reacquired" --target sphere \
+            --previous-screenshot "$previous_sphere" \
+            >"$out/sphere-aim-$step.json" \
+            2>"$out/sphere-reacquire-error-$step-$reacquire_sample.txt"; then
+          reacquire_state=found
+          echo "INFO: recovered sphere target on stationary sample $reacquire_sample at step $step" | tee -a "$out/runtime.log"
+          break
+        fi
+      done
+      if [[ "$reacquire_state" == ended ]]; then
         break
       fi
-      rm -f "$out/sphere-reward-attempt.json"
-      if ! python3 tools/verify_melonds_navigation.py "$out" \
-          --observe-capture-progress "$reacquired" \
-          >"$out/sphere-reacquire-progress-$step.json" 2>/dev/null; then
-        echo "WARNING: reacquisition frame $step is not a live sphere encounter" | tee -a "$out/runtime.log"
-        break
-      fi
-      if ! python3 tools/plan_melonds_aim.py "$reacquired" --target sphere \
-          --previous-screenshot "$previous_sphere" \
-          >"$out/sphere-aim-$step.json" 2>"$out/sphere-reacquire-error-$step.txt"; then
-        echo "WARNING: sphere target still ambiguous after one stationary retry at step $step" | tee -a "$out/runtime.log"
+      if [[ "$reacquire_state" != found ]]; then
+        echo "WARNING: sphere target ambiguous after three stationary samples at step $step" | tee -a "$out/runtime.log"
         break
       fi
       reacquire_successes=$((reacquire_successes + 1))
-      echo "INFO: recovered guided sphere tracking after fresh frame $step" | tee -a "$out/runtime.log"
       xdotool keydown --clearmodifiers z
     fi
     guided_sphere_steps=$((guided_sphere_steps + 1))
