@@ -59,7 +59,7 @@ assert 'fired = pulse_if_aligned(status) if args.fire_aligned else False' in ins
 assert inspector.index('result = inspect_frame(pixels, width, height, font_rows())') < inspector.index(
     'fired = pulse_if_aligned(status)')
 assert inspector.index('fired = pulse_if_aligned(status)') < inspector.index(
-    'write_evidence(paths, result)')
+    '        write_evidence(paths, result)')
 assert 'finally:\n        subprocess.run(["xdotool", "keyup", "z"]' in inspector
 assert 'paths["gate"].unlink(missing_ok=True)' in inspector
 
