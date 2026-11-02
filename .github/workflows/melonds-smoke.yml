@@ -116,14 +116,14 @@ jobs:
           REQUIRE_ORB_COLLECTION: ${{ inputs.require_orb_collection && '1' || '0' }}
           CAPTURE_SWEEP_STEPS: ${{ inputs.capture_sweep_steps || '160' }}
         run: |
-          dbus-run-session -- xvfb-run -a -s '-screen 0 1280x900x24' \
-            bash scripts/melonds_smoke.sh "$GITHUB_WORKSPACE/melonds-dldi/dream_radar.nds" melonds-results
+          xvfb-run -a -s '-screen 0 1280x900x24' \
+            dbus-run-session -- bash scripts/melonds_smoke.sh "$GITHUB_WORKSPACE/melonds-dldi/dream_radar.nds" melonds-results
           mkdir -p melonds-first-run
           cp -a melonds-results/. melonds-first-run/
           test -s melonds-dldi/saves/dream_radar.dreamradar.sav
           echo "PASS: homebrew save file created on writable melonDS DLDI storage"
-          dbus-run-session -- xvfb-run -a -s '-screen 0 1280x900x24' \
-            env REQUIRE_PREEXISTING_ORB=1 \
+          xvfb-run -a -s '-screen 0 1280x900x24' \
+            dbus-run-session -- env REQUIRE_PREEXISTING_ORB=1 \
             bash scripts/melonds_smoke.sh "$GITHUB_WORKSPACE/melonds-dldi/dream_radar.nds" melonds-restart-results
           test -s melonds-dldi/saves/dream_radar.dreamradar.sav
           echo "PASS: clean second emulator process retained the homebrew save file"
