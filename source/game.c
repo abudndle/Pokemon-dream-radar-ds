@@ -341,17 +341,12 @@ int game_save(Game *g, const char *file) {
            homebrew save path, only clear it if the committed snapshot is
            still structurally intact. Never erase the sole recoverable copy
            when the destination is absent or corrupt. */
-        SaveData committed;
-        FILE *previous=fopen(file,"rb");
-        int intact=0;
-        if(previous) {
-            intact=fread(&committed,1,sizeof committed,previous)==sizeof committed;
-            if(intact && fgetc(previous)!=EOF)intact=0;
-            if(fclose(previous)!=0)intact=0;
-            if(intact)intact=committed.magic==SAVE_MAGIC &&
-                committed.version==SAVE_VERSION &&
-                committed.checksum==game_checksum(&committed);
-        }
+        Game committed;
+        game_new(&committed,1u);
+        /* Reuse the complete loader's checksum and semantic validation.
+           A correctly checksummed but invalid record is not a safe base
+           from which to discard an interrupted staging snapshot. */
+        int intact=game_load(&committed,file);
         if(intact && remove(temporary)==0)
             fd=open(temporary,O_WRONLY|O_CREAT|O_EXCL,0600);
     }
