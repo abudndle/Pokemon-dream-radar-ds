@@ -67,7 +67,9 @@ def summarize(directory):
     # even a positive meter delta is NOT proof of a completed capture.
     # A missing postfire frame remains unpaired, never a zero-damage claim.
     meters = {o["file"]: o["filled_pixels"] for o in observations}
+    meter_classes = {o["file"]: o["capture_class"] for o in observations}
     pulse_rows = []
+    pulse_classes = {}
     fired_steps = set()
     pattern = re.compile(r"sphere-prefire-(?:(corrected|stationary)-)?inspection-([0-9]+)\.json")
     for path in sorted(directory.glob("sphere-prefire-*inspection-*.json")):
@@ -95,15 +97,40 @@ def summarize(directory):
             raise ValueError(f"Fired pulse lacks valid aligned gate: {path}")
         fired_steps.add(step)
         prefix = "sphere-prefire-" + (variant + "-" if variant else "")
-        before = meters.get(f"{prefix}progress-{step}.json")
+        before_file = f"{prefix}progress-{step}.json"
+        after_file = f"sphere-progress-{step}.json"
+        before = meters.get(before_file)
         if before is None:
             raise ValueError(f"Fired pulse lacks prefire meter observation: {path}")
-        after = meters.get(f"sphere-progress-{step}.json")
+        after = meters.get(after_file)
+        # The postfire frame must describe the SAME encounter class. Mixing
+        # different encounters can fabricate apparent shot effectiveness.
+        if after is not None and meter_classes[before_file] != meter_classes[after_file]:
+            raise ValueError(f"Cross-encounter postfire meter evidence: {path}")
+        pulse_classes[step] = meter_classes[before_file]
         pulse_rows.append({"step": step, "prefire_meter": before,
                            "postfire_meter": after,
                            "meter_delta": after - before if after is not None else None})
     pulse_rows.sort(key=lambda p: p["step"])
     paired = [p for p in pulse_rows if p["meter_delta"] is not None]
+    # Group by the screenshot-recognized encounter class; never count an
+    # unpaired shot as a miss or a successful hit. A positive delta is only
+    # an observed meter change, not proof that this pulse caused it.
+    by_class = {}
+    for row in pulse_rows:
+        klass = pulse_classes[row["step"]]
+        stats = by_class.setdefault(klass, {"reported_pulses": 0,
+            "paired_meter_observations": 0, "positive_meter_deltas": 0,
+            "negative_meter_deltas": 0, "unpaired_pulses": 0})
+        stats["reported_pulses"] += 1
+        delta = row["meter_delta"]
+        if delta is None:
+            stats["unpaired_pulses"] += 1
+        else:
+            stats["paired_meter_observations"] += 1
+            stats["positive_meter_deltas"] += delta > 0
+            stats["negative_meter_deltas"] += delta < 0
+    by_class = dict(sorted(by_class.items()))
     reward_path = directory / "sphere-reward.json"
     image_path = directory / "05-capture-reward.png"
     reward_observed = False
@@ -139,6 +166,10 @@ def summarize(directory):
             "paired_postfire_meter_observations": len(paired),
             "unpaired_fire_pulses": len(pulse_rows) - len(paired),
             "positive_postfire_meter_deltas": sum(p["meter_delta"] > 0 for p in paired),
+            "negative_postfire_meter_deltas": sum(p["meter_delta"] < 0 for p in paired),
+            "zero_postfire_meter_deltas": sum(p["meter_delta"] == 0 for p in paired),
+            "paired_positive_pulse_fraction": (round(sum(p["meter_delta"] > 0 for p in paired) / len(paired), 4) if paired else None),
+            "postfire_meter_effectiveness_by_class": by_class,
             "max_postfire_meter_gain_pixels": max((max(0, p["meter_delta"]) for p in paired), default=None),
             "postfire_meter_delta_samples": pulse_rows,
             "prefire_gate_evaluations": len(prefire_decisions),
