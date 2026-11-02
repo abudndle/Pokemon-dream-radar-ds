@@ -47,10 +47,11 @@ for attempt in $(seq 1 60); do
     fi
   done < <(xdotool search --onlyvisible --name 'melonDS' 2>/dev/null || true)
   [[ -n "$window" ]] && break
-  if ! kill -0 "$pid" 2>/dev/null && ! xdotool search --onlyvisible --name 'melonDS' >/dev/null 2>&1; then
-    cat "$out/melonds.log" >&2
-    echo "melonDS launcher exited before a visible DS display; inspect melonds.log" >&2
-    exit 1
+  # Flatpak may return before its sandboxed GUI process has registered a window.
+  # Keep the full bounded window-discovery timeout instead of treating the
+  # short-lived launcher PID as proof that melonDS itself has exited.
+  if ! kill -0 "$pid" 2>/dev/null && [[ "$attempt" == 1 ]]; then
+    echo "Launcher PID exited; waiting for sandboxed melonDS window" >>"$out/runtime.log"
   fi
   sleep 1
 done
