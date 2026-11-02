@@ -243,6 +243,9 @@ with tempfile.TemporaryDirectory() as tmp:
     assert result["positive_postfire_meter_deltas"] == 1
     assert result["postfire_meter_delta_samples"][0]["meter_delta"] == 2
     assert not result["reward_screen_observed"]
+    (root / "sphere-prefire-corrected-progress-1.json").write_text(
+        json.dumps({"encounter": {"capture_class": "item"},
+                    "filled_pixels": 10, "bar_width": 177}))
     (root / "sphere-prefire-corrected-inspection-1.json").write_text(
         json.dumps({"status": "aligned", "fire_authorized": True,
                     "fire_executed": True}))
