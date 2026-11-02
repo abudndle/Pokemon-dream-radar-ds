@@ -219,6 +219,40 @@ with tempfile.TemporaryDirectory() as tmp:
     assert subprocess.run([sys.executable, str(ROOT / "tools/summarize_capture_attempt.py"), tmp],
                           capture_output=True).returncode == 0
 
+# Live PR #129 reached the new third-frame branch, then the summary
+# rejected its filename as unknown. Count the independently observed meter
+# without mistaking a reported A pulse for a completed capture.
+with tempfile.TemporaryDirectory() as tmp:
+    root = Path(tmp)
+    aligned = evaluate_prefire({"candidate_spheres": 1,
+                                "target_screen": {"x": 128, "y": 96},
+                                "offset": {"x": 0, "y": 0}})
+    (root / "sphere-prefire-gate-1.json").write_text(json.dumps(aligned))
+    (root / "sphere-prefire-recorrected-progress-1.json").write_text(
+        json.dumps({"encounter": {"capture_class": "item"},
+                    "filled_pixels": 10, "bar_width": 177}))
+    (root / "sphere-progress-1.json").write_text(
+        json.dumps({"encounter": {"capture_class": "item"},
+                    "filled_pixels": 12, "bar_width": 177}))
+    (root / "sphere-prefire-recorrected-inspection-1.json").write_text(
+        json.dumps({"status": "aligned", "fire_authorized": True,
+                    "fire_executed": True, "camera_correction_executed": False}))
+    result = summarize(root)
+    assert result["samples"] == 2
+    assert result["inspector_reported_fire_pulses"] == 1
+    assert result["positive_postfire_meter_deltas"] == 1
+    assert result["postfire_meter_delta_samples"][0]["meter_delta"] == 2
+    assert not result["reward_screen_observed"]
+    (root / "sphere-prefire-corrected-inspection-1.json").write_text(
+        json.dumps({"status": "aligned", "fire_authorized": True,
+                    "fire_executed": True}))
+    try:
+        summarize(root)
+    except ValueError as exc:
+        assert "duplicate" in str(exc).lower()
+    else:
+        raise AssertionError("Two inspector pulses for one step were accepted")
+
 smoke = (ROOT / "scripts/melonds_smoke.sh").read_text()
 assert 'tools/summarize_capture_attempt.py "$out"' in smoke
 print("PASS: capture meter summary never promotes progress into persisted reward claims")
