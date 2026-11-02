@@ -7,6 +7,25 @@ log. **This is a structural/provenance gate, not computer-vision verification
 of gameplay or proof of original 3DS parity.** Reviewers still need to inspect
 the actual screenshots and emulator interaction logs.
 
+## Verified ERRATIC screenshot classifier gap (2026-11-02)
+
+An actual Linux melonDS run (Actions #41384327262) reached a live
+ERRATIC sphere after independently verifying **0 → 2 saved Dream Orbs**.
+The first sphere-aim plan failed before any guided shot. The retained
+`05-sphere-before-1.png` shows a compact lavender encounter sprite:
+x=89–109, top-screen y=57–75, with many RGB (211,178,243) pixels.
+That palette fails both the prior dark/saturated and pale-pink
+thresholds. The updated fallback-only classifier adds a bounded violet
+component pass, retaining flat-backdrop validation and multi-target
+ambiguity rejection. Synthetic regressions cover shape, movement,
+tiny HUD glyphs and two distinct silhouettes.
+
+The screenshot demonstrates an encounter and a **classifier root cause**,
+not a completed capture. A successful host classifier test alone cannot
+establish live guided aim, meter progress, reward or restart persistence.
+Do not commit the emulator screenshot or proprietary source assets to
+public code; preserve screenshot evidence in the separate CI artifact.
+
 ## Expected evidence directory
 
 ```text
