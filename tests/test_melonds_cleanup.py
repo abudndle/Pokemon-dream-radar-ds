@@ -24,10 +24,11 @@ pid=$!
 printf 'Emulator launcher PID: %s\\n' "$pid" >"$out/runtime.log"
 if [[ "$2" == gui_close || "$2" == gui_quit ]]; then
   window=123
+  mock_mode="$2"
   xdotool() {
-    if [[ "$2" == gui_close && "$1" == windowclose ]]; then
+    if [[ "$mock_mode" == gui_close && "$1" == windowclose ]]; then
       kill -TERM "$pid"
-    elif [[ "$2" == gui_quit && "$1" == key ]]; then
+    elif [[ "$mock_mode" == gui_quit && "$1" == key ]]; then
       kill -TERM "$pid"
     else
       return 1
