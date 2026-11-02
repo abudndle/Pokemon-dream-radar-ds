@@ -67,8 +67,8 @@ with tempfile.TemporaryDirectory() as temporary:
         log_path = directory / "runtime.log"
         original_log = log_path.read_text()
         for marker in (
-            f"WARNING: Emulator launcher PID {launcher_pid} force-killed after SIGTERM timeout; save flush unverified\\n",
-            f"Emulator launcher PID {launcher_pid} still running after cleanup\\n",
+            f"WARNING: Emulator launcher PID {launcher_pid} force-killed after SIGTERM timeout; save flush unverified\n",
+            f"Emulator launcher PID {launcher_pid} still running after cleanup\n",
         ):
             rejected(lambda marker=marker: log_path.write_text(original_log + marker))
             log_path.write_text(original_log)
