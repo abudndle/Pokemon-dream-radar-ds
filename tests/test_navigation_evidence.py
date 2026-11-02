@@ -36,15 +36,15 @@ for mutation in ("missing", "reorder", "heading", "touch", "kind", "duplicate"):
         raise AssertionError("Invalid evidence accepted: " + mutation)
 # The live screenshot path must inspect all six frames, not merely trust JSON.
 # Mocks avoid claiming synthetic test images are actual melonDS screenshots.
-with patch("validate_navigation_evidence.font_rows", return_value=[0] * 768), \\
+with patch("validate_navigation_evidence.font_rows", return_value=[0] * 768), \
      patch("validate_navigation_evidence.decode_native_capture",
-           return_value=(bytes(256 * 384 * 3), 256, 384)) as decode, \\
+           return_value=(bytes(256 * 384 * 3), 256, 384)) as decode, \
      patch("validate_navigation_evidence.check_heading") as heading:
     assert check_report(base, "/synthetic")["navigation_verified"]
     assert decode.call_count == len(STAGES)
     assert heading.call_count == len(STAGES)
 
-with patch("validate_navigation_evidence.font_rows", return_value=[0] * 768), \\
+with patch("validate_navigation_evidence.font_rows", return_value=[0] * 768), \
      patch("validate_navigation_evidence.decode_native_capture",
            side_effect=ValueError("bad image dimensions")):
     try:
@@ -54,9 +54,9 @@ with patch("validate_navigation_evidence.font_rows", return_value=[0] * 768), \\
     else:
         raise AssertionError("Corrupt screenshot accepted")
 
-with patch("validate_navigation_evidence.font_rows", return_value=[0] * 768), \\
+with patch("validate_navigation_evidence.font_rows", return_value=[0] * 768), \
      patch("validate_navigation_evidence.decode_native_capture",
-           return_value=(bytes(256 * 384 * 3), 256, 384)), \\
+           return_value=(bytes(256 * 384 * 3), 256, 384)), \
      patch("validate_navigation_evidence.check_heading",
            side_effect=ValueError("heading mismatch")):
     try:
