@@ -61,6 +61,7 @@ jobs:
           python3 tests/test_navigation_evidence.py
           python3 tests/test_melonds_navigation.py
           python3 tests/test_melonds_aim.py
+          python3 tests/test_melonds_clean_restart.py
       - name: Install native melonDS dependencies and screenshot tools
         run: |
           sudo apt-get update -qq
@@ -136,26 +137,15 @@ jobs:
             dbus-run-session -- bash scripts/melonds_smoke.sh "$GITHUB_WORKSPACE/melonds-dldi/dream_radar.nds" melonds-results
           if [[ "${{ inputs.require_restart_persistence && '1' || '0' }}" == 1 ]]; then
             test -s melonds-dldi/saves/dream_radar.dreamradar.sav
-            python3 - <<'PY'
-          import json
-          from pathlib import Path
-          p=json.loads(Path('melonds-results/orb-balance-change.json').read_text())
-          if not p['balance_increased']:
-              raise SystemExit('No first-process Orb balance gain; cannot prove restart persistence')
-          Path('melonds-first-gained.json').write_text(json.dumps(p['after']))
-          PY
+            python3 -c 'import json; from pathlib import Path; p=json.loads(Path("melonds-results/orb-balance-change.json").read_text()); assert p.get("balance_increased") is True, "No first-session Orb gain"'
             xvfb-run -a -s '-screen 0 1280x900x24' \
               env QT_QPA_PLATFORM=xcb QT_QPA_PLATFORMTHEME=generic GSETTINGS_BACKEND=memory REQUIRE_PREEXISTING_ORB=1 \
               dbus-run-session -- bash scripts/melonds_smoke.sh "$GITHUB_WORKSPACE/melonds-dldi/dream_radar.nds" melonds-restart-results
-            python3 - <<'PY'
-          import json
-          from pathlib import Path
-          first=json.loads(Path('melonds-first-gained.json').read_text())['saved_orbs']
-          second=json.loads(Path('melonds-restart-results/orb-balance-before.json').read_text())['saved_orbs']
-          if first != second:
-              raise SystemExit(f'Orb balance not restored: expected {first}, observed {second}')
-          print(f'PASS: clean emulator restart restored exactly {second} saved Orbs')
-          PY
+            python3 tools/verify_melonds_clean_restart.py \
+              melonds-results melonds-restart-results \
+              melonds-dldi/saves/dream_radar.dreamradar.sav \
+              > melonds-restart-results/clean-restart-report.txt
+            cat melonds-restart-results/clean-restart-report.txt
           fi
       - name: Publish melonDS screenshot and logs
         if: always()
@@ -170,5 +160,6 @@ jobs:
             melonds-restart-results/*.png
             melonds-restart-results/*.log
             melonds-restart-results/*.json
+            melonds-restart-results/*.txt
           if-no-files-found: warn
           retention-days: 30
