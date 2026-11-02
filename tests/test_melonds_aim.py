@@ -393,3 +393,27 @@ except ValueError:
 else:
     raise AssertionError("Distinct fragmented encounter targets merged")
 print("PASS: real-style split blue/orange artwork is tracked, distinct sprites remain ambiguous")
+
+# A second live emulator encounter class (ERRATIC) displays a violet
+# thumbnail rather than the previously recognized pale pink or blue/orange.
+# Distinct blue-over-green hue is necessary to avoid the static cyan cloud.
+def violet_sphere_frame(cx=153, cy=90):
+    pixels = bytearray(sphere_frame(False))
+    for y in range(cy - 9, cy + 10):
+        for x in range(cx - 9, cx + 10):
+            at = ((y + OFFSET) * WIDTH + x) * 3
+            pixels[at:at + 3] = bytes((211, 178, 243))
+    return pixels
+
+
+violet = violet_sphere_frame()
+violet_targets = locate_spheres(violet, WIDTH, HEIGHT)
+assert len(violet_targets) == 1
+assert violet_targets[0][:2] == (153, 90)
+assert plan_sphere(violet, WIDTH, HEIGHT)["candidate_spheres"] == 1
+violet_motion = plan_sphere_motion(violet, violet_sphere_frame(160, 95),
+                                   WIDTH, HEIGHT)
+assert violet_motion["motion_prediction"] == "bounded"
+assert violet_motion["observed_target_screen"] == {"x": 160, "y": 95}
+assert locate_spheres(sphere_frame(False), WIDTH, HEIGHT) == []
+print("PASS: pastel-violet ERRATIC sprite tracks without cyan/white cloud false positives")
