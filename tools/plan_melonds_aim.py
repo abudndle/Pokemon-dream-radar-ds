@@ -241,19 +241,62 @@ def plan_sphere(pixels, width, height):
 
 
 def plan_sphere_motion(previous_pixels, pixels, width, height):
-    """Lead a moving DS fallback encounter silhouette using two real frames.
+    """Track a moving DS fallback encounter using two actual screenshots.
 
-    The gap between screenshots is not a known number of DS frames. A small,
-    bounded fraction of observed displacement is therefore only a heuristic,
-    not an assertion of a hit or an original 3DS tracking algorithm.
+    A second large foreground component can appear in the capture viewport.
+    When the current frame has multiple candidates, recover the one matching
+    the previously unique target *only* when distance, size and separation
+    make that association unambiguous. Never turn an ambiguous frame into
+    evidence of a hit, capture or original-game fidelity.
     """
-    current = plan_sphere(pixels, width, height)
-    observed = current["target_screen"].copy()
-    current["observed_target_screen"] = observed
-    current["motion_prediction"] = "unavailable"
+    previous = None
     try:
         previous = plan_sphere(previous_pixels, width, height)
     except ValueError:
+        pass
+
+    try:
+        current = plan_sphere(pixels, width, height)
+        current["motion_match"] = "unique_current"
+    except ValueError:
+        # Unknown backgrounds and blank frames still fail closed.
+        candidates = locate_spheres(pixels, width, height)
+        if previous is None or len(candidates) < 2:
+            raise
+        old = previous["target_screen"]
+        old_area = locate_spheres(previous_pixels, width, height)[0][2]
+        matches = []
+        for x, y, area in candidates:
+            distance_sq = (x - old["x"]) ** 2 + (y - old["y"]) ** 2
+            if distance_sq <= 50 ** 2 and 0.65 * old_area <= area <= 1.5 * old_area:
+                matches.append((distance_sq, x, y, area))
+        matches.sort()
+        if not matches:
+            raise ValueError("No continuous sphere target among multiple candidates")
+        # Compare actual distances, not squared-distance differences: the
+        # latter are too permissive for equally plausible close objects.
+        from math import sqrt
+        if len(matches) > 1 and (
+                sqrt(matches[1][0]) - sqrt(matches[0][0]) < 18):
+            raise ValueError("Ambiguous sphere motion association")
+        _, x, y, _ = matches[0]
+        dx, dy = x - 128, y - 96
+        current = {
+            "target_screen": {"x": x, "y": y},
+            "offset": {"x": dx, "y": dy},
+            "horizontal_key": "Right" if dx > 0 else "Left" if dx < 0 else "none",
+            "vertical_key": "Down" if dy > 0 else "Up" if dy < 0 else "none",
+            "horizontal_seconds": round(min(0.22, abs(dx) / 360), 3),
+            "vertical_seconds": round(min(0.22, abs(dy) / 360), 3),
+            "candidate_spheres": len(candidates),
+            "limitations": "Temporal match of fallback encounter artwork; not a verified hit or capture.",
+            "motion_match": "previous_unique_target",
+        }
+
+    observed = current["target_screen"].copy()
+    current["observed_target_screen"] = observed
+    current["motion_prediction"] = "unavailable"
+    if previous is None:
         current["motion_prediction"] = "previous_frame_unrecognized"
         return current
     dx = observed["x"] - previous["target_screen"]["x"]
