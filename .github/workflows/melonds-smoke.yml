@@ -45,6 +45,7 @@ on:
       - 'tools/plan_melonds_aim.py'
       - 'tests/test_melonds_navigation.py'
       - 'tests/test_melonds_aim.py'
+      - 'tests/test_melonds_cleanup.py'
       - 'tests/test_restored_orbs_gate.py'
       - 'tools/check_restored_orbs.py'
       - 'source/font6.h'
@@ -69,6 +70,7 @@ jobs:
           python3 tests/test_navigation_evidence.py
           python3 tests/test_melonds_navigation.py
           python3 tests/test_melonds_aim.py
+          python3 tests/test_melonds_cleanup.py
           python3 tests/test_melonds_clean_restart.py
           python3 tests/test_restored_orbs_gate.py
       - name: Install native melonDS dependencies and screenshot tools
