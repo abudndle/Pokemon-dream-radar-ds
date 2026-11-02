@@ -129,19 +129,26 @@ else:
 
 # Only the known flat-background, near-white DS encounter fallback can be
 # tracked. Never interpret an arbitrary textured frame as a capture target.
-def sphere_frame(with_target=True):
+def sphere_frame(with_target=True, dx=0, dy=0):
     pixels = bytearray(bytes((203, 211, 219)) * (WIDTH * HEIGHT))
+    # Large static white cloud belongs to the background, not the target.
+    for y in range(70 + OFFSET, 130 + OFFSET):
+        for x in range(70, 170):
+            at = (y * WIDTH + x) * 3
+            pixels[at:at + 3] = bytes((243, 243, 243))
     if with_target:
-        for y in range(70 + OFFSET, 130 + OFFSET):
-            for x in range(70, 170):
+        # Connected dark-and-orange DS fallback sprite, centered at 120,99.
+        for y in range(89 + OFFSET + dy, 110 + OFFSET + dy):
+            for x in range(110 + dx, 131 + dx):
                 at = (y * WIDTH + x) * 3
-                pixels[at:at + 3] = bytes((243, 243, 243))
-        # A small near-white reticle must not become another sphere.
-        for y in range(78 + OFFSET, 96 + OFFSET):
-            for x in range(215, 233):
-                at = (y * WIDTH + x) * 3
-                pixels[at:at + 3] = bytes((255, 255, 255))
+                pixels[at:at + 3] = bytes((24, 24, 32)) if x % 3 else bytes((251, 178, 24))
+    # Red hostile projectile is only 13px across and must not be tracked.
+    for y in range(80 + OFFSET, 93 + OFFSET):
+        for x in range(215, 228):
+            at = (y * WIDTH + x) * 3
+            pixels[at:at + 3] = bytes((251, 40, 40))
     return pixels
+
 
 spheres = locate_spheres(sphere_frame(), WIDTH, HEIGHT)
 assert len(spheres) == 1
@@ -165,12 +172,7 @@ for invalid in (
 # A fresh screenshot and an earlier one permit only bounded motion lead.
 # The planner must never claim a hit or predict from a missing/unknown frame.
 def shifted_sphere_frame(dx=0, dy=0):
-    pixels = bytearray(bytes((203, 211, 219)) * (WIDTH * HEIGHT))
-    for y in range(70 + OFFSET + dy, 130 + OFFSET + dy):
-        for x in range(70 + dx, 170 + dx):
-            at = (y * WIDTH + x) * 3
-            pixels[at:at + 3] = bytes((243, 243, 243))
-    return pixels
+    return sphere_frame(dx=dx, dy=dy)
 
 previous = shifted_sphere_frame()
 current = shifted_sphere_frame(20, -10)
@@ -206,6 +208,6 @@ else:
     raise AssertionError("Blank current sphere frame accepted as a target")
 print("PASS: two-frame sphere motion lead is bounded and fails closed")
 
-print("PASS: conservative sphere silhouette planner ignores reticle and unknown scenes")
+print("PASS: encounter art planner rejects static white cloud, small projectile and unknown scenes")
 
 print("PASS: screenshot-driven cloud/Orb aim planner handles nearest target and invalid frames")
