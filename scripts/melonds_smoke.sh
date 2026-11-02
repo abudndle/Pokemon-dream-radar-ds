@@ -116,6 +116,24 @@ if ! python3 tools/verify_melonds_navigation.py "$out" \
   rm -f "$out/orb-balance-before.json"
   echo "WARNING: could not read pre-search saved Orb balance" | tee -a "$out/runtime.log"
 fi
+# On the second, independently launched emulator process, refuse to proceed
+# unless the first process' saved Orb gain was actually restored. Merely
+# setting REQUIRE_PREEXISTING_ORB in the workflow is not an assertion.
+if [[ "${REQUIRE_PREEXISTING_ORB:-0}" == 1 ]]; then
+  if [[ ! -s "$out/orb-balance-before.json" ]]; then
+    echo "Clean-restart acceptance failed: no readable pre-search Orb balance" >&2
+    exit 1
+  fi
+  python3 - "$out/orb-balance-before.json" <<'PY'
+import json
+import sys
+from pathlib import Path
+balance = json.loads(Path(sys.argv[1]).read_text()).get("saved_orbs")
+if type(balance) is not int or not 1 <= balance <= 0xffffffff:
+    raise SystemExit("Clean-restart acceptance failed: no restored saved Dream Orbs")
+print(f"PASS: second emulator process read {balance} previously saved Dream Orbs")
+PY
+fi
 press_ds_key x 0.3
 # Returning to the lab resets selection to START SEARCH.
 press_ds_key z
