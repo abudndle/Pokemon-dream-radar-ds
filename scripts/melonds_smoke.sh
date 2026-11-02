@@ -370,6 +370,15 @@ if [[ -f "$out/05-sphere-encounter.png" ]]; then
       echo "INFO: encounter ended before sweep movement $step without verified reward" | tee -a "$out/runtime.log"
       break
     fi
+    # Preserve the current live frame as diagnostic evidence when the
+    # target classifier fails; never interpret an unrecognized frame as a
+    # successful capture. Capture pursuit must remain bounded.
+    if ! python3 tools/verify_melonds_navigation.py "$out" \
+        --observe-capture-progress "$current_sphere" \
+        >"$out/sphere-before-progress-$step.json" 2>/dev/null; then
+      echo "WARNING: pre-aim sphere frame $step is not recognized as capture progress" | tee -a "$out/runtime.log"
+      break
+    fi
     # Unknown artwork/backgrounds fail closed to the bounded manual sweep.
     if python3 tools/plan_melonds_aim.py "$current_sphere" --target sphere \
         --previous-screenshot "$previous_sphere" \
