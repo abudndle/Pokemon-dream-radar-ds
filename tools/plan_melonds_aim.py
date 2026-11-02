@@ -226,7 +226,7 @@ def locate_spheres(pixels, width, height):
     """Locate high-contrast DS fallback encounter art, NOT the white backdrop.
 
     The static white cloud in game_top.raw was previously mistaken for the
-    moving sphere. Only a sufficiently large connected dark/saturated sprite
+    moving sphere. Only a sufficiently large connected dark/saturated or pink sprite
     on the known flat backdrop is accepted; 13px hostile projectiles, reticle,
     HUD and arbitrary textured/original scenes are not tracked.
     """
@@ -270,6 +270,34 @@ def locate_spheres(pixels, width, height):
                     stack.append((nx, ny))
         # Require an artwork footprint larger than the 13x13 enemy ball.
         if len(xs) >= 35 and max(xs) - min(xs) >= 14 and max(ys) - min(ys) >= 14:
+            candidates.append((round(sum(xs) / len(xs)),
+                               round(sum(ys) / len(ys)) - offset, len(xs)))
+    # The real DS fallback DRIFTING sphere uses a pale pink 22x18 sprite,
+    # not the dark 21x21 fixture. Its pixels have a pink-violet tint even
+    # where it overlaps the large static white background cloud. Require
+    # a compact connected silhouette and the same verified flat backdrop.
+    # Scan down to y=183: the sphere can travel below the old y=168 cutoff.
+    pink = set()
+    for y in range(offset + 35, offset + 184):
+        for x in range(12, 244):
+            r, g, b = pixel(x, y)
+            if r >= 245 and b >= 210 and r >= g + 10 and b >= g + 7:
+                pink.add((x, y))
+    while pink:
+        stack = [pink.pop()]
+        xs, ys = [], []
+        while stack:
+            x, y = stack.pop()
+            xs.append(x)
+            ys.append(y)
+            for ny in (y - 1, y, y + 1):
+                for nx in (x - 1, x, x + 1):
+                    p = (nx, ny)
+                    if p in pink:
+                        pink.remove(p)
+                        stack.append(p)
+        w, h = max(xs) - min(xs), max(ys) - min(ys)
+        if 40 <= len(xs) <= 700 and 10 <= w <= 36 and 8 <= h <= 35:
             candidates.append((round(sum(xs) / len(xs)),
                                round(sum(ys) / len(ys)) - offset, len(xs)))
     return sorted(candidates, key=lambda p: -p[2])
