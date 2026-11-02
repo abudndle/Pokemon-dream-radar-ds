@@ -2,6 +2,11 @@ name: Linux melonDS boot and screenshots
 on:
   workflow_dispatch:
     inputs:
+      require_touch:
+        description: 'Fail unless title-screen stylus navigation is verified'
+        type: boolean
+        required: false
+        default: false
       require_capture:
         description: 'Require verified live capture reward (fails if none observed)'
         type: boolean
@@ -90,6 +95,7 @@ jobs:
           cat "$HOME/.var/app/net.kuribo64.melonDS/config/melonDS/melonDS.toml"
       - name: Launch melonDS and capture actual emulator window
         env:
+          REQUIRE_TOUCH: ${{ inputs.require_touch && '1' || '0' }}
           REQUIRE_CAPTURE: ${{ inputs.require_capture && '1' || '0' }}
           CAPTURE_SWEEP_STEPS: ${{ inputs.capture_sweep_steps || '160' }}
         run: |
