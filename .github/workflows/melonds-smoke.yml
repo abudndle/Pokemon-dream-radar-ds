@@ -13,6 +13,8 @@ on:
       - 'scripts/build_both.sh'
       - 'scripts/check_nds.py'
       - 'tools/verify_melonds_navigation.py'
+      - 'tools/validate_navigation_evidence.py'
+      - 'tests/test_navigation_evidence.py'
       - 'tools/plan_melonds_aim.py'
       - 'tests/test_melonds_navigation.py'
       - 'tests/test_melonds_aim.py'
@@ -28,7 +30,8 @@ jobs:
       - name: Validate encounter recognition and smoke-script syntax
         run: |
           bash -n scripts/melonds_smoke.sh
-          python3 -m py_compile tools/verify_melonds_navigation.py tools/plan_melonds_aim.py
+          python3 -m py_compile tools/verify_melonds_navigation.py tools/validate_navigation_evidence.py tools/plan_melonds_aim.py
+          python3 tests/test_navigation_evidence.py
           python3 tests/test_melonds_navigation.py
           python3 tests/test_melonds_aim.py
       - name: Install Flatpak and screenshot tools
