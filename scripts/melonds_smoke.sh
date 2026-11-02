@@ -638,41 +638,33 @@ if [[ -f "$out/05-sphere-encounter.png" ]]; then
     xdotool keyup z
     snapshot "05-sphere-before-$step"
     current_sphere="$out/05-sphere-before-$step.png"
-    # A reward can appear between the previous screenshot and this fresh
-    # pre-aim frame. Check it BEFORE moving or firing again; otherwise the
-    # sweep may dismiss Results and lose genuine capture evidence.
-    if python3 tools/verify_melonds_navigation.py "$out" \
-        --observe-reward-screenshot "$current_sphere" \
-        >"$out/sphere-reward-attempt.json" 2>/dev/null; then
-      mv "$out/sphere-reward-attempt.json" "$out/sphere-reward.json"
-      cp "$current_sphere" "$out/05-capture-reward.png"
-      capture_last="$current_sphere"
-      echo "PASS: real emulator capture reward observed before sweep movement $step" | tee -a "$out/runtime.log"
-      break
-    fi
-    rm -f "$out/sphere-reward-attempt.json"
-    if python3 tools/verify_melonds_navigation.py "$out" \
-        --observe-results-screenshot "$current_sphere" >/dev/null 2>&1; then
-      capture_last="$current_sphere"
-      echo "INFO: encounter ended before sweep movement $step without verified reward" | tee -a "$out/runtime.log"
-      break
-    fi
-    # Preserve the current live frame as diagnostic evidence when the
-    # target classifier fails; never interpret an unrecognized frame as a
-    # successful capture. Capture pursuit must remain bounded.
-    if ! python3 tools/verify_melonds_navigation.py "$out" \
-        --observe-capture-progress "$current_sphere" \
-        >"$out/sphere-before-progress-$step.json" 2>/dev/null; then
-      echo "WARNING: pre-aim sphere frame $step is not recognized as capture progress" | tee -a "$out/runtime.log"
-      break
-    fi
-    # Unknown artwork/backgrounds fail closed to the bounded manual sweep.
-    # A single ambiguous frame is not proof that the encounter is lost.
-    # Release the shoot key, take ONE fresh stationary sample and recheck
-    # Results before aiming again. Never fall back to blind directional fire.
-    if ! python3 tools/plan_melonds_aim.py "$current_sphere" --target sphere \
-        --previous-screenshot "$previous_sphere" \
-        >"$out/sphere-aim-$step.json" 2>"$out/sphere-aim-error-$step.txt"; then
+    # Decode this fresh frame once for Results, capture meter, and a
+    # two-frame CAMERA movement plan. A motion prediction NEVER fires A.
+    # The independent observed-only prefire inspector still gates every shot.
+    preaim_code=0
+    python3 tools/verify_sphere_preaim_frame.py "$current_sphere" \
+      --previous-screenshot "$previous_sphere" \
+      --reward "$out/sphere-reward-attempt.json" \
+      --progress "$out/sphere-before-progress-$step.json" \
+      --aim "$out/sphere-aim-$step.json" \
+      >"$out/sphere-preaim-inspection-$step.json" \
+      2>"$out/sphere-preaim-error-$step.txt" || preaim_code=$?
+    case "$preaim_code" in
+      20)
+        mv "$out/sphere-reward-attempt.json" "$out/sphere-reward.json"
+        cp "$current_sphere" "$out/05-capture-reward.png"
+        capture_last="$current_sphere"
+        echo "PASS: real emulator capture reward observed before sweep movement $step" | tee -a "$out/runtime.log"
+        break ;;
+      12)
+        capture_last="$current_sphere"
+        echo "INFO: pre-aim frame $step is no longer a recognized sphere encounter" | tee -a "$out/runtime.log"
+        break ;;
+      11) ;; # Target is obscured; observe again without firing.
+      0) ;;  # Camera movement plan only; NOT firing authorization.
+      *) echo "ERROR: pre-aim inspection failed ($preaim_code)" >&2; exit 1 ;;
+    esac
+    if [[ "$preaim_code" == 11 ]]; then
       reacquire_attempts=$((reacquire_attempts + 1))
       # Keep the beam OFF while the target is obscured. The sphere may cross
       # the HUD or overlap a projectile for several consecutive frames.
