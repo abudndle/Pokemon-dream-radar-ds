@@ -214,13 +214,21 @@ def compare_radar_counters(before, after):
 
 
 def compare_orb_counters(before, after):
-    """A decrease in visible live Orbs is evidence of collection, not saving."""
-    collected = before["orbs"] - after["orbs"]
-    return {"status": "orb_count_decreased" if collected > 0 else "orb_count_not_decreased",
+    """Count active-Orb disappearance without falsely claiming collection.
+
+    Dream Orbs also expire after 210 gameplay frames. Two radar screenshots
+    cannot distinguish an A-button hit from timeout, even if the test pressed
+    A between them. A verified collection needs an independently observed
+    increase in the persistent Orb balance (or equivalent game-state proof).
+    """
+    disappeared = before["orbs"] - after["orbs"]
+    return {"status": ("orb_count_decreased_unattributed" if disappeared > 0
+                       else "orb_count_not_decreased" if disappeared == 0
+                       else "orb_count_increased"),
             "before": before, "after": after,
-            "orbs_collected": max(0, collected),
-            "orb_collection_observed": collected > 0,
-            "limitations": "Does not establish an encounter, reward persistence or restart."}
+            "orbs_disappeared": max(0, disappeared),
+            "orb_collection_observed": False,
+            "limitations": "Live Orbs expire after 210 frames; a lower active count cannot prove collection. Compare independently verified persistent Orb balances."}
 
 
 def decode_native_capture(path):
