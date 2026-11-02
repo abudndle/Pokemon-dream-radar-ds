@@ -152,9 +152,9 @@ jobs:
             dbus-run-session -- bash scripts/melonds_smoke.sh "$GITHUB_WORKSPACE/melonds-dldi/dream_radar.nds" melonds-results
           if [[ "${{ inputs.require_restart_persistence && '1' || '0' }}" == 1 ]]; then
             test -s melonds-dldi/saves/dream_radar.dreamradar.sav
-            python3 -c 'import json; from pathlib import Path; p=json.loads(Path("melonds-results/orb-balance-change.json").read_text()); assert p.get("balance_increased") is True, "No first-session Orb gain"'
+            expected_orbs="$(python3 -c 'import json; from pathlib import Path; p=json.loads(Path("melonds-results/orb-balance-change.json").read_text()); assert p.get("balance_increased") is True, "No first-session Orb gain"; n=p["after"]["saved_orbs"]; assert type(n) is int and 0 < n <= 0xffffffff; print(n)')"
             xvfb-run -a -s '-screen 0 1280x900x24' \
-              env QT_QPA_PLATFORM=xcb QT_QPA_PLATFORMTHEME=generic QT_OPENGL=software QT_XCB_GL_INTEGRATION=none GSETTINGS_BACKEND=memory MESA_LOADER_DRIVER_OVERRIDE=softpipe REQUIRE_PREEXISTING_ORB=1 \
+              env QT_QPA_PLATFORM=xcb QT_QPA_PLATFORMTHEME=generic QT_OPENGL=software QT_XCB_GL_INTEGRATION=none GSETTINGS_BACKEND=memory MESA_LOADER_DRIVER_OVERRIDE=softpipe REQUIRE_PREEXISTING_ORB=1 EXPECTED_RESTORED_ORBS="$expected_orbs" \
               dbus-run-session -- bash scripts/melonds_smoke.sh "$GITHUB_WORKSPACE/melonds-dldi/dream_radar.nds" melonds-restart-results
             python3 tools/verify_melonds_clean_restart.py \
               melonds-results melonds-restart-results \
