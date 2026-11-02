@@ -278,7 +278,29 @@ if shutil.which("identify") and shutil.which("convert"):
         rejected = subprocess.run(command + ["--observe-reward-screenshot", str(png)],
                                   capture_output=True, text=True)
         assert rejected.returncode != 0
-    print("PASS: PNG-backed capture/reward CLI flags are registered and functional")
+        # The same single-convert decoder is used by the cloud/Orb/sphere
+        # planner CLI. Test a real PNG-backed temporal Orb pair, not only
+        # in-memory synthetic motion functions.
+        def orb_pixels(cx):
+            frame = bytearray(width * height * 3)
+            for yy in range(93 + OFFSET, 100 + OFFSET):
+                for xx in range(cx - 3, cx + 4):
+                    at = (yy * width + xx) * 3
+                    frame[at:at + 3] = bytes((251, 113, 130))
+            return frame
+        old_png = Path(tmp) / "orb-before.png"
+        write_png(old_png, orb_pixels(100))
+        write_png(png, orb_pixels(110))
+        planner = [sys.executable, str(Path(__file__).resolve().parents[1] /
+                                      "tools" / "plan_melonds_aim.py")]
+        tracked = subprocess.run(planner + [str(png), "--target", "orb",
+                                           "--previous-screenshot", str(old_png)],
+                                 capture_output=True, text=True)
+        assert tracked.returncode == 0, tracked.stderr
+        motion = json.loads(tracked.stdout)
+        assert motion["observed_target_screen"] == {"x": 110, "y": 96}
+        assert motion["motion_prediction"] == "bounded"
+    print("PASS: PNG-backed capture/reward CLI and temporal Orb planner decode real PNGs")
 else:
     print("SKIP: PNG CLI integration requires ImageMagick; tested after installation in melonDS CI")
 
