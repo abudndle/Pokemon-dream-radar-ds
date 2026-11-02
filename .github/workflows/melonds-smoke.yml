@@ -1,6 +1,18 @@
 name: Linux melonDS boot and screenshots
 on:
   workflow_dispatch:
+    inputs:
+      require_capture:
+        description: 'Require verified live capture reward (fails if none observed)'
+        type: boolean
+        required: false
+        default: false
+      capture_sweep_steps:
+        description: 'Maximum live sphere pursuit steps (1–160)'
+        type: choice
+        options: ['40', '80', '160']
+        required: false
+        default: '160'
   push:
     branches: [main, milestone-next-parity-audit-20261101]
   pull_request:
@@ -77,6 +89,9 @@ jobs:
           EOF
           cat "$HOME/.var/app/net.kuribo64.melonDS/config/melonDS/melonDS.toml"
       - name: Launch melonDS and capture actual emulator window
+        env:
+          REQUIRE_CAPTURE: ${{ inputs.require_capture && '1' || '0' }}
+          CAPTURE_SWEEP_STEPS: ${{ inputs.capture_sweep_steps || '160' }}
         run: |
           xvfb-run -a -s '-screen 0 1280x900x24' \
             bash scripts/melonds_smoke.sh dream_radar.nds melonds-results
