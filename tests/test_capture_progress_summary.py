@@ -25,6 +25,7 @@ with tempfile.TemporaryDirectory() as tmp:
     observation("sphere-edge-progress-4.json", 33)
     observation("sphere-prefire-progress-5.json", 12)
     observation("sphere-prefire-corrected-progress-5.json", 17)
+    observation("sphere-prefire-stationary-progress-5.json", 19)
     aligned = evaluate_prefire({"candidate_spheres": 1,
                                 "target_screen": {"x": 128, "y": 96},
                                 "offset": {"x": 0, "y": 0}})
@@ -34,7 +35,7 @@ with tempfile.TemporaryDirectory() as tmp:
     (root / "sphere-prefire-gate-5.json").write_text(json.dumps(aligned))
     (root / "sphere-prefire-gate-6.json").write_text(json.dumps(unaligned))
     result = summarize(root)
-    assert result["samples"] == 6
+    assert result["samples"] == 7
     assert result["prefire_gate_evaluations"] == 2
     assert result["prefire_aligned_observations"] == 1
     assert result["prefire_unaligned_observations"] == 1
@@ -51,7 +52,7 @@ with tempfile.TemporaryDirectory() as tmp:
         raise AssertionError("Forged prefire authorization was accepted")
     (root / "sphere-prefire-gate-5.json").write_text(json.dumps(aligned))
     result = summarize(root)
-    assert result["samples"] == 6 and result["max_meter_pixels"] == 33
+    assert result["samples"] == 7 and result["max_meter_pixels"] == 33
     assert result["max_meter_observation"] == "sphere-edge-progress-4.json"
     assert not result["reward_screen_observed"] and not result["reward_persisted_after_restart"]
     (root / "sphere-reward.json").write_text(json.dumps({"reward_kind": "item", "reward_name": "Test Item"}))
