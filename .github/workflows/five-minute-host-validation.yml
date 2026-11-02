@@ -38,6 +38,7 @@ jobs:
           python3 tests/test_melonds_cleanup.py
           python3 tests/test_melonds_clean_restart.py
           python3 tests/test_melonds_reward_restart.py
+          python3 tests/test_reward_restart_workflow.py
           python3 tests/test_restored_orbs_gate.py
       - name: Run DS and DSi syntax checks
         run: make test-syntax
