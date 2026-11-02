@@ -29,6 +29,8 @@ def inspect_frame(pixels, previous_pixels, width, height, font):
         progress = read_capture_progress(pixels, width, height, font)
     except ValueError:
         return "not_encounter", None, None, None
+    if previous_pixels is None:
+        return "ambiguous", None, progress, None
     try:
         aim = plan_sphere_motion(previous_pixels, pixels, width, height)
     except ValueError:
@@ -58,29 +60,16 @@ def main():
         path.unlink(missing_ok=True)
     try:
         pixels, width, height = decode_native_capture(args.screenshot)
-        # Do not require a previous valid image for an independently visible
-        # reward or ended encounter. Only camera motion needs that history.
+        # A missing or damaged previous frame must not hide a valid reward,
+        # nor authorize motion from an unverified history.
+        old = None
         try:
-            reward = read_capture_reward(pixels, width, height, font_rows())
-        except ValueError:
-            reward = None
-        if reward is not None:
-            result = ("reward", reward, None, None)
-        else:
-            try:
-                progress = read_capture_progress(pixels, width, height, font_rows())
-            except ValueError:
-                result = ("not_encounter", None, None, None)
-            else:
-                try:
-                    old, old_w, old_h = decode_native_capture(args.previous_screenshot)
-                    if (old_w, old_h) != (width, height):
-                        raise ValueError("Previous sphere frame dimensions changed")
-                    aim = plan_sphere_motion(old, pixels, width, height)
-                except (OSError, ValueError):
-                    result = ("ambiguous", None, progress, None)
-                else:
-                    result = ("target", None, progress, aim)
+            previous, old_w, old_h = decode_native_capture(args.previous_screenshot)
+            if (old_w, old_h) == (width, height):
+                old = previous
+        except (OSError, ValueError):
+            pass
+        result = inspect_frame(pixels, old, width, height, font_rows())
         status = write_evidence(paths, result)
     except (OSError, ValueError) as exc:
         parser.exit(13, f"Pre-aim frame inspection failed: {exc}\n")
