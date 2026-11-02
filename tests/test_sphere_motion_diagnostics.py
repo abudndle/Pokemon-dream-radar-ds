@@ -35,9 +35,11 @@ with tempfile.TemporaryDirectory() as tmp:
         write(root / f"sphere-prefire-{variant}inspection-{step}.json",
               {"status": "aligned", "fire_authorized": True,
                "fire_executed": True})
+        before = 2 if delta is not None and delta < 0 else 0
         report["postfire_meter_delta_samples"].append(
-            {"step": step, "prefire_meter": 0,
-             "postfire_meter": delta, "meter_delta": delta})
+            {"step": step, "prefire_meter": before,
+             "postfire_meter": before + delta if delta is not None else None,
+             "meter_delta": delta})
 
     fired(1, "", delta=3)
     fired(2, "corrected-", delta=0)
@@ -86,6 +88,15 @@ with tempfile.TemporaryDirectory() as tmp:
     assert result["shots"][1]["prefire_variant"] == "corrected-"
     assert result["shots"][2]["postfire_status"] == "missing_frame"
     assert result["shots"][3]["postfire_status"] == "target_not_uniquely_recognized"
+    strata = result["meter_response_by_projectile_proximity"]
+    assert strata["near_reticle"]["reported_pulses"] == 1
+    assert strata["near_reticle"]["positive_meter_changes"] == 1
+    assert strata["near_reticle"]["median_postfire_displacement_pixels"] == 4
+    assert strata["not_near_reticle"]["reported_pulses"] == 2
+    assert strata["not_near_reticle"]["zero_meter_changes"] == 1
+    assert strata["not_near_reticle"]["negative_meter_changes"] == 1
+    assert strata["unknown"]["reported_pulses"] == 1
+    assert strata["unknown"]["unpaired_pulses"] == 1
     assert "not proof" in result["limitations"]
 
     # Keep adversarial JSON tests independent of image decoder mocks. The
@@ -117,12 +128,55 @@ with tempfile.TemporaryDirectory() as tmp:
         raise AssertionError("Forged firing gate accepted")
     write(gate_path, original)
     write(root / "sphere-prefire-corrected-inspection-1.json",
-          {"fire_executed": True})
+          {"status": "aligned", "fire_authorized": True, "fire_executed": True})
     try:
         analyze(root)
     except ValueError as exc:
         assert "unique inspector" in str(exc)
     else:
         raise AssertionError("Multiple firing inspectors accepted")
+    (root / "sphere-prefire-corrected-inspection-1.json").unlink()
+
+    # The motion audit must not launder altered summary numbers or
+    # contradictory firing inspector evidence into measured effectiveness.
+    report["postfire_meter_delta_samples"][0]["meter_delta"] = 99
+    write(root / "sphere-attempt-report.json", report)
+    try:
+        analyze(root)
+    except ValueError as exc:
+        assert "meter row" in str(exc)
+    else:
+        raise AssertionError("Forged postfire meter delta accepted")
+    report["postfire_meter_delta_samples"][0]["meter_delta"] = 3
+    report["postfire_meter_delta_samples"][0]["postfire_meter"] = True
+    write(root / "sphere-attempt-report.json", report)
+    try:
+        analyze(root)
+    except ValueError as exc:
+        assert "meter row" in str(exc)
+    else:
+        raise AssertionError("Boolean meter observation accepted")
+    report["postfire_meter_delta_samples"][0]["postfire_meter"] = 3
+    report["inspector_reported_fire_pulses"] = 5
+    write(root / "sphere-attempt-report.json", report)
+    try:
+        analyze(root)
+    except ValueError as exc:
+        assert "pulse count" in str(exc)
+    else:
+        raise AssertionError("Mismatched summary pulse count accepted")
+    report["inspector_reported_fire_pulses"] = 4
+    write(root / "sphere-attempt-report.json", report)
+    inspector_path = root / "sphere-prefire-inspection-1.json"
+    inspector = json.loads(inspector_path.read_text())
+    write(inspector_path, {**inspector, "status": "unaligned"})
+    try:
+        analyze(root)
+    except ValueError as exc:
+        assert "Contradictory firing inspector" in str(exc)
+    else:
+        raise AssertionError("Unaligned inspector firing accepted")
+    write(inspector_path, inspector)
+    assert analyze(root)["meter_response_by_projectile_proximity"]["unknown"]["reported_pulses"] == 4
 
 print("PASS: postfire motion diagnostics separate target movement from actual hit evidence")

@@ -932,6 +932,10 @@ python3 tools/summarize_capture_attempt.py "$out" \
 # displacement separately from meter deltas, never as proof of a beam hit.
 python3 tools/analyze_sphere_motion.py "$out" \
   --output "$out/sphere-motion-report.json" | tee -a "$out/runtime.log"
+# Quantify camera-plan drift versus the fresh screenshot actually used for
+# firing decisions. Predictions never authorize shots or imply capture.
+python3 tools/analyze_prefire_drift.py "$out" \
+  --output "$out/sphere-prefire-drift-report.json" | tee -a "$out/runtime.log"
 if [[ -f "$out/05-capture-reward.png" ]]; then
   cp "$out/05-capture-reward.png" "$out/06-results.png"
 elif [[ -f "$out/06-results.png" ]]; then
