@@ -11,7 +11,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 from verify_melonds_navigation import (check_heading, font_rows, read_radar_counters,
                                        compare_radar_counters, compare_orb_counters,
                                        read_sphere_state, observe_search_state,
-                                       read_capture_reward, read_capture_progress,
+                                       read_capture_reward, read_capture_progress, decode_native_capture,
                                        read_shop_orb_balance, compare_shop_orb_balances,
                                        compare_restart_shop_orb_balances)
 
@@ -215,7 +215,37 @@ if shutil.which("identify") and shutil.which("convert"):
         png = Path(tmp) / "live.png"
         command = [sys.executable, str(Path(__file__).resolve().parents[1] /
                                        "tools" / "verify_melonds_navigation.py"), tmp]
-        write_png(png, results_reward_frame("pokemon", "Munna"))
+        source_pixels = results_reward_frame("pokemon", "Munna")
+        write_png(png, source_pixels)
+        decoded, decoded_width, decoded_height = decode_native_capture(png)
+        assert (decoded_width, decoded_height) == (256, 403)
+        assert decoded == bytes(source_pixels)
+        # A valid IHDR alone does not establish valid RGB pixels.
+        good_png = png.read_bytes()
+        png.write_bytes(good_png[:33])
+        try:
+            decode_native_capture(png)
+        except (ValueError, subprocess.CalledProcessError):
+            pass
+        else:
+            raise AssertionError("Truncated PNG IHDR was accepted as pixels")
+        png.write_bytes(b"not-a-png")
+        try:
+            decode_native_capture(png)
+        except ValueError as exc:
+            assert "PNG IHDR" in str(exc)
+        else:
+            raise AssertionError("Non-PNG frame accepted")
+        bad_size = bytearray(good_png)
+        bad_size[16:20] = struct.pack(">I", 512)
+        png.write_bytes(bad_size)
+        try:
+            decode_native_capture(png)
+        except ValueError as exc:
+            assert "Unscaled DS capture" in str(exc)
+        else:
+            raise AssertionError("Wrong-width frame accepted")
+        png.write_bytes(good_png)
         reward = subprocess.run(command + ["--observe-reward-screenshot", str(png)],
                                 capture_output=True, text=True)
         assert reward.returncode == 0, reward.stderr
