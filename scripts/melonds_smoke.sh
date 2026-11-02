@@ -105,6 +105,19 @@ fi
 # the real screen heading so animation alone cannot satisfy the smoke test.
 press_ds_key x
 snapshot 03-lab
+# Sample the saved Dream Orb balance BEFORE search. This is a different
+# counter from live Orb entities, which also disappear on timeout.
+press_ds_key Down 0.2
+press_ds_key z 0.3
+snapshot 03-shop-orbs-before
+if ! python3 tools/verify_melonds_navigation.py "$out" \
+    --observe-shop-orbs-screenshot "$out/03-shop-orbs-before.png" \
+    >"$out/orb-balance-before.json"; then
+  rm -f "$out/orb-balance-before.json"
+  echo "WARNING: could not read pre-search saved Orb balance" | tee -a "$out/runtime.log"
+fi
+press_ds_key x 0.3
+# Returning to the lab resets selection to START SEARCH.
 press_ds_key z
 snapshot 04-extensions
 press_ds_key z
@@ -397,6 +410,41 @@ snapshot 07-lab-return
 python3 tools/verify_melonds_navigation.py "$out" --touch-verified "$touch_verified"
 # Reject missing, duplicated, or out-of-order live navigation evidence.
 python3 tools/validate_navigation_evidence.py "$out/navigation-report.json" --screenshots "$out"
+# Read the persistent Orb balance after the search. A decreased active-Orb
+# counter cannot prove collection because live Orbs expire after 210 frames.
+# A positive shop balance delta can; neither proves restart persistence.
+if [[ -s "$out/orb-balance-before.json" ]]; then
+  press_ds_key Down 0.2
+  press_ds_key z 0.3
+  snapshot 08-shop-orbs-after
+  if python3 tools/verify_melonds_navigation.py "$out" \
+      --observe-shop-orbs-screenshot "$out/08-shop-orbs-after.png" \
+      >"$out/orb-balance-after.json"; then
+    python3 - "$out/orb-balance-before.json" "$out/orb-balance-after.json" \
+        "$out/orb-balance-change.json" <<'PY'
+import json
+import sys
+from pathlib import Path
+sys.path.insert(0, "tools")
+from verify_melonds_navigation import compare_shop_orb_balances
+before = json.loads(Path(sys.argv[1]).read_text())
+after = json.loads(Path(sys.argv[2]).read_text())
+result = compare_shop_orb_balances(before, after)
+Path(sys.argv[3]).write_text(json.dumps(result, indent=2) + "\\n")
+print("PASS: persistent Orb balance increased" if result["orb_collection_observed"]
+      else "INFO: no persistent Orb balance gain observed")
+PY
+  else
+    rm -f "$out/orb-balance-after.json"
+    echo "WARNING: could not read post-search saved Orb balance" | tee -a "$out/runtime.log"
+  fi
+fi
+if [[ "${REQUIRE_ORB_COLLECTION:-0}" == 1 ]] &&
+   ! python3 -c 'import json,sys; sys.exit(not json.load(open(sys.argv[1]))["orb_collection_observed"])' \
+      "$out/orb-balance-change.json" 2>/dev/null; then
+  echo "Strict Orb collection acceptance failed: no independently verified saved balance increase" >&2
+  exit 1
+fi
 if [[ "${REQUIRE_CAPTURE:-0}" == 1 && ! -f "$out/05-capture-reward.png" ]]; then
   echo "Strict capture acceptance failed: no verified reward screenshot" >&2
   exit 1
