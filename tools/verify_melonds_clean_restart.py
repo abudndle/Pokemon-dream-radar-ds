@@ -36,7 +36,7 @@ def verify_restart(first_dir, second_dir, save_file):
                  second_dir / "03-shop-orbs-before.png"):
         if not path.is_file() or path.stat().st_size < 8:
             raise ValueError(f"Missing emulator screenshot: {path}")
-        if path.open("rb").read(8) != b"\\x89PNG\\r\\n\\x1a\\n":
+        if path.open("rb").read(8) != b"\x89PNG\r\n\x1a\n":
             raise ValueError(f"Invalid PNG screenshot signature: {path}")
     if not save_file.is_file() or save_file.stat().st_size == 0:
         raise ValueError("No nonempty writable DLDI save file")
@@ -68,7 +68,7 @@ def main():
     try:
         result = verify_restart(args.first_dir, args.restart_dir, args.save_file)
     except (ValueError, OSError, KeyError, json.JSONDecodeError) as exc:
-        parser.exit(1, f"Clean-restart Orb acceptance failed: {exc}\\n")
+        parser.exit(1, f"Clean-restart Orb acceptance failed: {exc}\n")
     print(json.dumps(result, indent=2))
     print("PASS: independent melonDS process restored exact saved Dream Orb balance")
 
