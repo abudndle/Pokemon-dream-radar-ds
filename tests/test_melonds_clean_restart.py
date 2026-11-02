@@ -108,7 +108,7 @@ with tempfile.TemporaryDirectory() as temporary:
 import re
 workflow = (Path(__file__).resolve().parents[1] /
             ".github/workflows/melonds-smoke.yml").read_text()
-sizes = re.findall(r"^\\s*ImageSize = ([0-9]+)$", workflow, re.M)
+sizes = re.findall(r"^\s*ImageSize = ([0-9]+)$", workflow, re.M)
 assert len(sizes) == 1 and 0 <= int(sizes[0]) <= 5, sizes
 assert "FolderSync = true" in workflow and "ReadOnly = false" in workflow
 print("PASS: clean-restart gate rejects same PID, missing save, false balance and invalid screenshots")
