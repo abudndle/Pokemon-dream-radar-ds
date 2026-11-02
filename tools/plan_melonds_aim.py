@@ -274,7 +274,10 @@ def locate_spheres(pixels, width, height):
             150 <= left[2] <= 240):
         raise ValueError("Unknown or non-flat encounter backdrop; cannot safely track art")
     marked = set()
-    for y in range(offset + 42, offset + 169):
+    # SWIFT encounter artwork can travel into the last 23 rows of the
+    # TOP screen. Stop at offset+192 (exclusive), before touchscreen pixels.
+    # The former y<169 scan missed a real lower-edge sphere in melonDS.
+    for y in range(offset + 42, offset + 192):
         for x in range(12, 244):
             r, g, b = pixel(x, y)
             # The DS fallback background is grey/white/cyan. A target sprite
@@ -347,7 +350,7 @@ def locate_spheres(pixels, width, height):
     # a compact connected silhouette and the same verified flat backdrop.
     # Scan down to y=183: the sphere can travel below the old y=168 cutoff.
     pink = set()
-    for y in range(offset + 35, offset + 184):
+    for y in range(offset + 35, offset + 192):
         for x in range(12, 244):
             r, g, b = pixel(x, y)
             if r >= 245 and b >= 210 and r >= g + 10 and b >= g + 7:
@@ -379,7 +382,7 @@ def locate_spheres(pixels, width, height):
     # 13px hostile projectiles must not become aim targets.
     violet = set()
     top_edge_violet = []
-    for y in range(offset, offset + 184):
+    for y in range(offset, offset + 192):
         for x in range(12, 244):
             r, g, b = pixel(x, y)
             if (180 <= r <= 245 and 135 <= g <= 215 and b >= 215
