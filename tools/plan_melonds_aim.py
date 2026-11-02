@@ -341,6 +341,11 @@ def locate_spheres(pixels, width, height):
             candidates.append((round(sum(xs) / len(xs)),
                                round(sum(ys) / len(ys)) - offset, len(xs),
                                (min(xs), min(ys), max(xs), max(ys))))
+    # A narrow highlight can split a pastel sphere into several small
+    # islands. Merge only nearby, horizontally overlapping pink islands,
+    # then enforce the same bounded sprite geometry. This avoids accepting
+    # an isolated HUD glyph as an encounter target.
+    # (The connected-component pass above still handles intact sprites.)
     # A single sprite can contain both dark/saturated edges and a pastel
     # interior. The independent palette passes then report two overlapping
     # components for one real target, causing the unique-target planner to
