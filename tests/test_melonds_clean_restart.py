@@ -61,6 +61,17 @@ with tempfile.TemporaryDirectory() as temporary:
     rejected(lambda: (first / "runtime.log").write_text(
         "Emulator launcher PID: 1001\n"))
     (first / "runtime.log").write_text(original)
+    # A forced kill can leave buffered FAT/DLDI writes incomplete even when
+    # the cleanup trap subsequently records a terminated launcher PID.
+    for directory, launcher_pid in ((first, 1001), (second, 1002)):
+        log_path = directory / "runtime.log"
+        original_log = log_path.read_text()
+        for marker in (
+            f"WARNING: Emulator launcher PID {launcher_pid} force-killed after SIGTERM timeout; save flush unverified\\n",
+            f"Emulator launcher PID {launcher_pid} still running after cleanup\\n",
+        ):
+            rejected(lambda marker=marker: log_path.write_text(original_log + marker))
+            log_path.write_text(original_log)
     save.unlink()
     try:
         verify_restart(first, second, save)
