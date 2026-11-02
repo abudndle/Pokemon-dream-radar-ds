@@ -7,6 +7,8 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
+#include <sys/stat.h>
+#include <errno.h>
 
 static uint32_t rnd(Game *g) {
     uint32_t x = g->save.random_seed;
@@ -364,7 +366,30 @@ int game_save(Game *g, const char *file) {
         remove(temporary);
         return 0;
     }
+    /* FatFs on DS/DSi cannot rename over an existing destination. Keep
+       the last committed save under .bak while publishing the staged file,
+       so a power interruption between renames can be recovered by the
+       existing save_backend_load() backup path. */
+    char backup[512];
+    snprintf(backup,sizeof backup,"%s.bak",file);
+    struct stat previous;
+    int had_primary=stat(file,&previous)==0;
+    if(!had_primary && errno!=ENOENT) {
+        remove(temporary);
+        return 0;
+    }
+    if(had_primary) {
+        if(remove(backup)!=0 && errno!=ENOENT) {
+            remove(temporary);
+            return 0;
+        }
+        if(rename(file,backup)!=0) {
+            remove(temporary);
+            return 0;
+        }
+    }
     if(rename(temporary,file)!=0) {
+        if(had_primary)rename(backup,file);
         remove(temporary);
         return 0;
     }
