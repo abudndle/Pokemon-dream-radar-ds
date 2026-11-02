@@ -32,12 +32,26 @@ cleanup(){
   # ignore it; waiting indefinitely previously exhausted the 30-minute job.
   trap - EXIT
   local state attempt
-  kill -TERM "$pid" 2>/dev/null || true
-  for attempt in {1..40}; do
-    state="$(ps -o stat= -p "$pid" 2>/dev/null || true)"
-    [[ -z "$state" || "$state" == Z* ]] && break
-    sleep 0.1
-  done
+  # Ask Qt to close its window first. SIGTERM alone required SIGKILL in a
+  # real AppImage run, which cannot establish that FAT/DLDI writes flushed.
+  if [[ -n "${window:-}" ]]; then
+    xdotool windowclose "$window" 2>/dev/null || true
+    printf 'Emulator GUI close requested for XID %s\\n' "$window" >>"$out/runtime.log"
+    for attempt in {1..25}; do
+      state="$(ps -o stat= -p "$pid" 2>/dev/null || true)"
+      [[ -z "$state" || "$state" == Z* ]] && break
+      sleep 0.1
+    done
+  fi
+  state="$(ps -o stat= -p "$pid" 2>/dev/null || true)"
+  if [[ -n "$state" && "$state" != Z* ]]; then
+    kill -TERM "$pid" 2>/dev/null || true
+    for attempt in {1..40}; do
+      state="$(ps -o stat= -p "$pid" 2>/dev/null || true)"
+      [[ -z "$state" || "$state" == Z* ]] && break
+      sleep 0.1
+    done
+  fi
   state="$(ps -o stat= -p "$pid" 2>/dev/null || true)"
   if [[ -n "$state" && "$state" != Z* ]]; then
     kill -KILL "$pid" 2>/dev/null || true
