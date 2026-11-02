@@ -20,7 +20,7 @@ def should_extend(report, threshold=24):
     if (type(peak) is not int or type(samples) is not int or samples < 1
             or type(width) is not int or width != 177 or not 0 <= peak <= width
             or not isinstance(classes, list) or not classes
-            or not all(x in {"drifting", "swift", "erratic", "legendary", "item"} for x in classes)
+            or not all(type(x) is str and x in {"drifting", "swift", "erratic", "legendary", "item"} for x in classes)
             or type(reward) is not bool):
         raise ValueError("Invalid screenshot-derived meter evidence")
     if reward:
