@@ -20,10 +20,14 @@ python3 tools/verify_private_romfs.py
 # computes a streaming source SHA-256, and writes a PRIVATE report.
 python3 tools/verify_private_romfs.py \
   /private/dream-radar/source.ncch \
+  --darc-zip /private/dream-radar/177-darc-archives.zip \
+  --ui-zip /private/dream-radar/1462-ui-members.zip \
   --report /private/dream-radar/romfs-verified.json
 ```
 
-A comparison reports missing, unexpected and different-size virtual files.
+A comparison reports missing, unexpected and different-size virtual files. The
+optional archive arguments also validate ZIP CRCs, 177 DARC signatures and
+names against CARC sources, and exact 875/417/135/35 UI member coverage.
 It fails if there is any difference. It refuses to read a game image from,
 or write a report into, the public repository; report creation is atomic with
 owner-only permissions. Only private input and reports should ever contain
