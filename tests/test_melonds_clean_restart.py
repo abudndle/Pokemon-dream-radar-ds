@@ -70,6 +70,25 @@ with tempfile.TemporaryDirectory() as temporary:
         raise AssertionError("Missing save media accepted")
     save.write_bytes(b"synthetic-save-media")
     assert verify_restart(first, second, save)["persistence_verified"]
+    # Strict CI mode must independently decode all three PNG balances.
+    from unittest.mock import patch
+    with patch("verify_melonds_clean_restart.decode_native_capture",
+               return_value=(b"", 256, 403)), \
+         patch("verify_melonds_clean_restart.font_rows", return_value=[]), \
+         patch("verify_melonds_clean_restart.read_shop_orb_balance",
+               side_effect=[{"saved_orbs": 0}, {"saved_orbs": 2}, {"saved_orbs": 2}]):
+        assert verify_restart(first, second, save, verify_pixels=True)["persistence_verified"]
+    with patch("verify_melonds_clean_restart.decode_native_capture",
+               return_value=(b"", 256, 403)), \
+         patch("verify_melonds_clean_restart.font_rows", return_value=[]), \
+         patch("verify_melonds_clean_restart.read_shop_orb_balance",
+               side_effect=[{"saved_orbs": 0}, {"saved_orbs": 2}, {"saved_orbs": 1}]):
+        try:
+            verify_restart(first, second, save, verify_pixels=True)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("Sidecar JSON accepted despite mismatched screenshot digits")
     try:
         verify_restart(first, first, save)
     except ValueError:
