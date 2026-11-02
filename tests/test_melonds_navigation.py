@@ -91,15 +91,22 @@ orb_only = compare_radar_counters(before, {"clouds": 5, "orbs": 1})
 assert orb_only["status"] == "counters_changed_without_confirmed_cloud_removal"
 assert not orb_only["cloud_removal_observed"]
 
-collected = compare_orb_counters({"clouds": 4, "orbs": 3},
-                                 {"clouds": 4, "orbs": 2})
-assert collected["status"] == "orb_count_decreased"
-assert collected["orbs_collected"] == 1
-assert collected["orb_collection_observed"]
+# A live Orb can disappear by expiry after 210 frames, not only by
+# collection. A shot plus lower active counter is NOT reward evidence.
+expired_or_hit = compare_orb_counters({"clouds": 4, "orbs": 3},
+                                      {"clouds": 4, "orbs": 2})
+assert expired_or_hit["status"] == "orb_count_decreased_unattributed"
+assert expired_or_hit["orbs_disappeared"] == 1
+assert not expired_or_hit["orb_collection_observed"]
 missed = compare_orb_counters({"clouds": 4, "orbs": 3},
                               {"clouds": 4, "orbs": 3})
 assert missed["status"] == "orb_count_not_decreased"
 assert not missed["orb_collection_observed"]
+spawned = compare_orb_counters({"clouds": 4, "orbs": 1},
+                               {"clouds": 4, "orbs": 3})
+assert spawned["status"] == "orb_count_increased"
+assert spawned["orbs_disappeared"] == 0
+assert not spawned["orb_collection_observed"]
 
 # The dedicated sphere scene has a GOLD capture-class label and a WHITE timer.
 # Do not confuse a radar cloud hit with a successful Pokemon/item capture.
