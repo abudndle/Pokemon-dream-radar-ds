@@ -39,6 +39,14 @@ with patch("verify_sphere_preaim_frame.read_capture_reward", side_effect=ValueEr
      patch("verify_sphere_preaim_frame.plan_sphere_motion", side_effect=ValueError):
     assert inspect_frame(pixels, previous, 256, 403, [])[0] == "ambiguous"
 
+# Missing or mismatched prior frames may still report Results, but must
+# never create a motion plan for a live encounter.
+with patch("verify_sphere_preaim_frame.read_capture_reward", side_effect=ValueError), \
+     patch("verify_sphere_preaim_frame.read_capture_progress", return_value=progress), \
+     patch("verify_sphere_preaim_frame.plan_sphere_motion") as tracker:
+    assert inspect_frame(pixels, None, 256, 403, [])[0] == "ambiguous"
+    tracker.assert_not_called()
+
 with tempfile.TemporaryDirectory() as tmp:
     paths = {key: Path(tmp) / (key + ".json") for key in ("reward", "progress", "aim")}
     for path in paths.values():
