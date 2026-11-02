@@ -134,6 +134,22 @@ aim_ds_key() {
   xdotool keyup "$key"
   sleep "$settle"
 }
+# Capture a paired before/after record for each Orb-aim input pulse. These
+# measurements expose whether a key moves the reticle, camera, or target;
+# they do not authorize firing. The normal observed-alignment gate remains
+# the sole authority for an A-button shot.
+orb_aim_pulse() {
+  local label="$1" key="$2" seconds="$3" settle="${4:-0.06}"
+  [[ "$key" == none || "$seconds" == 0 ]] && return 0
+  snapshot "orb-calibration-$label-before"
+  python3 tools/plan_melonds_aim.py "$out/orb-calibration-$label-before.png" --target orb \
+    >"$out/orb-calibration-$label-before.json" 2>"$out/orb-calibration-$label-before.err" || true
+  printf 'pulse=%s key=%s hold_seconds=%s\\n' "$label" "$key" "$seconds" | tee -a "$out/orb-calibration.csv"
+  aim_ds_key "$key" "$seconds" "$settle"
+  snapshot "orb-calibration-$label-after"
+  python3 tools/plan_melonds_aim.py "$out/orb-calibration-$label-after.png" --target orb \
+    >"$out/orb-calibration-$label-after.json" 2>"$out/orb-calibration-$label-after.err" || true
+}
 if python3 tools/plan_melonds_aim.py "$out/05-radar.png" >"$out/aim-plan.json"; then
   read -r horizontal horizontal_seconds vertical vertical_seconds < <(
     python3 -c 'import json,sys; p=json.load(open(sys.argv[1])); print(p["horizontal_key"], p["horizontal_seconds"], p["vertical_key"], p["vertical_seconds"])' "$out/aim-plan.json"
@@ -195,8 +211,8 @@ if [[ ! -f "$out/05-sphere-encounter.png" ]] && \
   read -r horizontal horizontal_seconds vertical vertical_seconds < <(
     python3 -c 'import json,sys; p=json.load(open(sys.argv[1])); print(p["horizontal_key"], p["horizontal_seconds"], p["vertical_key"], p["vertical_seconds"])' "$out/orb-aim-plan.json"
   )
-  aim_ds_key "$horizontal" "$horizontal_seconds" 0.06
-  aim_ds_key "$vertical" "$vertical_seconds" 0.06
+  orb_aim_pulse initial-horizontal "$horizontal" "$horizontal_seconds" 0.06
+  orb_aim_pulse initial-vertical "$vertical" "$vertical_seconds" 0.06
   snapshot 05-radar-orb-aimed
   # Observe the moving Orb twice WITHOUT moving the D-pad between samples.
   # Reticle movement would contaminate the apparent Orb velocity.
@@ -212,8 +228,8 @@ if [[ ! -f "$out/05-sphere-encounter.png" ]] && \
       python3 -c 'import json,sys; p=json.load(open(sys.argv[1])); x=p["offset"]["x"]; y=p["offset"]["y"]; done=abs(x)<=4 and abs(y)<=4; print("none" if done else p["horizontal_key"], 0 if done else round(min(0.4,p["horizontal_seconds"]*1.5),3), "none" if done else p["vertical_key"], 0 if done else round(min(0.4,p["vertical_seconds"]*1.5),3))' "$out/orb-aim-correction-$correction.json"
     )
     [[ "$horizontal" == none && "$vertical" == none ]] && break
-    aim_ds_key "$horizontal" "$horizontal_seconds" 0.06
-    aim_ds_key "$vertical" "$vertical_seconds" 0.06
+    orb_aim_pulse "correction-$correction-horizontal" "$horizontal" "$horizontal_seconds" 0.06
+    orb_aim_pulse "correction-$correction-vertical" "$vertical" "$vertical_seconds" 0.06
     snapshot 05-radar-orb-aimed
   done
   # A moving Orb can leave the reticle during correction. Do not fire at a
