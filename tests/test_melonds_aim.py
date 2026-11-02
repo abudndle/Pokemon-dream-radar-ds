@@ -213,7 +213,7 @@ assert stationary["camera_only_lead_pixels"] == {"x": 0, "y": 0}
 # precisely at the reticle.
 from sphere_prefire_gate import evaluate as evaluate_prefire
 try:
-    evaluate(predicted)
+    evaluate_prefire(predicted)
 except ValueError:
     pass
 else:
