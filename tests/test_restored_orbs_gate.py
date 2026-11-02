@@ -54,6 +54,6 @@ assert '--expected-balance "$EXPECTED_RESTORED_ORBS"' in smoke
 assert 'REQUIRE_PREEXISTING_ORB=1' in workflow
 # The second emulator must exit after its independently decoded Orb balance;
 # it must not repeat the entire randomized capture/navigation sequence.
-assert smoke.index('exit 0\\nfi\\npress_ds_key x 0.3') > smoke.index('--expected-balance "$EXPECTED_RESTORED_ORBS"')
+assert smoke.index('exit 0\nfi\npress_ds_key x 0.3') > smoke.index('--expected-balance "$EXPECTED_RESTORED_ORBS"')
 assert 'trap cleanup EXIT' in smoke
 print("PASS: exact clean-restart Orb balance gate rejects stale, inflated and malformed evidence")
