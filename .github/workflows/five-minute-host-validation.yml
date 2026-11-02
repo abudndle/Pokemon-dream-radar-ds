@@ -35,6 +35,7 @@ jobs:
         run: make test-host
       - name: Reject false emulator restart and Orb restoration evidence
         run: |
+          python3 tests/test_melonds_cleanup.py
           python3 tests/test_melonds_clean_restart.py
           python3 tests/test_restored_orbs_gate.py
       - name: Run DS and DSi syntax checks
