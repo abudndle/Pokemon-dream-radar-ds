@@ -67,6 +67,10 @@ with tempfile.TemporaryDirectory() as tmp:
     assert result["shots"][3]["postfire_status"] == "target_not_uniquely_recognized"
     assert "not proof" in result["limitations"]
 
+    # Keep adversarial JSON tests independent of image decoder mocks. The
+    # previous valid frames were deliberately synthetic, not native PNGs.
+    for step in (1, 2, 4):
+        (root / f"05-sphere-sweep-{step}.png").unlink()
     # Duplicate pulse rows, forged gates and conflicting inspectors must
     # fail closed rather than inflating measured aiming effectiveness.
     report["postfire_meter_delta_samples"].append(dict(report["postfire_meter_delta_samples"][0]))
