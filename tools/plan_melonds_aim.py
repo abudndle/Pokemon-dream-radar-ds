@@ -247,6 +247,7 @@ def plan_orb_motion(previous_pixels, pixels, width, height):
         "vertical_seconds": round(min(0.5, abs(offset_y) / 360), 3),
         "motion_prediction": "bounded",
         "observed_displacement": {"x": dx, "y": dy},
+        "camera_only_lead_pixels": {"x": lead_x, "y": lead_y},
     })
     return current
 
@@ -578,8 +579,13 @@ def plan_sphere_motion(previous_pixels, pixels, width, height):
     if abs(dx) > 60 or abs(dy) > 60:
         current["motion_prediction"] = "discontinuity"
         return current
-    lead_x = max(-18, min(18, round(dx * 0.5)))
-    lead_y = max(-18, min(18, round(dy * 0.5)))
+    # Live ERRATIC screenshots show substantial target travel between the
+    # pre-aim sample and the post-movement prefire frame. Use a slightly
+    # stronger, still capped camera-only lead to reduce trailing the target.
+    # This is a pursuit heuristic, NOT firing evidence: the later independent
+    # prefire inspector requires a newly observed unique aligned target.
+    lead_x = max(-24, min(24, round(dx * 0.75)))
+    lead_y = max(-24, min(24, round(dy * 0.75)))
     x = max(20, min(236, observed["x"] + lead_x))
     # An ERRATIC target may be partly clipped by the DS viewport edge.
     # Never force a valid observed y=0..29 target down to y=30.
