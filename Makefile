@@ -203,6 +203,8 @@ test-host:
 	python3 tests/test_capture_progress_summary.py
 	python3 tests/test_capture_sweep_budget.py
 	python3 tests/test_capture_extension.py
+	python3 tests/test_melonds_reward_restart.py
+	python3 tests/test_reward_restart_workflow.py
 	python3 tests/test_workflow_concurrency.py
 	python3 tests/test_capture_emulator_evidence.py
 	python3 tools/verify_assets.py

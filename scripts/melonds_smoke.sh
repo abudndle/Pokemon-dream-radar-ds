@@ -156,6 +156,20 @@ sleep 10
 # This is a boot screenshot, not necessarily a title screenshot: the game
 # restores its last saved scene and can reopen the Development Lab shop.
 snapshot 01-title
+# A successful first-session Results reward must be independently visible
+# immediately after a fresh emulator process resumes the saved scene.
+# Never navigate away or accept a sidecar alone as restoration proof.
+if [[ "${REQUIRE_PREEXISTING_REWARD:-0}" == 1 ]]; then
+  if ! python3 tools/verify_melonds_navigation.py "$out" \
+      --observe-reward-screenshot "$out/01-title.png" \
+      >"$out/restored-reward.json" 2>"$out/restart-reward.err"; then
+    echo "Reward restart acceptance failed: fresh process did not resume a catalog-backed Results reward" >&2
+    exit 1
+  fi
+  cp "$out/01-title.png" "$out/03-restored-capture-reward.png"
+  echo "PASS: fresh emulator process independently displayed a catalog-backed saved reward" | tee -a "$out/runtime.log"
+  exit 0
+fi
 if [[ "${REQUIRE_PREEXISTING_ORB:-0}" == 1 ]]; then
   # A previous search can save the shop as the resume scene. On a genuinely
   # fresh second emulator launch, inspect its pixels BEFORE sending stylus
@@ -887,6 +901,34 @@ elif [[ -n "$capture_last" ]] &&
 else
   press_ds_key x
   snapshot 06-results
+fi
+# A verified reward must remain on the saved Results scene until shutdown.
+# Navigating back to the lab would overwrite the resume scene and make a
+# genuine reward impossible to verify in the next emulator process.
+if [[ -f "$out/05-capture-reward.png" ]]; then
+  if [[ "${REQUIRE_ORB_COLLECTION:-0}" == 1 ]]; then
+    echo "Strict Orb collection cannot be verified without post-search shop evidence" >&2
+    exit 1
+  fi
+  if [[ "${REQUIRE_TOUCH:-0}" == 1 && "$touch_verified" != 1 ]]; then
+    echo "Strict stylus check failed before capture; cannot claim touch parity" >&2
+    exit 1
+  fi
+  sleep 1
+  snapshot 06-results-preserved
+  python3 tools/verify_melonds_navigation.py "$out" \
+    --observe-reward-screenshot "$out/06-results-preserved.png" \
+    >"$out/reward-preserved-before-exit.json"
+  python3 - "$out/sphere-reward.json" "$out/reward-preserved-before-exit.json" <<'PY'
+import json,sys
+from pathlib import Path
+original=json.loads(Path(sys.argv[1]).read_text())
+visible=json.loads(Path(sys.argv[2]).read_text())
+if original != visible:
+    raise SystemExit("Results reward changed before save/restart")
+PY
+  echo "PASS: catalog-backed reward remains visible on Results at first-process shutdown; restart still unverified" | tee -a "$out/runtime.log"
+  exit 0
 fi
 press_ds_key x
 snapshot 07-lab-return
