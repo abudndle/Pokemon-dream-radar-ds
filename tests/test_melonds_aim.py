@@ -316,3 +316,39 @@ assert pink_motion["target_screen"]["x"] >= 120
 assert len(locate_spheres(pink_sphere_frame(120, 174), WIDTH, HEIGHT)) == 1
 assert locate_spheres(sphere_frame(False), WIDTH, HEIGHT) == []
 print("PASS: pale-pink live sphere silhouette is tracked without static-cloud false positives")
+
+
+# A real encounter thumbnail may combine a dark outline and pale-pink
+# interior. Both color passes see the SAME artwork; it must not be mistaken
+# for two separate moving spheres, or the aim planner refuses to track it.
+def mixed_palette_frame(centers):
+    pixels = bytearray(sphere_frame(False))
+    for cx, cy in centers:
+        for y in range(cy - 12, cy + 13):
+            for x in range(cx - 12, cx + 13):
+                at = ((y + OFFSET) * WIDTH + x) * 3
+                border = (abs(x - cx) == 12 or abs(y - cy) == 12)
+                pixels[at:at + 3] = (bytes((24, 24, 32)) if border
+                                     else bytes((251, 219, 243)))
+    return pixels
+
+
+mixed = mixed_palette_frame([(120, 99)])
+assert len(locate_spheres(mixed, WIDTH, HEIGHT)) == 1
+assert plan_sphere(mixed, WIDTH, HEIGHT)["target_screen"] == {"x": 120, "y": 99}
+moving_mixed = plan_sphere_motion(mixed, mixed_palette_frame([(132, 105)]),
+                                  WIDTH, HEIGHT)
+assert moving_mixed["motion_prediction"] == "bounded"
+assert moving_mixed["observed_target_screen"] == {"x": 132, "y": 105}
+
+# Two distinct mixed-palette sprites must remain two candidates; a nearby
+# distractor is not evidence that the actual capture target is unique.
+separate = mixed_palette_frame([(80, 99), (185, 99)])
+assert len(locate_spheres(separate, WIDTH, HEIGHT)) == 2
+try:
+    plan_sphere(separate, WIDTH, HEIGHT)
+except ValueError:
+    pass
+else:
+    raise AssertionError("Two distinct encounter sprites were deduplicated")
+print("PASS: overlapping palette components collapse, separate spheres stay ambiguous")
