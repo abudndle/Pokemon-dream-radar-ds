@@ -26,11 +26,11 @@ else
 fi
 "${launcher[@]}" "$rom" >"$out/melonds.log" 2>&1 &
 pid=$!
-printf 'Emulator launcher PID: %s\\n' "$pid" >>"$out/runtime.log"
+printf 'Emulator launcher PID: %s\n' "$pid" >>"$out/runtime.log"
 cleanup(){
   kill "$pid" 2>/dev/null || true
   wait "$pid" 2>/dev/null || true
-  printf 'Emulator launcher PID %s terminated\\n' "$pid" >>"$out/runtime.log"
+  printf 'Emulator launcher PID %s terminated\n' "$pid" >>"$out/runtime.log"
 }
 trap cleanup EXIT
 window=""
