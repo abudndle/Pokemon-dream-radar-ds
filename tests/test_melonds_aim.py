@@ -65,7 +65,7 @@ def edge_frame(x, y, size=11):
     return pixels
 
 
-for x, y in ((234, 45), (11, 65), (95, 170)):
+for x, y in ((234, 11), (234, 45), (11, 65), (95, 170)):
     edge = edge_frame(x, y)
     assert len(locate_cloud_edge_markers(edge, WIDTH, HEIGHT)) == 1
     guided_edge = plan(edge, WIDTH, HEIGHT)
