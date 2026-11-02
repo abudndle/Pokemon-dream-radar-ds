@@ -17,6 +17,11 @@ on:
         type: boolean
         required: false
         default: false
+      require_restart_persistence:
+        description: 'Require writable DLDI save and exact restored Orb balance in fresh melonDS process'
+        type: boolean
+        required: false
+        default: false
       capture_sweep_steps:
         description: 'Maximum live sphere pursuit steps (1–160)'
         type: choice
@@ -59,7 +64,7 @@ jobs:
       - name: Install Flatpak and screenshot tools
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends flatpak xvfb xauth xdotool imagemagick x11-utils
+          sudo apt-get install -y --no-install-recommends flatpak dbus-daemon xdg-desktop-portal xdg-desktop-portal-gtk xvfb xauth xdotool imagemagick x11-utils
           sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
       - name: Validate PNG-backed capture and reward CLI after ImageMagick install
         run: |
@@ -97,6 +102,17 @@ jobs:
           Select = 16777221
           Start = 16777220
           EOF
+          cat >> "$HOME/.var/app/net.kuribo64.melonDS/config/melonDS/melonDS.toml" <<EOF
+          [DLDI]
+          Enable = true
+          FolderSync = true
+          ReadOnly = false
+          ImageSize = 1073741824
+          FolderPath = "$GITHUB_WORKSPACE/melonds-dldi"
+          EOF
+          mkdir -p "$GITHUB_WORKSPACE/melonds-dldi/saves"
+          cp dream_radar.nds "$GITHUB_WORKSPACE/melonds-dldi/dream_radar.nds"
+          flatpak override --user --filesystem="$GITHUB_WORKSPACE/melonds-dldi" net.kuribo64.melonDS
           cat "$HOME/.var/app/net.kuribo64.melonDS/config/melonDS/melonDS.toml"
       - name: Launch melonDS and capture actual emulator window
         env:
@@ -106,7 +122,31 @@ jobs:
           CAPTURE_SWEEP_STEPS: ${{ inputs.capture_sweep_steps || '160' }}
         run: |
           xvfb-run -a -s '-screen 0 1280x900x24' \
-            bash scripts/melonds_smoke.sh dream_radar.nds melonds-results
+            env GSETTINGS_BACKEND=memory DCONF_PROFILE=/dev/null \
+            dbus-run-session -- bash scripts/melonds_smoke.sh "$GITHUB_WORKSPACE/melonds-dldi/dream_radar.nds" melonds-results
+          if [[ "${{ inputs.require_restart_persistence && '1' || '0' }}" == 1 ]]; then
+            test -s melonds-dldi/saves/dream_radar.dreamradar.sav
+            python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p=json.loads(Path('melonds-results/orb-balance-change.json').read_text())
+          if not p['balance_increased']:
+              raise SystemExit('No first-process Orb balance gain; cannot prove restart persistence')
+          Path('melonds-first-gained.json').write_text(json.dumps(p['after']))
+          PY
+            xvfb-run -a -s '-screen 0 1280x900x24' \
+              env GSETTINGS_BACKEND=memory DCONF_PROFILE=/dev/null REQUIRE_PREEXISTING_ORB=1 \
+              dbus-run-session -- bash scripts/melonds_smoke.sh "$GITHUB_WORKSPACE/melonds-dldi/dream_radar.nds" melonds-restart-results
+            python3 - <<'PY'
+          import json
+          from pathlib import Path
+          first=json.loads(Path('melonds-first-gained.json').read_text())['saved_orbs']
+          second=json.loads(Path('melonds-restart-results/orb-balance-before.json').read_text())['saved_orbs']
+          if first != second:
+              raise SystemExit(f'Orb balance not restored: expected {first}, observed {second}')
+          print(f'PASS: clean emulator restart restored exactly {second} saved Orbs')
+          PY
+          fi
       - name: Publish melonDS screenshot and logs
         if: always()
         uses: actions/upload-artifact@v4
@@ -117,5 +157,8 @@ jobs:
             melonds-results/*.log
             melonds-results/*.txt
             melonds-results/*.json
+            melonds-restart-results/*.png
+            melonds-restart-results/*.log
+            melonds-restart-results/*.json
           if-no-files-found: warn
           retention-days: 30
