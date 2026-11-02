@@ -30,7 +30,11 @@ printf 'Emulator launcher PID: %s\n' "$pid" >>"$out/runtime.log"
 cleanup(){
   kill "$pid" 2>/dev/null || true
   wait "$pid" 2>/dev/null || true
-  printf 'Emulator launcher PID %s terminated\n' "$pid" >>"$out/runtime.log"
+  if kill -0 "$pid" 2>/dev/null; then
+    printf 'Emulator launcher PID %s still running after cleanup\n' "$pid" >>"$out/runtime.log"
+  else
+    printf 'Emulator launcher PID %s terminated\n' "$pid" >>"$out/runtime.log"
+  fi
 }
 trap cleanup EXIT
 window=""
