@@ -271,7 +271,8 @@ def locate_spheres(pixels, width, height):
         # Require an artwork footprint larger than the 13x13 enemy ball.
         if len(xs) >= 35 and max(xs) - min(xs) >= 14 and max(ys) - min(ys) >= 14:
             candidates.append((round(sum(xs) / len(xs)),
-                               round(sum(ys) / len(ys)) - offset, len(xs)))
+                               round(sum(ys) / len(ys)) - offset, len(xs),
+                               (min(xs), min(ys), max(xs), max(ys))))
     # The real DS fallback DRIFTING sphere uses a pale pink 22x18 sprite,
     # not the dark 21x21 fixture. Its pixels have a pink-violet tint even
     # where it overlaps the large static white background cloud. Require
@@ -299,8 +300,31 @@ def locate_spheres(pixels, width, height):
         w, h = max(xs) - min(xs), max(ys) - min(ys)
         if 40 <= len(xs) <= 700 and 10 <= w <= 36 and 8 <= h <= 35:
             candidates.append((round(sum(xs) / len(xs)),
-                               round(sum(ys) / len(ys)) - offset, len(xs)))
-    return sorted(candidates, key=lambda p: -p[2])
+                               round(sum(ys) / len(ys)) - offset, len(xs),
+                               (min(xs), min(ys), max(xs), max(ys))))
+    # A single sprite can contain both dark/saturated edges and a pastel
+    # interior. The independent palette passes then report two overlapping
+    # components for one real target, causing the unique-target planner to
+    # reject otherwise valid live frames. Deduplicate only nearly concentric,
+    # strongly overlapping component bounds; keep distinct nearby targets.
+    unique = []
+    for cx, cy, area, bounds in sorted(candidates, key=lambda p: -p[2]):
+        left, top, right, bottom = bounds
+        duplicate = False
+        for ox, oy, _, other in unique:
+            if abs(cx - ox) > 8 or abs(cy - oy) > 8:
+                continue
+            overlap_width = max(0, min(right, other[2]) - max(left, other[0]) + 1)
+            overlap_height = max(0, min(bottom, other[3]) - max(top, other[1]) + 1)
+            overlap = overlap_width * overlap_height
+            smaller = min((right - left + 1) * (bottom - top + 1),
+                          (other[2] - other[0] + 1) * (other[3] - other[1] + 1))
+            if overlap >= 0.7 * smaller:
+                duplicate = True
+                break
+        if not duplicate:
+            unique.append((cx, cy, area, bounds))
+    return [(cx, cy, area) for cx, cy, area, _ in unique]
 
 
 def plan_sphere(pixels, width, height):
