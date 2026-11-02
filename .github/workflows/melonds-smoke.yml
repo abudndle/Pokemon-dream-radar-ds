@@ -121,12 +121,14 @@ jobs:
           CAPTURE_SWEEP_STEPS: ${{ inputs.capture_sweep_steps || '160' }}
         run: |
           xvfb-run -a -s '-screen 0 1280x900x24' \
+            env GSETTINGS_BACKEND=memory DCONF_PROFILE=/dev/null \
             dbus-run-session -- bash scripts/melonds_smoke.sh "$GITHUB_WORKSPACE/melonds-dldi/dream_radar.nds" melonds-results
           mkdir -p melonds-first-run
           cp -a melonds-results/. melonds-first-run/
           test -s melonds-dldi/saves/dream_radar.dreamradar.sav
           echo "PASS: homebrew save file created on writable melonDS DLDI storage"
           xvfb-run -a -s '-screen 0 1280x900x24' \
+            env GSETTINGS_BACKEND=memory DCONF_PROFILE=/dev/null \
             dbus-run-session -- env REQUIRE_PREEXISTING_ORB=1 \
             bash scripts/melonds_smoke.sh "$GITHUB_WORKSPACE/melonds-dldi/dream_radar.nds" melonds-restart-results
           test -s melonds-dldi/saves/dream_radar.dreamradar.sav
