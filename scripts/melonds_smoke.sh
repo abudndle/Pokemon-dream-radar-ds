@@ -523,6 +523,19 @@ python3 tools/validate_navigation_evidence.py "$out/navigation-report.json" --sc
 # Read the persistent Orb balance after the search. A decreased active-Orb
 # counter cannot prove collection because live Orbs expire after 210 frames.
 # A positive shop balance delta can; neither proves restart persistence.
+if [[ "${REQUIRE_PREEXISTING_ORB:-0}" == 1 ]]; then
+  python3 - "$out/orb-balance-before.json" <<'PY'
+import json,sys
+from pathlib import Path
+p=Path(sys.argv[1])
+if not p.is_file():
+    raise SystemExit("Restart persistence acceptance failed: no pre-search saved Orb balance could be read")
+value=json.loads(p.read_text()).get("saved_orbs")
+if not isinstance(value,int) or value < 1:
+    raise SystemExit(f"Restart persistence acceptance failed: expected >=1 saved Orb after fresh emulator launch, got {value!r}")
+print(f"PASS: fresh emulator process loaded {value} previously saved Dream Orb(s)")
+PY
+fi
 if [[ -s "$out/orb-balance-before.json" ]]; then
   press_ds_key Down 0.2
   press_ds_key z 0.3
