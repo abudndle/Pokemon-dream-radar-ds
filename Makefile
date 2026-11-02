@@ -48,8 +48,14 @@ test-host:
 	./build/test_cloud_animation
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c tests/test_gameplay_integration.c -o build/test_gameplay_integration
 	./build/test_gameplay_integration
+	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c tests/test_capture_milestone_end_to_end.c -o build/test_capture_milestone_end_to_end
+	./build/test_capture_milestone_end_to_end
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c tests/test_gameplay_save_roundtrip.c -o build/test_gameplay_save_roundtrip
 	./build/test_gameplay_save_roundtrip
+	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c tests/test_scene_checkpoint.c -o build/test_scene_checkpoint
+	./build/test_scene_checkpoint
+	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c source/twilight_saves.c source/save_backend.c tests/test_radar_checkpoint.c -o build/test_radar_checkpoint
+	./build/test_radar_checkpoint
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c tests/test_capture_expiry.c -o build/test_capture_expiry
 	./build/test_capture_expiry
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c tests/test_legendary_escape.c -o build/test_legendary_escape
@@ -87,6 +93,8 @@ test-host:
 	./build/test_orb_overflow
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c tests/test_empty_cloud_search.c -o build/test_empty_cloud_search
 	./build/test_empty_cloud_search
+	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c tests/test_cloud_search_visibility.c -o build/test_cloud_search_visibility
+	./build/test_cloud_search_visibility
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c tests/test_support_gameplay.c -o build/test_support_gameplay
 	./build/test_support_gameplay
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c tests/test_capture_viewport.c -o build/test_capture_viewport
@@ -182,4 +190,6 @@ test-host:
 	python3 tests/test_nds_header.py
 	python3 tests/test_verify_emulator_screenshots.py
 	python3 tests/test_melonds_navigation.py
+	python3 tests/test_melonds_aim.py
+	python3 tests/test_capture_emulator_evidence.py
 	python3 tools/verify_assets.py

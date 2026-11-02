@@ -1,0 +1,38 @@
+name: Dream Radar capture host acceptance
+on:
+  push:
+    branches: [milestone-next-parity-audit-20261101]
+  pull_request:
+    paths:
+      - 'source/**'
+      - 'tests/**'
+      - 'scripts/melonds_smoke.sh'
+      - 'tools/audit_capture_milestone.py'
+      - 'tests/test_capture_emulator_evidence.py'
+      - 'docs/PARALLEL_PORT_WORKSTREAMS.md'
+      - 'Makefile'
+      - '.github/workflows/capture-host-acceptance.yml'
+  workflow_dispatch:
+jobs:
+  host-capture-checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run host acceptance and retain its evidence
+        run: |
+          mkdir -p capture-evidence
+          printf '%s\\n' "commit=$GITHUB_SHA" "run=$GITHUB_RUN_ID" > capture-evidence/build-context.txt
+          python3 tools/audit_capture_milestone.py --run-host > capture-evidence/host-audit.json
+      - name: Upload capture host evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: capture-host-evidence
+          path: capture-evidence/
+      - name: Reject incomplete emulator capture evidence
+        run: python3 tests/test_capture_emulator_evidence.py
+      - name: Guard radar input parity
+        run: python3 tests/test_radar_input_parity.py
+      - name: Run screenshot recognition regression checks
+        run: python3 tests/test_melonds_navigation.py

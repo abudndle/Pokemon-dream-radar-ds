@@ -2,7 +2,7 @@ name: Linux melonDS boot and screenshots
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, milestone-next-parity-audit-20261101]
   pull_request:
     paths:
       - '.github/workflows/melonds-smoke.yml'
@@ -13,6 +13,9 @@ on:
       - 'scripts/build_both.sh'
       - 'scripts/check_nds.py'
       - 'tools/verify_melonds_navigation.py'
+      - 'tools/plan_melonds_aim.py'
+      - 'tests/test_melonds_navigation.py'
+      - 'tests/test_melonds_aim.py'
       - 'source/font6.h'
 jobs:
   melonds-boot:
@@ -22,11 +25,20 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
+      - name: Validate encounter recognition and smoke-script syntax
+        run: |
+          bash -n scripts/melonds_smoke.sh
+          python3 -m py_compile tools/verify_melonds_navigation.py tools/plan_melonds_aim.py
+          python3 tests/test_melonds_navigation.py
+          python3 tests/test_melonds_aim.py
       - name: Install Flatpak and screenshot tools
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends flatpak xvfb xauth xdotool imagemagick x11-utils
           sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+      - name: Validate PNG-backed capture and reward CLI after ImageMagick install
+        run: |
+          python3 tests/test_melonds_navigation.py
       - name: Install official melonDS Flatpak
         run: |
           sudo flatpak install --noninteractive -y flathub net.kuribo64.melonDS

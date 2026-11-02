@@ -571,7 +571,7 @@ static void render_search_bottom(void) {
         rect(bottom,sx-10,sy-7,20,14,0x8842);
         print(bottom,sx-7,sy-5,WHITE,text);
     }
-    /* Original bottom-screen art only. D-pad aims and A fires; no new joystick. */
+    /* Original bottom-screen art only. A does not fire on the radar screen. */
     /* Keep the original Back hotspot at the bottom right. */
 }
 /* Keep the complete target near the visible playfield. The clamped edge
@@ -1465,12 +1465,13 @@ static void switch_screen(GameScreen next) {
     /* Keep the camera stream alive across cloud-to-encounter transitions.
        Restarting it here discards the live preview and can briefly blank it. */
     if(was_search && !is_search)camera_off();
+    if(game.screen!=next)game.requested_save=1; /* Save menu navigation too. */
     game.screen=next;game.selection=0;
     if(next==STATE_TITLE)title_ui_started_frame=game.save.frames_played;
     if(next==STATE_RADAR || next==STATE_SPHERE)radar_fire_armed=0;
-    if(next==STATE_EXTENSIONS)scanlist_ui_started_frame=game.save.frames_played;
     if(next==STATE_LAB)mainmenu_ui_started_frame=game.save.frames_played;
     if(next==STATE_SHOP)shoplist_ui_started_frame=game.save.frames_played;
+    if(next==STATE_EXTENSIONS)scanlist_ui_started_frame=game.save.frames_played;
     if(next!=STATE_TRANSFER)game.archive_confirm=0;
     if(!was_search && is_search)camera_on();
 }
@@ -1561,8 +1562,8 @@ static void handle_key(int keys,int down,touchPosition *touch) {
     }
     if(game.screen==STATE_RADAR || game.screen==STATE_SPHERE){
         int back_touch = (down & KEY_TOUCH) && touch->px>=188 && touch->py>=174;
-        /* Hardware controls work in BOTH cloud search and Pokémon/item encounters.
-           No stylus aiming or synthetic joystick overrides the original touch UI. */
+        /* DS fallback directional aiming applies in both search and encounters.
+           Original camera/touch shooting controls still require parity work. */
         /* DSi camera aiming replaces the D-pad while live motion tracking
            is active. DS and camera-disabled DSi retain D-pad aiming. */
         if(!(running_dsi && game.camera_active && game.camera_ok)) {
@@ -1575,23 +1576,15 @@ static void handle_key(int keys,int down,touchPosition *touch) {
         if(game.aim_x>249)game.aim_x=249;
         if(game.aim_y<6)game.aim_y=6;
         if(game.aim_y>184)game.aim_y=184;
-        /* A fires at clouds or at revealed encounter targets. Touch is reserved
-           for the original support-item and Back controls. */
+        /* The original game fires the beam with A in both radar search
+           and sphere encounters. Hold A for repeated shots. */
         if(dr_search_fire_gate((keys&KEY_A)!=0,&radar_fire_armed) &&
            (game.save.frames_played%5==0))game_fire(&game);
         if((down&KEY_TOUCH) && game.screen==STATE_SPHERE && touch->py>=58 && !back_touch) {
             int best=dr_support_at(touch->px,touch->py);
             if(best>=0) game_use_support(&game,best);
         }
-        /* DSi-enhanced players can press L+R together to photograph the
-           current outer-camera view. Only trigger on a new shoulder press,
-           not every frame while both buttons remain held. */
-        if(running_dsi && ((down&KEY_X) ||
-           dr_photo_shortcut(running_dsi,keys,down,KEY_L,KEY_R))) {
-            if(save_photo())snprintf(game.message,sizeof game.message,"Photo saved on DSi SD card.");
-            else snprintf(game.message,sizeof game.message,"Camera photo unavailable.");
-            game.messages=120;
-        }
+        /* Radar and encounter controls never capture photos. */
         if((down&KEY_B) || ((down&KEY_TOUCH) && touch->px>=188 && touch->py>=174)){
             game_leave_search(&game);
         }
@@ -2040,6 +2033,10 @@ running_dsi=isDSiMode();
         if((game.screen==STATE_SPHERE || game.screen==STATE_RADAR) && !game.camera_active)camera_on();
         if(game.screen==STATE_SPHERE || game.screen==STATE_RADAR)update_camera();
         render();
+        /* Keep the in-flight radar snapshot fresh without writing SD every
+           frame: at most ten seconds of unsaved aiming progress on reboot. */
+        if(have_storage && (game.screen==STATE_RADAR || game.screen==STATE_SPHERE) &&
+           (game.save.frames_played%600)==0)game.requested_save=1;
         if(game.requested_save && have_storage && (game.save.frames_played%30)==0){
             if(save_backend_write(&save_backend,&game))game.requested_save=0;
             else {snprintf(game.message,sizeof game.message,"Could not save Dream Radar progress.");game.messages=120;}
