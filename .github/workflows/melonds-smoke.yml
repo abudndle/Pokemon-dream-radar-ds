@@ -47,6 +47,7 @@ on:
       - 'tools/sphere_prefire_gate.py'
       - 'tests/test_sphere_prefire_gate.py'
       - 'tests/test_sphere_fire_gating.py'
+      - 'tests/test_prefire_workflow_coverage.py'
       - 'tools/summarize_capture_attempt.py'
       - 'tests/test_capture_progress_summary.py'
       - 'tests/test_sphere_edge_recovery.py'
@@ -80,6 +81,7 @@ jobs:
           python3 tests/test_sphere_edge_recovery.py
           python3 tests/test_sphere_prefire_gate.py
           python3 tests/test_sphere_fire_gating.py
+          python3 tests/test_prefire_workflow_coverage.py
           python3 tests/test_capture_progress_summary.py
           python3 tests/test_melonds_cleanup.py
           python3 tests/test_melonds_clean_restart.py
