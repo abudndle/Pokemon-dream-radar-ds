@@ -16,6 +16,11 @@ loop = script[start:end]
 call = 'python3 tools/verify_sphere_prefire_frame.py "$prefire_frame" --fire-aligned'
 assert loop.count(call) == 3, "Only fresh inspector calls may pulse A"
 assert 'xdotool keydown --clearmodifiers z' not in loop
+assert loop.count('python3 tools/verify_sphere_preaim_frame.py "$current_sphere"') == 1
+assert loop.index('python3 tools/verify_sphere_preaim_frame.py "$current_sphere"') < loop.index('aim_ds_pair "$horizontal"')
+assert 'if [[ "$preaim_code" == 11 ]]; then' in loop
+assert '20)' in loop and '12)' in loop
+assert '--fire-aligned' not in loop.split('python3 tools/verify_sphere_preaim_frame.py "$current_sphere"', 1)[1].split('    if [[ "$preaim_code" == 11 ]]; then', 1)[0]
 # Fast prefire capture retains a real X11 screenshot and nonempty-file check.
 fast = script.split('snapshot_fast() {', 1)[1].split('\n}', 1)[0]
 assert 'import -silent -window "$window" "$out/$name.png"' in fast
