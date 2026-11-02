@@ -374,6 +374,8 @@ fi
 press_ds_key x
 snapshot 07-lab-return
 python3 tools/verify_melonds_navigation.py "$out" --touch-verified "$touch_verified"
+# Reject missing, duplicated, or out-of-order live navigation evidence.
+python3 tools/validate_navigation_evidence.py "$out/navigation-report.json"
 if [[ "${REQUIRE_CAPTURE:-0}" == 1 && ! -f "$out/05-capture-reward.png" ]]; then
   echo "Strict capture acceptance failed: no verified reward screenshot" >&2
   exit 1
