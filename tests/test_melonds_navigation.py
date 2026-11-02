@@ -7,6 +7,7 @@ import subprocess
 import tempfile
 import zlib
 import shutil
+from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 from verify_melonds_navigation import (check_heading, font_rows, read_radar_counters,
                                        compare_radar_counters, compare_orb_counters,
@@ -217,9 +218,24 @@ if shutil.which("identify") and shutil.which("convert"):
                                        "tools" / "verify_melonds_navigation.py"), tmp]
         source_pixels = results_reward_frame("pokemon", "Munna")
         write_png(png, source_pixels)
-        decoded, decoded_width, decoded_height = decode_native_capture(png)
+        # The decoder must invoke only one external process, convert.
+        # This is a latency regression guard, not an emulator hit claim.
+        original_run = subprocess.run
+        with patch("verify_melonds_navigation.subprocess.run",
+                   wraps=original_run) as calls:
+            decoded, decoded_width, decoded_height = decode_native_capture(png)
+        assert len(calls.call_args_list) == 1, calls.call_args_list
+        assert calls.call_args_list[0].args[0][0] == "convert"
         assert (decoded_width, decoded_height) == (256, 403)
         assert decoded == bytes(source_pixels)
+        with patch("verify_melonds_navigation.subprocess.run") as broken:
+            broken.return_value.stdout = b"short"
+            try:
+                decode_native_capture(png)
+            except ValueError as exc:
+                assert "RGB length mismatch" in str(exc)
+            else:
+                raise AssertionError("Truncated decoded RGB frame accepted")
         # A valid IHDR alone does not establish valid RGB pixels.
         good_png = png.read_bytes()
         png.write_bytes(good_png[:33])
