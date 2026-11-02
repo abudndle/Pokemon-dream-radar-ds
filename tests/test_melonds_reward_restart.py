@@ -83,7 +83,7 @@ with tempfile.TemporaryDirectory() as tmp:
     (second / "runtime.log").write_text("Emulator launcher PID: 102\n")
     rejected(first, second, save)
     (second / "runtime.log").write_text(log)
-    (second / "runtime.log").write_text(log + "Emulator launcher PID: 103\nEmulator launcher PID 103 terminated\\n")
+    (second / "runtime.log").write_text(log + "Emulator launcher PID: 103\nEmulator launcher PID 103 terminated\n")
     rejected(first, second, save)
     (second / "runtime.log").write_text(log)
     first_log = (first / "runtime.log").read_text()
