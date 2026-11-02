@@ -107,6 +107,11 @@ jobs:
         run: |
           mkdir -p "$HOME/.config/melonDS"
           cat > "$HOME/.config/melonDS/melonDS.toml" <<'EOF'
+          [Screen]
+          UseGL = false
+          VSync = false
+          [3D]
+          Renderer = 0
           [Instance0]
           [Instance0.Keyboard]
           A = 90
@@ -141,13 +146,13 @@ jobs:
           CAPTURE_SWEEP_STEPS: ${{ inputs.capture_sweep_steps || '160' }}
         run: |
           xvfb-run -a -s '-screen 0 1280x900x24' \
-            env QT_QPA_PLATFORM=xcb QT_QPA_PLATFORMTHEME=generic GSETTINGS_BACKEND=memory \
+            env QT_QPA_PLATFORM=xcb QT_QPA_PLATFORMTHEME=generic QT_OPENGL=software QT_XCB_GL_INTEGRATION=none GSETTINGS_BACKEND=memory MESA_LOADER_DRIVER_OVERRIDE=softpipe \
             dbus-run-session -- bash scripts/melonds_smoke.sh "$GITHUB_WORKSPACE/melonds-dldi/dream_radar.nds" melonds-results
           if [[ "${{ inputs.require_restart_persistence && '1' || '0' }}" == 1 ]]; then
             test -s melonds-dldi/saves/dream_radar.dreamradar.sav
             python3 -c 'import json; from pathlib import Path; p=json.loads(Path("melonds-results/orb-balance-change.json").read_text()); assert p.get("balance_increased") is True, "No first-session Orb gain"'
             xvfb-run -a -s '-screen 0 1280x900x24' \
-              env QT_QPA_PLATFORM=xcb QT_QPA_PLATFORMTHEME=generic GSETTINGS_BACKEND=memory REQUIRE_PREEXISTING_ORB=1 \
+              env QT_QPA_PLATFORM=xcb QT_QPA_PLATFORMTHEME=generic QT_OPENGL=software QT_XCB_GL_INTEGRATION=none GSETTINGS_BACKEND=memory MESA_LOADER_DRIVER_OVERRIDE=softpipe REQUIRE_PREEXISTING_ORB=1 \
               dbus-run-session -- bash scripts/melonds_smoke.sh "$GITHUB_WORKSPACE/melonds-dldi/dream_radar.nds" melonds-restart-results
             python3 tools/verify_melonds_clean_restart.py \
               melonds-results melonds-restart-results \
