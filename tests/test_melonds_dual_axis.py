@@ -55,7 +55,9 @@ for args in (("z", "0.1", "Down", "0.1"),
 capture = script.split('capture_last=""\nif [[ -f "$out/05-sphere-encounter.png" ]]; then', 1)[1].split('# Persist an explicit meter ceiling', 1)[0]
 assert capture.count('aim_ds_pair "$horizontal" "$horizontal_seconds" "$vertical" "$vertical_seconds" 0.06') == 1
 assert 'aim_ds_pair "$fix_h"' not in capture
-assert capture.count('--correct-unaligned') == 1
+assert capture.count('--correct-unaligned') == 2
+assert capture.index('snapshot_fast "05-sphere-prefire-corrected-$step"') < capture.index('--correct-min-distance 26')
+assert capture.index('--correct-min-distance 26') < capture.index('snapshot_fast "05-sphere-prefire-recorrected-$step"')
 assert 'sphere_inline_corrections=$((sphere_inline_corrections + 1))' in capture
 assert capture.index('aim_ds_pair "$horizontal"') < capture.index('snapshot_fast "05-sphere-prefire-$step"')
 assert capture.index('sphere_inline_corrections=$((sphere_inline_corrections + 1))') < capture.index('snapshot_fast "05-sphere-prefire-corrected-$step"')
