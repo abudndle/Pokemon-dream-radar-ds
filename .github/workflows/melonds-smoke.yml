@@ -129,10 +129,12 @@ jobs:
           EOF
           cat >> "$HOME/.config/melonDS/melonDS.toml" <<EOF
           [DLDI]
+          # melonDS stores a size COMBOBOX INDEX: 0=Auto, 1=256MB, 2=512MB,
+          # 3=1GB. A byte count here is invalid and may block startup.
           Enable = true
           FolderSync = true
           ReadOnly = false
-          ImageSize = 1073741824
+          ImageSize = 1
           FolderPath = "$GITHUB_WORKSPACE/melonds-dldi"
           EOF
           mkdir -p "$GITHUB_WORKSPACE/melonds-dldi/saves"
