@@ -46,7 +46,21 @@ with tempfile.TemporaryDirectory() as tmp:
     write(root / "sphere-attempt-report.json", report)
     for step in (1, 2, 4):
         (root / f"05-sphere-sweep-{step}.png").write_bytes(b"test-png")
-    with patch("analyze_sphere_motion.decode_native_capture",
+    for step, variant in ((1, ""), (2, "corrected-"), (4, "")):
+        (root / f"05-sphere-prefire-{variant}{step}.png").write_bytes(b"test-png")
+    with patch("analyze_sphere_motion.describe_projectiles",
+               side_effect=[
+                   {"projectile_centers": [{"x": 128, "y": 96}],
+                    "projectile_near_reticle": True,
+                    "nearest_projectile_distance_pixels": 0.0},
+                   {"projectile_centers": [{"x": 109, "y": 139}],
+                    "projectile_near_reticle": False,
+                    "nearest_projectile_distance_pixels": 47.0},
+                   {"projectile_centers": [],
+                    "projectile_near_reticle": False,
+                    "nearest_projectile_distance_pixels": None},
+               ]) as projectiles, \
+         patch("analyze_sphere_motion.decode_native_capture",
                return_value=(b"fake-rgb", 256, 403)) as decode, \
          patch("analyze_sphere_motion.plan_sphere",
                side_effect=[
@@ -54,7 +68,14 @@ with tempfile.TemporaryDirectory() as tmp:
                    {"target_screen": {"x": 160, "y": 96}},
                    ValueError("ambiguous")]) as track:
         result = analyze(root)
-    assert decode.call_count == 3 and track.call_count == 3
+    assert decode.call_count == 6 and track.call_count == 3
+    assert projectiles.call_count == 3
+    assert result["prefire_projectile_frames_inspected"] == 3
+    assert result["prefire_projectile_frames_missing"] == 1
+    assert result["prefire_frames_with_projectiles"] == 2
+    assert result["prefire_projectiles_near_reticle"] == 1
+    assert result["shots"][0]["prefire_projectile_near_reticle"] is True
+    assert result["shots"][2]["prefire_projectile_near_reticle"] is None
     assert result["inspector_reported_pulses"] == 4
     assert result["postfire_targets_recognized"] == 2
     assert result["postfire_targets_unrecognized"] == 1
@@ -71,6 +92,8 @@ with tempfile.TemporaryDirectory() as tmp:
     # previous valid frames were deliberately synthetic, not native PNGs.
     for step in (1, 2, 4):
         (root / f"05-sphere-sweep-{step}.png").unlink()
+    for step, variant in ((1, ""), (2, "corrected-"), (4, "")):
+        (root / f"05-sphere-prefire-{variant}{step}.png").unlink()
     # Duplicate pulse rows, forged gates and conflicting inspectors must
     # fail closed rather than inflating measured aiming effectiveness.
     report["postfire_meter_delta_samples"].append(dict(report["postfire_meter_delta_samples"][0]))
