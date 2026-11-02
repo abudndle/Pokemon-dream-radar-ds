@@ -174,6 +174,47 @@ with patch('verify_sphere_prefire_frame.subprocess.run') as run, \
     sleep.assert_called_once_with(0.15)
     assert run.call_args_list[-1].args[0] == ['xdotool', 'keyup', 'Right']
 
+# A second camera correction must NOT chase an observed near miss:
+# keep the reticle stationary and independently re-sample the sphere.
+# This threshold is checked only after the same-frame unique-target gate.
+with patch('verify_sphere_prefire_frame.subprocess.run') as run, \
+     patch('verify_sphere_prefire_frame.time.sleep') as sleep:
+    assert correct_if_unaligned('unaligned', unaligned, 26) is False
+    edge = {'candidate_spheres': 1, 'target_screen': {'x': 154, 'y': 96},
+            'offset': {'x': 26, 'y': 0}}
+    assert correct_if_unaligned('unaligned', edge, 26) is False
+    run.assert_not_called()
+    sleep.assert_not_called()
+
+beyond = {'candidate_spheres': 1, 'target_screen': {'x': 155, 'y': 96},
+          'offset': {'x': 27, 'y': 0}}
+with patch('verify_sphere_prefire_frame.subprocess.run') as run, \
+     patch('verify_sphere_prefire_frame.time.sleep') as sleep:
+    assert correct_if_unaligned('unaligned', beyond, 26) is True
+    assert [c.args[0] for c in run.call_args_list] == [
+        ['xdotool', 'keyup', 'z'],
+        ['xdotool', 'keydown', '--clearmodifiers', 'Right'],
+        ['xdotool', 'keyup', 'Right']]
+    sleep.assert_called_once_with(0.075)
+
+with patch('verify_sphere_prefire_frame.subprocess.run') as run:
+    for invalid_threshold in (-1, 257, True, 26.0):
+        try:
+            correct_if_unaligned('unaligned', beyond, invalid_threshold)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError('Invalid correction threshold accepted')
+    for invalid_target in ({**beyond, 'motion_prediction': 'bounded'},
+                           {**beyond, 'candidate_spheres': 2}):
+        try:
+            correct_if_unaligned('unaligned', invalid_target, 26)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError('Unverified target bypassed distance threshold')
+    run.assert_not_called()
+
 # Predicted, ambiguous, aligned or forged offsets can never request a
 # camera correction; no input is sent on any validation failure.
 with patch('verify_sphere_prefire_frame.subprocess.run') as run:

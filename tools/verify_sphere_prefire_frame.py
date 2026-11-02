@@ -73,7 +73,7 @@ def pulse_if_aligned(status):
 
 
 
-def correct_if_unaligned(status, aim):
+def correct_if_unaligned(status, aim, min_distance=0):
     """Move the camera immediately from a unique fresh *unaligned* frame.
 
     This is a bounded, no-fire correction. A second independent screenshot
@@ -86,6 +86,12 @@ def correct_if_unaligned(status, aim):
     if gate["fire_authorized"]:
         raise ValueError("Aligned gate cannot request camera correction")
     dx, dy = aim["offset"]["x"], aim["offset"]["y"]
+    if type(min_distance) is not int or not 0 <= min_distance <= 256:
+        raise ValueError("Invalid minimum camera correction distance")
+    # Do not chase a near miss with another camera pulse. A stationary
+    # independently decoded screenshot is safer for a moving sphere.
+    if dx * dx + dy * dy <= min_distance * min_distance:
+        return False
     # The earlier 0.12 s cap moved at most ~43 pixels. Actual melonDS
     # prefire diagnostics recorded many residuals above 50 pixels, leaving
     # the next independently checked frame predictably out of alignment.
@@ -130,6 +136,8 @@ def main():
                         help="Pulse DS A immediately after a fresh aligned observation; never on other statuses")
     parser.add_argument("--correct-unaligned", action="store_true",
                         help="Move camera from fresh unaligned target; require another screenshot before firing")
+    parser.add_argument("--correct-min-distance", type=int, default=0,
+                        help="Skip no-fire correction when the observed reticle distance is at or below this pixel threshold")
     args = parser.parse_args()
     paths = {name: getattr(args, name) for name in ("reward", "progress", "aim", "gate")}
     # A failed decode must not leave stale gate JSON that looks authorized.
@@ -145,7 +153,8 @@ def main():
         # Evidence is written only after the bounded pulse has released A;
         # any pulse/write failure is still a hard error, never a claimed hit.
         fired = pulse_if_aligned(status) if args.fire_aligned else False
-        corrected = correct_if_unaligned(status, result[3]) if args.correct_unaligned else False
+        corrected = (correct_if_unaligned(status, result[3], args.correct_min_distance)
+                     if args.correct_unaligned else False)
         write_evidence(paths, result)
     except (OSError, ValueError, subprocess.CalledProcessError,
             subprocess.TimeoutExpired) as exc:

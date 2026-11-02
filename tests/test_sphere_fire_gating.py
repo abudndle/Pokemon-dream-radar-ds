@@ -10,11 +10,11 @@ start = script.index('capture_last=""\nif [[ -f "$out/05-sphere-encounter.png" ]
 end = script.index("# Persist an explicit meter ceiling", start)
 loop = script[start:end]
 
-# There must be exactly three screenshot-conditioned firing sites: initial, corrected,
-# and one optional stationary near-miss retry. Never fire from the
+# There must be exactly four screenshot-conditioned firing sites: initial,
+# corrected, optional bounded recorrection, and stationary near-miss retry. Never fire from the
 # predicted/old aim plan or from a stationary/edge reacquisition.
 call = 'python3 tools/verify_sphere_prefire_frame.py "$prefire_frame" --fire-aligned'
-assert loop.count(call) == 3, "Only fresh inspector calls may pulse A"
+assert loop.count(call) == 4, "Only fresh inspector calls may pulse A"
 assert 'xdotool keydown --clearmodifiers z' not in loop
 assert loop.count('python3 tools/verify_sphere_preaim_frame.py "$current_sphere"') == 1
 assert loop.index('python3 tools/verify_sphere_preaim_frame.py "$current_sphere"') < loop.index('aim_ds_pair "$horizontal"')
@@ -26,23 +26,27 @@ fast = script.split('snapshot_fast() {', 1)[1].split('\n}', 1)[0]
 assert 'import -silent -window "$window" "$out/$name.png"' in fast
 assert 'test -s "$out/$name.png"' in fast
 assert 'identify ' not in fast and 'xwininfo ' not in fast
-first, second, third = [i for i in range(len(loop)) if loop.startswith(call, i)]
+first, second, third, fourth = [i for i in range(len(loop)) if loop.startswith(call, i)]
 assert loop.index('snapshot_fast "05-sphere-prefire-$step"') < first
 assert first < loop.index('case "$prefire_code" in')
 assert loop.index('snapshot_fast "05-sphere-prefire-corrected-$step"') < second
 assert second < loop.index('case "$corrected_code" in')
-assert loop.index('snapshot_fast "05-sphere-prefire-stationary-$step"') < third
-assert third < loop.index('case "$stationary_code" in')
-assert loop.index('tools/check_stationary_retry.py') < third
+assert loop.index('snapshot_fast "05-sphere-prefire-recorrected-$step"') < third
+assert third < loop.index('case "$recorrected_code" in')
+assert loop.index('snapshot_fast "05-sphere-prefire-stationary-$step"') < fourth
+assert fourth < loop.index('case "$stationary_code" in')
+assert loop.index('tools/check_stationary_retry.py') < fourth
 assert 'sphere_stationary_retries=$((sphere_stationary_retries + 1))' in loop
 assert loop.index('aim_ds_pair "$horizontal"') < first
 assert 'aim_ds_pair "$fix_h"' not in loop
 assert loop.index('--correct-unaligned') < loop.index('snapshot_fast "05-sphere-prefire-corrected-$step"')
-assert loop.count('--correct-unaligned') == 1
+assert loop.count('--correct-unaligned') == 2
+assert '--correct-min-distance 26' in loop
+assert 'recorrection_decision=' in loop
 assert 'camera_correction_executed' in loop
 assert 'sphere_inline_corrections=$((sphere_inline_corrections + 1))' in loop
-assert loop.index('sphere_fire_authorized=$((sphere_fire_authorized + 1))') > third
-assert loop.index('snapshot "05-sphere-sweep-$step"') > third
+assert loop.index('sphere_fire_authorized=$((sphere_fire_authorized + 1))') > fourth
+assert loop.index('snapshot "05-sphere-sweep-$step"') > fourth
 
 # An aligned result is the only status that may advance to post-fire capture.
 # A reward, ambiguous target, or lost encounter must not authorize another shot.
@@ -66,7 +70,7 @@ assert inspector.index('fired = pulse_if_aligned(status)') < inspector.index(
     '        write_evidence(paths, result)')
 assert 'finally:\n        subprocess.run(["xdotool", "keyup", "z"]' in inspector
 assert 'paths["gate"].unlink(missing_ok=True)' in inspector
-assert inspector.index('corrected = correct_if_unaligned(status, result[3])') < inspector.index('        write_evidence(paths, result)')
+assert inspector.index('corrected = (correct_if_unaligned(status, result[3], args.correct_min_distance)') < inspector.index('        write_evidence(paths, result)')
 assert 'if status != "unaligned":' in inspector
 assert 'gate = evaluate(aim)' in inspector
 

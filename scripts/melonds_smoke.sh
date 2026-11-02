@@ -812,6 +812,7 @@ if [[ -f "$out/05-sphere-encounter.png" ]]; then
       prefire_frame="$out/05-sphere-prefire-corrected-$step.png"
       corrected_code=0
       python3 tools/verify_sphere_prefire_frame.py "$prefire_frame" --fire-aligned \
+        --correct-unaligned --correct-min-distance 26 \
         --reward "$out/sphere-reward-attempt.json" \
         --progress "$out/sphere-prefire-corrected-progress-$step.json" \
         --aim "$out/sphere-prefire-aim-$step.json" \
@@ -834,51 +835,90 @@ if [[ -f "$out/05-sphere-encounter.png" ]]; then
           echo "INFO: corrected prefire $step remains ambiguous; no shot" >>"$out/runtime.log"
           continue ;;
         10)
-          # An independently observed near miss can justify ONE stationary
-          # screenshot. This old gate NEVER authorizes a shot. The fresh
-          # inspector must independently find a unique aligned sphere.
-          retry_code=0
-          python3 tools/check_stationary_retry.py "$out/sphere-prefire-gate-$step.json" \
-            >"$out/sphere-stationary-decision-$step.json" || retry_code=$?
-          case "$retry_code" in
-            0) ;;
-            3)
-              sphere_fire_skipped=$((sphere_fire_skipped + 1))
-              capture_last="$prefire_frame"
-              echo "INFO: corrected prefire $step too far for stationary retry; no shot" >>"$out/runtime.log"
-              continue ;;
-            *) echo "ERROR: invalid stationary retry gate ($retry_code)" >&2; exit 1 ;;
-          esac
-          sphere_stationary_retries=$((sphere_stationary_retries + 1))
-          xdotool keyup z
-          snapshot_fast "05-sphere-prefire-stationary-$step"
-          prefire_frame="$out/05-sphere-prefire-stationary-$step.png"
-          stationary_code=0
-          python3 tools/verify_sphere_prefire_frame.py "$prefire_frame" --fire-aligned \
-            --reward "$out/sphere-reward-attempt.json" \
-            --progress "$out/sphere-prefire-stationary-progress-$step.json" \
-            --aim "$out/sphere-prefire-aim-$step.json" \
-            --gate "$out/sphere-prefire-gate-$step.json" \
-            >"$out/sphere-prefire-stationary-inspection-$step.json" \
-            2>"$out/sphere-prefire-error-$step.txt" || stationary_code=$?
-          case "$stationary_code" in
-            20)
-              mv "$out/sphere-reward-attempt.json" "$out/sphere-reward.json"
-              cp "$prefire_frame" "$out/05-capture-reward.png"
-              capture_last="$prefire_frame"
-              echo "PASS: capture reward observed on stationary sample $step" | tee -a "$out/runtime.log"
-              break ;;
-            12)
-              echo "WARNING: stationary frame $step is no longer a sphere encounter" | tee -a "$out/runtime.log"
-              break ;;
-            11|10)
-              sphere_fire_skipped=$((sphere_fire_skipped + 1))
-              capture_last="$prefire_frame"
-              echo "INFO: stationary sample $step still unaligned/ambiguous; no shot" >>"$out/runtime.log"
-              continue ;;
-            0) sphere_stationary_aligned=$((sphere_stationary_aligned + 1)) ;;
-            *) echo "ERROR: stationary prefire inspection failed ($stationary_code)" >&2; exit 1 ;;
-          esac ;;
+          # A second no-fire correction is permitted only for a unique,
+          # independently observed miss >26px. The next screenshot, not
+          # this correction, must authorize any eventual A pulse.
+          # Corrupt or contradictory inspector evidence is a HARD error,
+          # never a reason to silently fall back to the stationary path.
+          recorrection_decision="$(python3 -c 'import json,sys; p=json.load(open(sys.argv[1])); assert p["status"]=="unaligned" and type(p["camera_correction_executed"]) is bool and p["fire_executed"] is False; print("yes" if p["camera_correction_executed"] else "no")' \
+              "$out/sphere-prefire-corrected-inspection-$step.json")" || exit 1
+          if [[ "$recorrection_decision" == yes ]]; then
+            sphere_inline_corrections=$((sphere_inline_corrections + 1))
+            snapshot_fast "05-sphere-prefire-recorrected-$step"
+            prefire_frame="$out/05-sphere-prefire-recorrected-$step.png"
+            recorrected_code=0
+            python3 tools/verify_sphere_prefire_frame.py "$prefire_frame" --fire-aligned \
+              --reward "$out/sphere-reward-attempt.json" \
+              --progress "$out/sphere-prefire-recorrected-progress-$step.json" \
+              --aim "$out/sphere-prefire-aim-$step.json" \
+              --gate "$out/sphere-prefire-gate-$step.json" \
+              >"$out/sphere-prefire-recorrected-inspection-$step.json" \
+              2>"$out/sphere-prefire-error-$step.txt" || recorrected_code=$?
+            case "$recorrected_code" in
+              20)
+                mv "$out/sphere-reward-attempt.json" "$out/sphere-reward.json"
+                cp "$prefire_frame" "$out/05-capture-reward.png"
+                capture_last="$prefire_frame"
+                echo "PASS: capture reward observed after second no-fire correction $step" | tee -a "$out/runtime.log"
+                break ;;
+              12)
+                echo "WARNING: second corrected frame $step is no longer a sphere encounter" | tee -a "$out/runtime.log"
+                break ;;
+              11|10)
+                sphere_fire_skipped=$((sphere_fire_skipped + 1))
+                capture_last="$prefire_frame"
+                echo "INFO: second corrected prefire $step remains ambiguous/unaligned; no shot" >>"$out/runtime.log"
+                continue ;;
+              0) ;; # Only this fresh third frame may have fired A.
+              *) echo "ERROR: second corrected prefire inspection failed ($recorrected_code)" >&2; exit 1 ;;
+            esac
+          else
+            # An independently observed near miss can justify ONE stationary
+            # screenshot. This old gate NEVER authorizes a shot. The fresh
+            # inspector must independently find a unique aligned sphere.
+            retry_code=0
+            python3 tools/check_stationary_retry.py "$out/sphere-prefire-gate-$step.json" \
+              >"$out/sphere-stationary-decision-$step.json" || retry_code=$?
+            case "$retry_code" in
+              0) ;;
+              3)
+                sphere_fire_skipped=$((sphere_fire_skipped + 1))
+                capture_last="$prefire_frame"
+                echo "INFO: corrected prefire $step too far for stationary retry; no shot" >>"$out/runtime.log"
+                continue ;;
+              *) echo "ERROR: invalid stationary retry gate ($retry_code)" >&2; exit 1 ;;
+            esac
+            sphere_stationary_retries=$((sphere_stationary_retries + 1))
+            xdotool keyup z
+            snapshot_fast "05-sphere-prefire-stationary-$step"
+            prefire_frame="$out/05-sphere-prefire-stationary-$step.png"
+            stationary_code=0
+            python3 tools/verify_sphere_prefire_frame.py "$prefire_frame" --fire-aligned \
+              --reward "$out/sphere-reward-attempt.json" \
+              --progress "$out/sphere-prefire-stationary-progress-$step.json" \
+              --aim "$out/sphere-prefire-aim-$step.json" \
+              --gate "$out/sphere-prefire-gate-$step.json" \
+              >"$out/sphere-prefire-stationary-inspection-$step.json" \
+              2>"$out/sphere-prefire-error-$step.txt" || stationary_code=$?
+            case "$stationary_code" in
+              20)
+                mv "$out/sphere-reward-attempt.json" "$out/sphere-reward.json"
+                cp "$prefire_frame" "$out/05-capture-reward.png"
+                capture_last="$prefire_frame"
+                echo "PASS: capture reward observed on stationary sample $step" | tee -a "$out/runtime.log"
+                break ;;
+              12)
+                echo "WARNING: stationary frame $step is no longer a sphere encounter" | tee -a "$out/runtime.log"
+                break ;;
+              11|10)
+                sphere_fire_skipped=$((sphere_fire_skipped + 1))
+                capture_last="$prefire_frame"
+                echo "INFO: stationary sample $step still unaligned/ambiguous; no shot" >>"$out/runtime.log"
+                continue ;;
+              0) sphere_stationary_aligned=$((sphere_stationary_aligned + 1)) ;;
+              *) echo "ERROR: stationary prefire inspection failed ($stationary_code)" >&2; exit 1 ;;
+            esac
+          fi ;;
         0) ;;
         *) echo "ERROR: corrected prefire inspection failed ($corrected_code)" >&2; exit 1 ;;
       esac
