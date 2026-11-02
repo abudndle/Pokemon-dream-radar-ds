@@ -327,10 +327,33 @@ int game_save(Game *g, const char *file) {
                                   ? g->ext_selection:0);
     snapshot.reserved[19]=(uint8_t)((g->page>=0 && g->page<16)?g->page:0);
     snapshot.checksum=game_checksum(&snapshot);
-    FILE *f=fopen(file,"wb"); if (!f) return 0;
-    int okay = fwrite(&snapshot,1,sizeof snapshot,f)==sizeof snapshot;
-    if (fclose(f)) okay=0;
-    return okay;
+    /* Stage the complete checksummed snapshot before publishing it. A
+       failed/partial write must not truncate the last committed rewards.
+       O_EXCL also refuses to overwrite a stale .tmp left by an interruption. */
+    size_t n=strlen(file);
+    if(n>480)return 0;
+    char temporary[512];
+    snprintf(temporary,sizeof temporary,"%s.tmp",file);
+    int fd=open(temporary,O_WRONLY|O_CREAT|O_EXCL,0600);
+    if(fd<0)return 0;
+    FILE *f=fdopen(fd,"wb");
+    if(!f) {
+        close(fd);
+        remove(temporary);
+        return 0;
+    }
+    int okay=fwrite(&snapshot,1,sizeof snapshot,f)==sizeof snapshot;
+    if(fflush(f)!=0)okay=0;
+    if(fclose(f)!=0)okay=0;
+    if(!okay) {
+        remove(temporary);
+        return 0;
+    }
+    if(rename(temporary,file)!=0) {
+        remove(temporary);
+        return 0;
+    }
+    return 1;
 }
 void game_regen_clouds(Game *g, uint32_t now) {
     if (!g) return;
