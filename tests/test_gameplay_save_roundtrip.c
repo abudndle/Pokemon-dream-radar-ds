@@ -113,6 +113,22 @@ int main(void) {
     assert(!game_save(&attempted,path));
     assert(access(staging,F_OK)==0);
     assert(unlink(staging)==0);
+    /* A matching checksum alone is insufficient: the committed record
+       may still contain semantically impossible gameplay values. */
+    SaveData impossible=attempted.save;
+    impossible.pending_count=MAX_CAUGHT+1;
+    impossible.checksum=game_checksum(&impossible);
+    damaged=fopen(path,"wb");
+    assert(damaged);
+    assert(fwrite(&impossible,1,sizeof impossible,damaged)==sizeof impossible);
+    assert(fclose(damaged)==0);
+    stale=fopen(staging,"wb");
+    assert(stale);
+    assert(fputs("preserve-possible-recovery",stale)>=0);
+    assert(fclose(stale)==0);
+    assert(!game_save(&attempted,path));
+    assert(access(staging,F_OK)==0);
+    assert(unlink(staging)==0);
     assert(game_save(&attempted,path));
     game_new(&loaded,7890);
     assert(game_load(&loaded,path));
