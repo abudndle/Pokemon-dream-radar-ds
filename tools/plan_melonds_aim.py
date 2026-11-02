@@ -378,12 +378,15 @@ def locate_spheres(pixels, width, height):
     # lavender components; the static white cloud, cyan reticle and
     # 13px hostile projectiles must not become aim targets.
     violet = set()
-    for y in range(offset + 35, offset + 184):
+    top_edge_violet = []
+    for y in range(offset, offset + 184):
         for x in range(12, 244):
             r, g, b = pixel(x, y)
             if (180 <= r <= 245 and 135 <= g <= 215 and b >= 215
                     and b >= g + 35 and r >= g + 20):
                 violet.add((x, y))
+                if y < offset + 27:
+                    top_edge_violet.append((x, y))
     while violet:
         stack = [violet.pop()]
         xs, ys = [], []
@@ -402,6 +405,32 @@ def locate_spheres(pixels, width, height):
             candidates.append((round(sum(xs) / len(xs)),
                                round(sum(ys) / len(ys)) - offset, len(xs),
                                (min(xs), min(ys), max(xs), max(ys))))
+    # Real ERRATIC encounters can cross the TOP viewport boundary. A
+    # partially clipped violet sprite may split into two thin components
+    # separated by white highlights, neither meeting the ordinary 10px
+    # component-height gate. Reassemble only compact, contiguous COLUMN
+    # runs at the top edge; ordinary HUD text is not violet, and separate
+    # silhouettes remain separate candidates.
+    if top_edge_violet:
+        columns = {}
+        for x, y in top_edge_violet:
+            columns.setdefault(x, []).append(y)
+        runs = []
+        for x in sorted(columns):
+            if not runs or x > runs[-1][-1] + 1:
+                runs.append([x])
+            else:
+                runs[-1].append(x)
+        for run in runs:
+            points = [(x, y) for x in run for y in columns[x]]
+            xs, ys = zip(*points)
+            left, right = min(xs), max(xs)
+            top, bottom = min(ys), max(ys)
+            if (70 <= len(points) <= 700 and 12 <= right - left <= 36
+                    and 7 <= bottom - top <= 26 and top <= offset + 3):
+                candidates.append((round(sum(xs) / len(xs)),
+                                   round(sum(ys) / len(ys)) - offset,
+                                   len(points), (left, top, right, bottom)))
     # A single sprite can contain both dark/saturated edges and a pastel
     # interior. The independent palette passes then report two overlapping
     # components for one real target, causing the unique-target planner to
