@@ -586,6 +586,8 @@ if [[ -f "$out/05-sphere-encounter.png" ]]; then
   edge_recovery_successes=0
   sphere_fire_authorized=0
   sphere_fire_skipped=0
+  sphere_stationary_retries=0
+  sphere_stationary_aligned=0
   sphere_diagonal_pulses=0
   sphere_single_axis_pulses=0
   last_sphere_plan=""
@@ -839,11 +841,57 @@ if [[ -f "$out/05-sphere-encounter.png" ]]; then
         12)
           echo "WARNING: corrected prefire frame $step is no longer a sphere encounter" | tee -a "$out/runtime.log"
           break ;;
-        11|10)
+        11)
           sphere_fire_skipped=$((sphere_fire_skipped + 1))
           capture_last="$prefire_frame"
-          echo "INFO: corrected prefire $step remained ambiguous or unaligned; no shot" >>"$out/runtime.log"
+          echo "INFO: corrected prefire $step remains ambiguous; no shot" >>"$out/runtime.log"
           continue ;;
+        10)
+          # An independently observed near miss can justify ONE stationary
+          # screenshot. This old gate NEVER authorizes a shot. The fresh
+          # inspector must independently find a unique aligned sphere.
+          retry_code=0
+          python3 tools/check_stationary_retry.py "$out/sphere-prefire-gate-$step.json" \
+            >"$out/sphere-stationary-decision-$step.json" || retry_code=$?
+          case "$retry_code" in
+            0) ;;
+            3)
+              sphere_fire_skipped=$((sphere_fire_skipped + 1))
+              capture_last="$prefire_frame"
+              echo "INFO: corrected prefire $step too far for stationary retry; no shot" >>"$out/runtime.log"
+              continue ;;
+            *) echo "ERROR: invalid stationary retry gate ($retry_code)" >&2; exit 1 ;;
+          esac
+          sphere_stationary_retries=$((sphere_stationary_retries + 1))
+          xdotool keyup z
+          snapshot_fast "05-sphere-prefire-stationary-$step"
+          prefire_frame="$out/05-sphere-prefire-stationary-$step.png"
+          stationary_code=0
+          python3 tools/verify_sphere_prefire_frame.py "$prefire_frame" --fire-aligned \
+            --reward "$out/sphere-reward-attempt.json" \
+            --progress "$out/sphere-prefire-stationary-progress-$step.json" \
+            --aim "$out/sphere-prefire-aim-$step.json" \
+            --gate "$out/sphere-prefire-gate-$step.json" \
+            >"$out/sphere-prefire-stationary-inspection-$step.json" \
+            2>"$out/sphere-prefire-error-$step.txt" || stationary_code=$?
+          case "$stationary_code" in
+            20)
+              mv "$out/sphere-reward-attempt.json" "$out/sphere-reward.json"
+              cp "$prefire_frame" "$out/05-capture-reward.png"
+              capture_last="$prefire_frame"
+              echo "PASS: capture reward observed on stationary sample $step" | tee -a "$out/runtime.log"
+              break ;;
+            12)
+              echo "WARNING: stationary frame $step is no longer a sphere encounter" | tee -a "$out/runtime.log"
+              break ;;
+            11|10)
+              sphere_fire_skipped=$((sphere_fire_skipped + 1))
+              capture_last="$prefire_frame"
+              echo "INFO: stationary sample $step still unaligned/ambiguous; no shot" >>"$out/runtime.log"
+              continue ;;
+            0) sphere_stationary_aligned=$((sphere_stationary_aligned + 1)) ;;
+            *) echo "ERROR: stationary prefire inspection failed ($stationary_code)" >&2; exit 1 ;;
+          esac ;;
         0) ;;
         *) echo "ERROR: corrected prefire inspection failed ($corrected_code)" >&2; exit 1 ;;
       esac
@@ -879,6 +927,7 @@ if [[ -f "$out/05-sphere-encounter.png" ]]; then
   xdotool keyup z
   echo "INFO: guided sphere aim used $guided_sphere_steps of $capture_steps allowed attempts" | tee -a "$out/runtime.log"
   echo "INFO: fresh aligned prefire shots $sphere_fire_authorized; unaligned/ambiguous skipped $sphere_fire_skipped" | tee -a "$out/runtime.log"
+  echo "INFO: near-miss stationary retries=$sphere_stationary_retries aligned_shots=$sphere_stationary_aligned (fresh-frame gated)" | tee -a "$out/runtime.log"
   echo "INFO: sphere camera pulses diagonal=$sphere_diagonal_pulses single_axis_or_none=$sphere_single_axis_pulses (not proof of hits)" | tee -a "$out/runtime.log"
   echo "INFO: sphere reacquisition succeeded $reacquire_successes of $reacquire_attempts attempts" | tee -a "$out/runtime.log"
   echo "INFO: no-fire edge camera recovery succeeded $edge_recovery_successes of $edge_recovery_attempts attempts" | tee -a "$out/runtime.log"
