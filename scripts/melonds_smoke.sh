@@ -519,6 +519,9 @@ if [[ -f "$out/05-sphere-encounter.png" ]]; then
   guided_sphere_steps=0
   reacquire_attempts=0
   reacquire_successes=0
+  edge_recovery_attempts=0
+  edge_recovery_successes=0
+  last_sphere_plan=""
   capture_steps="${CAPTURE_SWEEP_STEPS:-160}"
   if ! [[ "$capture_steps" =~ ^[0-9]+$ ]] || (( capture_steps < 1 || capture_steps > 160 )); then
     echo "CAPTURE_SWEEP_STEPS must be an integer from 1 to 160" >&2
@@ -622,14 +625,54 @@ if [[ -f "$out/05-sphere-encounter.png" ]]; then
       if [[ "$reacquire_state" == ended ]]; then
         break
       fi
+      if [[ "$reacquire_state" != found && -n "$last_sphere_plan" ]] &&
+         python3 tools/plan_sphere_recovery.py "$last_sphere_plan" \
+           >"$out/sphere-edge-plan-$step.json" 2>"$out/sphere-edge-error-$step.txt"; then
+        # One camera nudge is allowed only when the LAST directly observed
+        # sphere was at a viewport boundary. Beam remains released. Camera
+        # movement invalidates two-frame motion extrapolation, so reacquire
+        # with a fresh single-frame unique-target check before rearming.
+        edge_recovery_attempts=$((edge_recovery_attempts + 1))
+        read -r recovery_key recovery_seconds < <(
+          python3 -c 'import json,sys; p=json.load(open(sys.argv[1])); assert p["fire_authorized"] is False; print(p["key"],p["seconds"])' \
+            "$out/sphere-edge-plan-$step.json"
+        )
+        aim_ds_key "$recovery_key" "$recovery_seconds" 0.08
+        snapshot "05-sphere-edge-recovery-$step"
+        edge_frame="$out/05-sphere-edge-recovery-$step.png"
+        if python3 tools/verify_melonds_navigation.py "$out" \
+            --observe-reward-screenshot "$edge_frame" \
+            >"$out/sphere-reward-attempt.json" 2>/dev/null; then
+          mv "$out/sphere-reward-attempt.json" "$out/sphere-reward.json"
+          cp "$edge_frame" "$out/05-capture-reward.png"
+          capture_last="$edge_frame"
+          reacquire_state=ended
+          echo "PASS: capture reward appeared during safe edge recovery" | tee -a "$out/runtime.log"
+        else
+          rm -f "$out/sphere-reward-attempt.json"
+          if python3 tools/verify_melonds_navigation.py "$out" \
+              --observe-capture-progress "$edge_frame" \
+              >"$out/sphere-edge-progress-$step.json" 2>/dev/null &&
+             python3 tools/plan_melonds_aim.py "$edge_frame" --target sphere \
+              >"$out/sphere-aim-$step.json" 2>"$out/sphere-edge-aim-error-$step.txt"; then
+            reacquire_state=found
+            edge_recovery_successes=$((edge_recovery_successes + 1))
+            echo "INFO: unique sphere reacquired after no-fire boundary nudge at step $step" | tee -a "$out/runtime.log"
+          fi
+        fi
+      fi
+      if [[ "$reacquire_state" == ended ]]; then
+        break
+      fi
       if [[ "$reacquire_state" != found ]]; then
-        echo "WARNING: sphere target ambiguous after three stationary samples at step $step" | tee -a "$out/runtime.log"
+        echo "WARNING: sphere target still ambiguous after stationary and bounded edge recovery at step $step" | tee -a "$out/runtime.log"
         break
       fi
       reacquire_successes=$((reacquire_successes + 1))
       xdotool keydown --clearmodifiers z
     fi
     guided_sphere_steps=$((guided_sphere_steps + 1))
+    last_sphere_plan="$out/sphere-aim-$step.json"
     read -r horizontal horizontal_seconds vertical vertical_seconds < <(
       python3 -c 'import json,sys; p=json.load(open(sys.argv[1])); print(p["horizontal_key"],p["horizontal_seconds"],p["vertical_key"],p["vertical_seconds"])' \
         "$out/sphere-aim-$step.json"
@@ -664,7 +707,12 @@ if [[ -f "$out/05-sphere-encounter.png" ]]; then
   xdotool keyup z
   echo "INFO: guided sphere aim used $guided_sphere_steps of $capture_steps allowed attempts" | tee -a "$out/runtime.log"
   echo "INFO: sphere reacquisition succeeded $reacquire_successes of $reacquire_attempts attempts" | tee -a "$out/runtime.log"
+  echo "INFO: no-fire edge camera recovery succeeded $edge_recovery_successes of $edge_recovery_attempts attempts" | tee -a "$out/runtime.log"
 fi
+# Persist an explicit meter ceiling and reward-evidence boundary for CI.
+# An encounter and a partially filled bar are NOT a completed capture.
+python3 tools/summarize_capture_attempt.py "$out" \
+  --output "$out/sphere-attempt-report.json" | tee -a "$out/runtime.log"
 if [[ -f "$out/05-capture-reward.png" ]]; then
   cp "$out/05-capture-reward.png" "$out/06-results.png"
 elif [[ -f "$out/06-results.png" ]]; then

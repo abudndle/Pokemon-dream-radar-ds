@@ -4,6 +4,12 @@ on:
   pull_request:
   push:
     branches: [main, milestone-next-parity-audit-20261101]
+# Cancel superseded PR/push runs; preserve individually dispatched acceptance
+# evidence instead of letting rapid development saturate hosted runners.
+concurrency:
+  group: dream-radar-${{ github.workflow }}-${{ github.event_name == 'workflow_dispatch' && github.run_id || github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}
+
 jobs:
   host-tests:
     runs-on: ubuntu-latest
