@@ -410,3 +410,22 @@ assert 'cp "$out/01-title.png" "$out/03-shop-orbs-before.png"' in resume_block
 assert '--expected-balance "$EXPECTED_RESTORED_ORBS"' in resume_block
 assert 'rm -f "$out/orb-balance-before.json"' in resume_block
 print("PASS: strict restart checks resumed shop before title input, and falls back safely")
+
+# A temporarily obscured sphere can become visible a few frames later.
+# Preserve the safe-fire invariant: no beam while the target is ambiguous,
+# at most three stationary samples, and no firing if all samples fail.
+capture_start = smoke_source.index('for step in $(seq 1 "$capture_steps")')
+capture_end = smoke_source.index('guided_sphere_steps=$((guided_sphere_steps + 1))', capture_start)
+capture_section = smoke_source[capture_start:capture_end]
+off = capture_section.index("xdotool keyup z")
+samples = capture_section.index("for reacquire_sample in 1 2 3; do")
+found = capture_section.index('if [[ "$reacquire_state" != found ]]')
+on = capture_section.index("xdotool keydown --clearmodifiers z", samples)
+assert off < samples < found < on
+assert 'reacquire_state=ambiguous' in capture_section
+assert 'reacquire_state=found' in capture_section
+assert 'reacquire_state=ended' in capture_section
+assert 'break' in capture_section[found:on]
+assert '--observe-capture-progress "$reacquired"' in capture_section
+assert '--observe-reward-screenshot "$reacquired"' in capture_section
+print("PASS: three-frame sphere reacquisition never fires blindly or exceeds its bound")
