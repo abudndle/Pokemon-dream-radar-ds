@@ -6,6 +6,7 @@ processes and nonempty DLDI save media. It is not proof of Nintendo transfer,
 original-game parity, or an independent inventory inspection.
 """
 import argparse
+import hashlib
 import json
 from pathlib import Path
 
@@ -54,20 +55,29 @@ def verify_reward_restart(first_dir, restart_dir, save_file):
                 or f"Emulator launcher PID {pid} terminated" not in log):
             raise ValueError(f"{label} emulator did not terminate cleanly")
     first_sidecar = _json(first_dir / "sphere-reward.json")
+    preserved_sidecar = _json(first_dir / "reward-preserved-before-exit.json")
     second_sidecar = _json(restart_dir / "restored-reward.json")
     font = font_rows()
     first_visible = _image(first_dir / "05-capture-reward.png", font)
+    preserved_visible = _image(first_dir / "06-results-preserved.png", font)
     second_visible = _image(restart_dir / "03-restored-capture-reward.png", font)
-    if first_visible != first_sidecar or second_visible != second_sidecar:
+    if (first_visible != first_sidecar or preserved_visible != preserved_sidecar
+            or second_visible != second_sidecar):
         raise ValueError("Reward sidecar disagrees with independently decoded screenshot")
+    if first_visible != preserved_visible:
+        raise ValueError("Captured reward was not preserved on Results before shutdown")
     if first_visible != second_visible:
         raise ValueError("Fresh emulator did not restore the exact visible reward")
     return {
         "kind": "melonDS-two-process-visible-reward-restart",
         "first_pid": first_pid, "restart_pid": second_pid,
         "reward": first_visible, "visible_reward_restored": True,
-        "limitations": ("Two independent Results screenshots and nonempty save media "
-                        "do not establish official Pokémon transfer or original-game parity."),
+        "visible_reward_preserved_before_shutdown": True,
+        "save_file_sha256": hashlib.sha256(save_file.read_bytes()).hexdigest(),
+        "limitations": ("Three independently decoded Results screenshots, two emulator "
+                        "processes and nonempty save media establish visible reward "
+                        "restoration only; they do not establish official Pokémon "
+                        "transfer, inventory integrity or original-game parity."),
     }
 
 
