@@ -13,6 +13,8 @@ for path in (
     "tools/check_stationary_retry.py",
     "tests/test_stationary_retry.py",
     "tools/verify_sphere_prefire_frame.py",
+    "tools/verify_sphere_preaim_frame.py",
+    "tests/test_sphere_preaim_frame.py",
     "tests/test_prefire_frame.py",
     "tests/test_sphere_prefire_gate.py",
     "tests/test_sphere_fire_gating.py",
@@ -23,15 +25,18 @@ for path in (
 
 assert "python3 -m py_compile" in workflow
 assert re.search(r"python3 -m py_compile[^\n]*tools/sphere_prefire_gate.py", workflow)
-for test in ("test_sphere_prefire_gate.py", "test_sphere_fire_gating.py", "test_prefire_frame.py"):
+for test in ("test_sphere_prefire_gate.py", "test_sphere_fire_gating.py",
+             "test_prefire_frame.py", "test_sphere_preaim_frame.py"):
     assert f"python3 tests/{test}" in workflow
     assert f"python3 tests/{test}" in makefile
+assert script.count('python3 tools/verify_sphere_preaim_frame.py "$current_sphere"') == 1
 assert script.count('python3 tools/verify_sphere_prefire_frame.py "$prefire_frame"') == 3
 assert script.count('python3 tools/verify_sphere_prefire_frame.py "$prefire_frame" --fire-aligned') == 3
 assert 'tools/sphere_prefire_gate.py' not in script.split('    snapshot_fast "05-sphere-prefire-$step"', 1)[1].split('    # The last observed target is uniquely aligned.', 1)[0]
 assert 'snapshot_fast "05-sphere-prefire-$step"' in script
 assert 'snapshot_fast "05-sphere-prefire-corrected-$step"' in script
 assert 'snapshot_fast "05-sphere-prefire-stationary-$step"' in script
+assert "python3 tests/test_sphere_preaim_frame.py" in workflow
 assert "python3 tests/test_stationary_retry.py" in workflow
 assert "python3 tests/test_stationary_retry.py" in makefile
 
