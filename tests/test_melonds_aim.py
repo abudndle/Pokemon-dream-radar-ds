@@ -248,6 +248,54 @@ for old_frame, new_frame in (
     else:
         raise AssertionError("Ambiguous or untracked multiple sphere objects accepted")
 
+# Real melonDS DRIFTING encounters can render a pale-pink thumbnail with
+# no dark or strongly saturated pixels. That sprite was invisible to the
+# previous tracker, so all 160 live aim plans failed and used blind sweeps.
+# The flat backdrop and white cloud must still be rejected independently.
+def pastel_sphere_frame(dx=0, dy=0):
+    pixels = sphere_frame(False)
+    for y in range(61 + OFFSET + dy, 80 + OFFSET + dy):
+        for x in range(180 + dx, 201 + dx):
+            at = (y * WIDTH + x) * 3
+            pixels[at:at + 3] = bytes((251, 235, 251))
+    return pixels
+
+
+pastel = plan_sphere(pastel_sphere_frame(), WIDTH, HEIGHT)
+assert pastel["target_screen"] == {"x": 190, "y": 70}
+assert pastel["candidate_spheres"] == 1
+pastel_motion = plan_sphere_motion(pastel_sphere_frame(),
+                                  pastel_sphere_frame(10, 6), WIDTH, HEIGHT)
+assert pastel_motion["observed_target_screen"] == {"x": 200, "y": 76}
+assert pastel_motion["target_screen"] == {"x": 205, "y": 79}
+assert pastel_motion["motion_prediction"] == "bounded"
+assert pastel_motion["horizontal_key"] == "Right"
+assert pastel_motion["vertical_key"] == "Up"
+# Upper-edge sprites remain visible near y=30; the stationary dark
+# class-label HUD at x=5..115 must never become a false target.
+near_top = pastel_sphere_frame(0, -39)
+for y in range(22 + OFFSET, 37 + OFFSET):
+    for x in range(5, 116):
+        at = (y * WIDTH + x) * 3
+        near_top[at:at + 3] = bytes((8, 8, 8))
+top_target = plan_sphere(near_top, WIDTH, HEIGHT)
+assert top_target["target_screen"]["x"] == 190
+# The scan deliberately clips the uppermost pixels to exclude emulator HUD.
+assert abs(top_target["target_screen"]["y"] - 31) <= 3
+hud_only = sphere_frame(False)
+for y in range(22 + OFFSET, 37 + OFFSET):
+    for x in range(5, 116):
+        at = (y * WIDTH + x) * 3
+        hud_only[at:at + 3] = bytes((8, 8, 8))
+try:
+    plan_sphere(hud_only, WIDTH, HEIGHT)
+except ValueError:
+    pass
+else:
+    raise AssertionError("Static capture HUD accepted as moving encounter art")
+
+print("PASS: pastel-pink real-encounter palette is trackable without accepting white clouds")
+
 print("PASS: temporal sphere association tracks only an unambiguous known target")
 
 print("PASS: two-frame sphere motion lead is bounded and fails closed")
