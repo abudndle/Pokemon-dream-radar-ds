@@ -195,6 +195,7 @@ test-host:
 	python3 tests/test_navigation_evidence.py
 	python3 tests/test_melonds_aim.py
 	python3 tests/test_sphere_edge_recovery.py
+	python3 tests/test_sphere_fire_gating.py
 	python3 tests/test_capture_progress_summary.py
 	python3 tests/test_workflow_concurrency.py
 	python3 tests/test_capture_emulator_evidence.py
