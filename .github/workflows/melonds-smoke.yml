@@ -107,6 +107,7 @@ jobs:
           EOF
           mkdir -p "$GITHUB_WORKSPACE/melonds-dldi/saves"
           cp dream_radar.nds "$GITHUB_WORKSPACE/melonds-dldi/dream_radar.nds"
+          flatpak override --user --filesystem="$GITHUB_WORKSPACE/melonds-dldi" net.kuribo64.melonDS
           cat "$HOME/.var/app/net.kuribo64.melonDS/config/melonDS/melonDS.toml"
       - name: Launch melonDS and capture actual emulator window
         env:
