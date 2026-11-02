@@ -40,9 +40,9 @@ with tempfile.TemporaryDirectory() as tmp:
     (first / "sphere-reward.json").write_text(json.dumps(REWARD))
     (second / "restored-reward.json").write_text(json.dumps(REWARD))
     (first / "runtime.log").write_text(
-        "Emulator launcher PID: 101\\nEmulator launcher PID 101 terminated\\n")
+        "Emulator launcher PID: 101\nEmulator launcher PID 101 terminated\n")
     (second / "runtime.log").write_text(
-        "Emulator launcher PID: 102\\nEmulator launcher PID 102 terminated\\n")
+        "Emulator launcher PID: 102\nEmulator launcher PID 102 terminated\n")
     save = root / "dream_radar.dreamradar.sav"
     save.write_bytes(b"synthetic-save")
     report = check(first, second, save)
@@ -58,13 +58,13 @@ with tempfile.TemporaryDirectory() as tmp:
     (second / "restored-reward.json").write_text(old)
     log = (second / "runtime.log").read_text()
     (second / "runtime.log").write_text(
-        "Emulator launcher PID: 101\\nEmulator launcher PID 101 terminated\\n")
+        "Emulator launcher PID: 101\nEmulator launcher PID 101 terminated\n")
     rejected(first, second, save)
     (second / "runtime.log").write_text(
-        "Emulator launcher PID: 102\\nEmulator launcher PID 102 force-killed\\n"
-        "Emulator launcher PID 102 terminated\\n")
+        "Emulator launcher PID: 102\nEmulator launcher PID 102 force-killed\n"
+        "Emulator launcher PID 102 terminated\n")
     rejected(first, second, save)
-    (second / "runtime.log").write_text("Emulator launcher PID: 102\\n")
+    (second / "runtime.log").write_text("Emulator launcher PID: 102\n")
     rejected(first, second, save)
     (second / "runtime.log").write_text(log)
     image = second / "03-restored-capture-reward.png"
