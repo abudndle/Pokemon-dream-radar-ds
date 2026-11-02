@@ -6,3 +6,16 @@ nitrofs/title.drui
 nitrofs/scanlist.drui
 nitrofs/mainmenu.drui
 nitrofs/shoplist.drui
+
+# Privately owned retail input and derived proprietary archives are never committed.
+*.ncch
+*.cxi
+*.cci
+*.cia
+*.3ds
+*.carc
+*.bcstm
+*.bcsar
+private/
+private_assets/
+original_assets/
