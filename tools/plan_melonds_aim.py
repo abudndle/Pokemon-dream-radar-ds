@@ -57,7 +57,7 @@ def locate_cloud_edge_markers(pixels, width, height):
         raise ValueError("Expected an unscaled 256px-wide DS screenshot")
     offset = height - 384
     marked = set()
-    for y in range(offset + 20, offset + 181):
+    for y in range(offset + 10, offset + 181):
         for x in range(5, 250):
             at = (y * width + x) * 3
             r, g, b = pixels[at:at + 3]
