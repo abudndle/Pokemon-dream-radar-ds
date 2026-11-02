@@ -434,6 +434,44 @@ def locate_spheres(pixels, width, height):
                 candidates.append((round(sum(xs) / len(xs)),
                                    round(sum(ys) / len(ys)) - offset,
                                    len(points), (left, top, right, bottom)))
+    # SWIFT encounter artwork can pass behind the black class-name HUD.
+    # In real melonDS frames the exposed 24x7 lower rim contains adjacent
+    # orange and green stripes at y=37..43. The ordinary >=14px-tall dark
+    # component gate cannot see it. Require BOTH distinctive palette bands
+    # in a compact horizontal run immediately below the HUD; plain yellow
+    # HUD text, the cyan reticle and red projectiles cannot satisfy this.
+    # This is a navigation hint only, never proof of a hit or reward.
+    upper_columns = {}
+    for y in range(offset + 28, offset + 56):
+        for x in range(12, 244):
+            r, g, b = pixel(x, y)
+            if r >= 170 and 90 <= g <= 220 and b <= 110 and r >= g + 25:
+                color = "orange"
+            elif (60 <= g <= 230 and g >= r + 25 and g >= b + 10
+                  and r <= 110 and b <= 110):
+                color = "green"
+            else:
+                continue
+            upper_columns.setdefault(x, []).append((x, y, color))
+    upper_runs = []
+    for x in sorted(upper_columns):
+        if not upper_runs or x > upper_runs[-1][-1] + 2:
+            upper_runs.append([x])
+        else:
+            upper_runs[-1].append(x)
+    for run in upper_runs:
+        points = [point for x in run for point in upper_columns[x]]
+        xs = [point[0] for point in points]
+        ys = [point[1] for point in points]
+        left, right, top, bottom = min(xs), max(xs), min(ys), max(ys)
+        orange = sum(point[2] == "orange" for point in points)
+        green = len(points) - orange
+        if (orange >= 12 and green >= 8 and 14 <= right - left <= 32
+                and 3 <= bottom - top <= 20
+                and top <= offset + 42 and bottom <= offset + 55):
+            candidates.append((round(sum(xs) / len(xs)),
+                               round(sum(ys) / len(ys)) - offset,
+                               len(points), (left, top, right, bottom)))
     # A single sprite can contain both dark/saturated edges and a pastel
     # interior. The independent palette passes then report two overlapping
     # components for one real target, causing the unique-target planner to
