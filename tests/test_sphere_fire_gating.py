@@ -51,12 +51,15 @@ assert 'xdotool keydown --clearmodifiers z' not in reacquire
 assert 'snapshot "05-sphere-edge-recovery-$step"' in reacquire
 assert '  xdotool keyup z' in loop  # defensive release on entry and exit
 
-# The inspector pulses only after classification and evidence publication;
-# it guarantees keyup in finally, including failed keydown/sleep paths.
+# The inspector pulses immediately after fresh classification, BEFORE
+# slow JSON serialization. Failed pulses/writes cannot claim a shot or hit.
+# A is released in finally even if keydown/sleep fails.
 assert 'if status != "aligned":' in inspector
 assert 'fired = pulse_if_aligned(status) if args.fire_aligned else False' in inspector
-assert inspector.index('status = write_evidence(paths, result)') < inspector.index(
+assert inspector.index('result = inspect_frame(pixels, width, height, font_rows())') < inspector.index(
     'fired = pulse_if_aligned(status)')
+assert inspector.index('fired = pulse_if_aligned(status)') < inspector.index(
+    'write_evidence(paths, result)')
 assert 'finally:\n        subprocess.run(["xdotool", "keyup", "z"]' in inspector
 assert 'paths["gate"].unlink(missing_ok=True)' in inspector
 
