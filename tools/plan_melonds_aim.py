@@ -194,8 +194,13 @@ def locate_spheres(pixels, width, height):
             150 <= left[2] <= 240):
         raise ValueError("Unknown or non-flat encounter backdrop; cannot safely track art")
     marked = set()
-    for y in range(offset + 42, offset + 169):
+    # Capture art can move as high as native y=30. Scan its upper edge
+    # without treating the fixed black class-label HUD (x<120, y<40)
+    # as a moving sprite. The timer lies above this scan window.
+    for y in range(offset + 26, offset + 169):
         for x in range(12, 244):
+            if y < offset + 40 and x < 120:
+                continue
             r, g, b = pixel(x, y)
             # The DS fallback background is grey/white/cyan. Most Pokemon
             # sprites contain dark or saturated pixels, but some item/Pokemon
