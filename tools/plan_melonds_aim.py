@@ -274,7 +274,10 @@ def locate_spheres(pixels, width, height):
             150 <= left[2] <= 240):
         raise ValueError("Unknown or non-flat encounter backdrop; cannot safely track art")
     marked = set()
-    for y in range(offset + 42, offset + 169):
+    # SWIFT encounter artwork can travel into the last 23 rows of the
+    # TOP screen. Stop at offset+192 (exclusive), before touchscreen pixels.
+    # The former y<169 scan missed a real lower-edge sphere in melonDS.
+    for y in range(offset + 42, offset + 192):
         for x in range(12, 244):
             r, g, b = pixel(x, y)
             # The DS fallback background is grey/white/cyan. A target sprite
@@ -347,7 +350,7 @@ def locate_spheres(pixels, width, height):
     # a compact connected silhouette and the same verified flat backdrop.
     # Scan down to y=183: the sphere can travel below the old y=168 cutoff.
     pink = set()
-    for y in range(offset + 35, offset + 184):
+    for y in range(offset + 35, offset + 192):
         for x in range(12, 244):
             r, g, b = pixel(x, y)
             if r >= 245 and b >= 210 and r >= g + 10 and b >= g + 7:
@@ -378,12 +381,15 @@ def locate_spheres(pixels, width, height):
     # lavender components; the static white cloud, cyan reticle and
     # 13px hostile projectiles must not become aim targets.
     violet = set()
-    for y in range(offset + 35, offset + 184):
+    top_edge_violet = []
+    for y in range(offset, offset + 192):
         for x in range(12, 244):
             r, g, b = pixel(x, y)
             if (180 <= r <= 245 and 135 <= g <= 215 and b >= 215
                     and b >= g + 35 and r >= g + 20):
                 violet.add((x, y))
+                if y < offset + 27:
+                    top_edge_violet.append((x, y))
     while violet:
         stack = [violet.pop()]
         xs, ys = [], []
@@ -402,6 +408,32 @@ def locate_spheres(pixels, width, height):
             candidates.append((round(sum(xs) / len(xs)),
                                round(sum(ys) / len(ys)) - offset, len(xs),
                                (min(xs), min(ys), max(xs), max(ys))))
+    # Real ERRATIC encounters can cross the TOP viewport boundary. A
+    # partially clipped violet sprite may split into two thin components
+    # separated by white highlights, neither meeting the ordinary 10px
+    # component-height gate. Reassemble only compact, contiguous COLUMN
+    # runs at the top edge; ordinary HUD text is not violet, and separate
+    # silhouettes remain separate candidates.
+    if top_edge_violet:
+        columns = {}
+        for x, y in top_edge_violet:
+            columns.setdefault(x, []).append(y)
+        runs = []
+        for x in sorted(columns):
+            if not runs or x > runs[-1][-1] + 1:
+                runs.append([x])
+            else:
+                runs[-1].append(x)
+        for run in runs:
+            points = [(x, y) for x in run for y in columns[x]]
+            xs, ys = zip(*points)
+            left, right = min(xs), max(xs)
+            top, bottom = min(ys), max(ys)
+            if (70 <= len(points) <= 700 and 12 <= right - left <= 36
+                    and 7 <= bottom - top <= 26 and top <= offset + 3):
+                candidates.append((round(sum(xs) / len(xs)),
+                                   round(sum(ys) / len(ys)) - offset,
+                                   len(points), (left, top, right, bottom)))
     # A single sprite can contain both dark/saturated edges and a pastel
     # interior. The independent palette passes then report two overlapping
     # components for one real target, causing the unique-target planner to
@@ -511,7 +543,9 @@ def plan_sphere_motion(previous_pixels, pixels, width, height):
     lead_x = max(-18, min(18, round(dx * 0.5)))
     lead_y = max(-18, min(18, round(dy * 0.5)))
     x = max(20, min(236, observed["x"] + lead_x))
-    y = max(30, min(164, observed["y"] + lead_y))
+    # An ERRATIC target may be partly clipped by the DS viewport edge.
+    # Never force a valid observed y=0..29 target down to y=30.
+    y = max(0, min(183, observed["y"] + lead_y))
     offset_x, offset_y = x - RETICLE_CENTER_X, y - RETICLE_CENTER_Y
     current.update({
         "target_screen": {"x": x, "y": y},

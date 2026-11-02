@@ -105,6 +105,8 @@ test-host:
 	./build/test_twilight
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c source/twilight_saves.c source/save_backend.c tests/test_recovery.c -o build/test_recovery
 	./build/test_recovery
+	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c tests/test_fatfs_save.c -Wl,--wrap=rename -o build/test_fatfs_save
+	./build/test_fatfs_save
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c tests/test_archive.c -o build/test_archive
 	./build/test_archive
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c tests/test_storage_replace.c -o build/test_storage_replace

@@ -6,6 +6,9 @@
 #include <limits.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <errno.h>
+#include <sys/stat.h>
+#include <errno.h>
 
 static uint32_t rnd(Game *g) {
     uint32_t x = g->save.random_seed;
@@ -327,10 +330,70 @@ int game_save(Game *g, const char *file) {
                                   ? g->ext_selection:0);
     snapshot.reserved[19]=(uint8_t)((g->page>=0 && g->page<16)?g->page:0);
     snapshot.checksum=game_checksum(&snapshot);
-    FILE *f=fopen(file,"wb"); if (!f) return 0;
-    int okay = fwrite(&snapshot,1,sizeof snapshot,f)==sizeof snapshot;
-    if (fclose(f)) okay=0;
-    return okay;
+    /* Stage the complete checksummed snapshot before publishing it. A
+       failed/partial write must not truncate the last committed rewards.
+       O_EXCL also refuses to overwrite a stale .tmp left by an interruption. */
+    size_t n=strlen(file);
+    if(n>480)return 0;
+    char temporary[512];
+    snprintf(temporary,sizeof temporary,"%s.tmp",file);
+    int fd=open(temporary,O_WRONLY|O_CREAT|O_EXCL,0600);
+    if(fd<0 && errno==EEXIST) {
+        /* A power loss can strand a partial .tmp. On this single-process
+           homebrew save path, only clear it if the committed snapshot is
+           still structurally intact. Never erase the sole recoverable copy
+           when the destination is absent or corrupt. */
+        Game committed;
+        game_new(&committed,1u);
+        /* Reuse the complete loader's checksum and semantic validation.
+           A correctly checksummed but invalid record is not a safe base
+           from which to discard an interrupted staging snapshot. */
+        int intact=game_load(&committed,file);
+        if(intact && remove(temporary)==0)
+            fd=open(temporary,O_WRONLY|O_CREAT|O_EXCL,0600);
+    }
+    if(fd<0)return 0;
+    FILE *f=fdopen(fd,"wb");
+    if(!f) {
+        close(fd);
+        remove(temporary);
+        return 0;
+    }
+    int okay=fwrite(&snapshot,1,sizeof snapshot,f)==sizeof snapshot;
+    if(fflush(f)!=0)okay=0;
+    if(fclose(f)!=0)okay=0;
+    if(!okay) {
+        remove(temporary);
+        return 0;
+    }
+    /* FatFs on DS/DSi cannot rename over an existing destination. Keep
+       the last committed save under .bak while publishing the staged file,
+       so a power interruption between renames can be recovered by the
+       existing save_backend_load() backup path. */
+    char backup[512];
+    snprintf(backup,sizeof backup,"%s.bak",file);
+    struct stat previous;
+    int had_primary=stat(file,&previous)==0;
+    if(!had_primary && errno!=ENOENT) {
+        remove(temporary);
+        return 0;
+    }
+    if(had_primary) {
+        if(remove(backup)!=0 && errno!=ENOENT) {
+            remove(temporary);
+            return 0;
+        }
+        if(rename(file,backup)!=0) {
+            remove(temporary);
+            return 0;
+        }
+    }
+    if(rename(temporary,file)!=0) {
+        if(had_primary)rename(backup,file);
+        remove(temporary);
+        return 0;
+    }
+    return 1;
 }
 void game_regen_clouds(Game *g, uint32_t now) {
     if (!g) return;

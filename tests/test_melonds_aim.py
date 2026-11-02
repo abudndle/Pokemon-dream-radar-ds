@@ -529,3 +529,90 @@ except ValueError:
 else:
     raise AssertionError("Two violet sphere silhouettes were accepted as unique")
 print("PASS: live-style violet ERRATIC sphere tracking rejects small glyphs and ambiguity")
+
+# A transiently ambiguous frame must not force an unverified blind sweep.
+# The shell smoke runner now samples one more stationary frame and retries
+# this same continuity gate; a newly unique target can be reacquired.
+transient_ambiguous = bytearray(sphere_frame(False))
+paint_encounter(transient_ambiguous, 95, 99)
+paint_encounter(transient_ambiguous, 145, 99)
+try:
+    plan_sphere_motion(previous, transient_ambiguous, WIDTH, HEIGHT)
+except ValueError:
+    pass
+else:
+    raise AssertionError("Ambiguous intermediate frame accepted as a target")
+reacquired_target = plan_sphere_motion(
+    previous, shifted_sphere_frame(12, 6), WIDTH, HEIGHT)
+assert reacquired_target["motion_prediction"] == "bounded"
+assert reacquired_target["observed_target_screen"] == {"x": 132, "y": 105}
+assert reacquired_target["candidate_spheres"] == 1
+print("PASS: ambiguous sphere frame fails closed; fresh unique frame reacquires")
+
+# Live run 41384655491 stopped at step 6 because an ERRATIC violet
+# encounter moved to the top edge: its visible colored pixels occupied
+# top-screen y=0..13 in two separated horizontal bands. This synthetic
+# fixture matches that geometry without distributing any game assets.
+def top_clipped_violet_frame(centers):
+    pixels = bytearray(sphere_frame(False))
+    for cx in centers:
+        for y in list(range(0, 4)) + list(range(7, 14)):
+            for x in range(cx - 10, cx + 11):
+                at = ((y + OFFSET) * WIDTH + x) * 3
+                pixels[at:at + 3] = bytes((211, 178, 243))
+    return pixels
+
+
+top_clipped = top_clipped_violet_frame([123])
+top_candidates = locate_spheres(top_clipped, WIDTH, HEIGHT)
+assert len(top_candidates) == 1, top_candidates
+assert top_candidates[0][0] == 123
+assert 0 <= top_candidates[0][1] < 15
+assert plan_sphere(top_clipped, WIDTH, HEIGHT)["target_screen"]["y"] < 15
+top_motion = plan_sphere_motion(top_clipped_violet_frame([120]),
+                                top_clipped, WIDTH, HEIGHT)
+assert top_motion["motion_prediction"] == "bounded"
+assert top_motion["target_screen"]["y"] < 20, top_motion
+assert top_motion["observed_target_screen"]["x"] == 123
+separate_top = top_clipped_violet_frame([80, 180])
+assert len(locate_spheres(separate_top, WIDTH, HEIGHT)) == 2
+try:
+    plan_sphere(separate_top, WIDTH, HEIGHT)
+except ValueError:
+    pass
+else:
+    raise AssertionError("Two separate clipped violet targets accepted as unique")
+print("PASS: clipped top-edge violet sphere reacquired without merging distinct targets")
+
+# Actual Linux melonDS run 41403493635 reached a SWIFT sphere at
+# top-screen y~167..191, then lost it because the saturated/dark detector
+# stopped at y=168. Keep the bottom of the top DS viewport detectable,
+# without treating the separate touchscreen as sphere artwork.
+bottom_swift = split_color_sphere_frame([(190, 178)])
+bottom_targets = locate_spheres(bottom_swift, WIDTH, HEIGHT)
+assert len(bottom_targets) == 1, bottom_targets
+assert 185 <= bottom_targets[0][0] <= 195
+assert 169 <= bottom_targets[0][1] <= 187
+bottom_motion = plan_sphere_motion(
+    split_color_sphere_frame([(180, 176)]),
+    bottom_swift, WIDTH, HEIGHT)
+assert bottom_motion["motion_prediction"] == "bounded"
+assert bottom_motion["observed_target_screen"]["y"] >= 169
+
+touchscreen_only = bytearray(sphere_frame(False))
+for y in range(205 + OFFSET, 227 + OFFSET):
+    for x in range(177, 199):
+        at = (y * WIDTH + x) * 3
+        touchscreen_only[at:at + 3] = bytes((24, 24, 32))
+assert locate_spheres(touchscreen_only, WIDTH, HEIGHT) == []
+print("PASS: lower-edge SWIFT artwork tracked without scanning touchscreen pixels")
+
+# All known fallback palettes must be able to reach the bottom of the
+# 192px top screen. Their synthetic artwork may extend below y=191 in
+# memory, but the classifier must inspect ONLY the top-screen portion.
+for lower_edge in (pink_sphere_frame(120, 187),
+                   violet_sphere_frame([(125, 187)])):
+    candidates = locate_spheres(lower_edge, WIDTH, HEIGHT)
+    assert len(candidates) == 1, candidates
+    assert candidates[0][1] >= 175, candidates
+print("PASS: pink and violet lower-edge silhouettes remain within top-screen scan")

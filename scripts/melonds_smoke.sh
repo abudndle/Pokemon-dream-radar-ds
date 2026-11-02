@@ -465,6 +465,8 @@ if [[ -f "$out/05-sphere-encounter.png" ]]; then
   # immediately on a verified reward; otherwise cap this live pursuit at
   # 160 screenshot-backed attempts (override downward for quick smoke runs).
   guided_sphere_steps=0
+  reacquire_attempts=0
+  reacquire_successes=0
   capture_steps="${CAPTURE_SWEEP_STEPS:-160}"
   if ! [[ "$capture_steps" =~ ^[0-9]+$ ]] || (( capture_steps < 1 || capture_steps > 160 )); then
     echo "CAPTURE_SWEEP_STEPS must be an integer from 1 to 160" >&2
@@ -521,24 +523,51 @@ if [[ -f "$out/05-sphere-encounter.png" ]]; then
       break
     fi
     # Unknown artwork/backgrounds fail closed to the bounded manual sweep.
-    if python3 tools/plan_melonds_aim.py "$current_sphere" --target sphere \
+    # A single ambiguous frame is not proof that the encounter is lost.
+    # Release the shoot key, take ONE fresh stationary sample and recheck
+    # Results before aiming again. Never fall back to blind directional fire.
+    if ! python3 tools/plan_melonds_aim.py "$current_sphere" --target sphere \
         --previous-screenshot "$previous_sphere" \
         >"$out/sphere-aim-$step.json" 2>"$out/sphere-aim-error-$step.txt"; then
-      guided_sphere_steps=$((guided_sphere_steps + 1))
-      read -r horizontal horizontal_seconds vertical vertical_seconds < <(
-        python3 -c 'import json,sys; p=json.load(open(sys.argv[1])); print(p["horizontal_key"],p["horizontal_seconds"],p["vertical_key"],p["vertical_seconds"])' \
-          "$out/sphere-aim-$step.json"
-      )
-      aim_ds_key "$horizontal" "$horizontal_seconds" 0.06
-      aim_ds_key "$vertical" "$vertical_seconds" 0.06
-      sleep 0.08
-    else
-      # Do not substitute blind firing for failed screenshot tracking.
-      # Keep the diagnostic screenshot and classifier stderr, then stop:
-      # blind sweeps can hide the actual cause and dismiss a reward.
-      echo "WARNING: guided sphere tracking failed at step $step; stopping without blind firing" | tee -a "$out/runtime.log"
-      break
+      reacquire_attempts=$((reacquire_attempts + 1))
+      xdotool keyup z
+      sleep 0.12
+      snapshot "05-sphere-reacquire-$step"
+      reacquired="$out/05-sphere-reacquire-$step.png"
+      if python3 tools/verify_melonds_navigation.py "$out" \
+          --observe-reward-screenshot "$reacquired" \
+          >"$out/sphere-reward-attempt.json" 2>/dev/null; then
+        mv "$out/sphere-reward-attempt.json" "$out/sphere-reward.json"
+        cp "$reacquired" "$out/05-capture-reward.png"
+        capture_last="$reacquired"
+        echo "PASS: capture reward observed during sphere reacquisition $step" | tee -a "$out/runtime.log"
+        break
+      fi
+      rm -f "$out/sphere-reward-attempt.json"
+      if ! python3 tools/verify_melonds_navigation.py "$out" \
+          --observe-capture-progress "$reacquired" \
+          >"$out/sphere-reacquire-progress-$step.json" 2>/dev/null; then
+        echo "WARNING: reacquisition frame $step is not a live sphere encounter" | tee -a "$out/runtime.log"
+        break
+      fi
+      if ! python3 tools/plan_melonds_aim.py "$reacquired" --target sphere \
+          --previous-screenshot "$previous_sphere" \
+          >"$out/sphere-aim-$step.json" 2>"$out/sphere-reacquire-error-$step.txt"; then
+        echo "WARNING: sphere target still ambiguous after one stationary retry at step $step" | tee -a "$out/runtime.log"
+        break
+      fi
+      reacquire_successes=$((reacquire_successes + 1))
+      echo "INFO: recovered guided sphere tracking after fresh frame $step" | tee -a "$out/runtime.log"
+      xdotool keydown --clearmodifiers z
     fi
+    guided_sphere_steps=$((guided_sphere_steps + 1))
+    read -r horizontal horizontal_seconds vertical vertical_seconds < <(
+      python3 -c 'import json,sys; p=json.load(open(sys.argv[1])); print(p["horizontal_key"],p["horizontal_seconds"],p["vertical_key"],p["vertical_seconds"])' \
+        "$out/sphere-aim-$step.json"
+    )
+    aim_ds_key "$horizontal" "$horizontal_seconds" 0.06
+    aim_ds_key "$vertical" "$vertical_seconds" 0.06
+    sleep 0.08
     capture_last="$out/05-sphere-sweep-$step.png"
     snapshot "05-sphere-sweep-$step"
     if python3 tools/verify_melonds_navigation.py "$out" \
@@ -565,6 +594,7 @@ if [[ -f "$out/05-sphere-encounter.png" ]]; then
   done
   xdotool keyup z
   echo "INFO: guided sphere aim used $guided_sphere_steps of $capture_steps allowed attempts" | tee -a "$out/runtime.log"
+  echo "INFO: sphere reacquisition succeeded $reacquire_successes of $reacquire_attempts attempts" | tee -a "$out/runtime.log"
 fi
 if [[ -f "$out/05-capture-reward.png" ]]; then
   cp "$out/05-capture-reward.png" "$out/06-results.png"
