@@ -8,6 +8,7 @@ original-game parity, or an independent inventory inspection.
 import argparse
 import hashlib
 import json
+import re
 from pathlib import Path
 
 from verify_melonds_clean_restart import _pid
@@ -45,6 +46,12 @@ def verify_reward_restart(first_dir, restart_dir, save_file):
         raise ValueError("No nonempty writable DLDI save media")
     first_log = (first_dir / "runtime.log").read_text()
     second_log = (restart_dir / "runtime.log").read_text()
+    for label, log in (("first", first_log), ("restart", second_log)):
+        # A concatenated/stale runtime log cannot establish which launcher
+        # produced the screenshots, even if its first PID looks valid.
+        launchers = re.findall(r"^Emulator launcher PID: ([1-9][0-9]*)$", log, re.M)
+        if len(launchers) != 1:
+            raise ValueError(f"{label} log must identify exactly one emulator launcher")
     first_pid, second_pid = _pid(first_log), _pid(second_log)
     if first_pid == second_pid:
         raise ValueError("Same emulator process cannot prove restart")

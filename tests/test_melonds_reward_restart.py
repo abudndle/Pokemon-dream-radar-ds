@@ -83,6 +83,13 @@ with tempfile.TemporaryDirectory() as tmp:
     (second / "runtime.log").write_text("Emulator launcher PID: 102\n")
     rejected(first, second, save)
     (second / "runtime.log").write_text(log)
+    (second / "runtime.log").write_text(log + "Emulator launcher PID: 103\nEmulator launcher PID 103 terminated\n")
+    rejected(first, second, save)
+    (second / "runtime.log").write_text(log)
+    first_log = (first / "runtime.log").read_text()
+    (first / "runtime.log").write_text(first_log + "Emulator launcher PID: 104\n")
+    rejected(first, second, save)
+    (first / "runtime.log").write_text(first_log)
     image = second / "03-restored-capture-reward.png"
     image.write_bytes(b"invalid PNG")
     rejected(first, second, save)
