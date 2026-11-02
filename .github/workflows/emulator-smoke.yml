@@ -17,6 +17,8 @@ on:
       - 'tools/plan_melonds_aim.py'
       - 'tools/summarize_capture_attempt.py'
       - 'tools/detect_projectile_interference.py'
+      - 'tools/analyze_prefire_drift.py'
+      - 'tests/test_prefire_drift.py'
       - 'tests/test_melonds_aim.py'
       - 'tests/test_capture_progress_summary.py'
       - 'tests/test_verify_emulator_screenshots.py'
