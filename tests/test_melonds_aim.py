@@ -290,3 +290,29 @@ for previous_frame, current_frame in (
     else:
         raise AssertionError("Invalid Orb motion frame accepted")
 print("PASS: moving-Orb lead is bounded, ambiguity fails closed and fire uses observed alignment")
+
+
+# Actual melonDS DRIFTING art is a pale pink ~22x18 sprite. The earlier
+# dark-only tracker missed every frame of a real 160-shot emulator sweep.
+# Test this fallback independently of the old synthetic dark sprite.
+def pink_sphere_frame(cx=120, cy=99):
+    pixels = bytearray(sphere_frame(False))
+    for y in range(cy - 9 + OFFSET, cy + 9 + OFFSET):
+        for x in range(cx - 11, cx + 11):
+            at = (y * WIDTH + x) * 3
+            pixels[at:at + 3] = bytes((251, 219, 243))
+    return pixels
+
+
+pink_targets = locate_spheres(pink_sphere_frame(), WIDTH, HEIGHT)
+assert len(pink_targets) == 1
+assert abs(pink_targets[0][0] - 120) <= 1
+assert abs(pink_targets[0][1] - 99) <= 1
+pink_motion = plan_sphere_motion(pink_sphere_frame(110, 99),
+                                 pink_sphere_frame(120, 99), WIDTH, HEIGHT)
+assert pink_motion["motion_prediction"] == "bounded"
+assert pink_motion["target_screen"]["x"] >= 120
+# The sphere can approach the lower boundary of the top DS viewport.
+assert len(locate_spheres(pink_sphere_frame(120, 174), WIDTH, HEIGHT)) == 1
+assert locate_spheres(sphere_frame(False), WIDTH, HEIGHT) == []
+print("PASS: pale-pink live sphere silhouette is tracked without static-cloud false positives")
