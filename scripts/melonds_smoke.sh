@@ -286,7 +286,15 @@ if [[ -f "$out/05-sphere-encounter.png" ]]; then
   xdotool windowfocus "$window"
   xdotool keydown --clearmodifiers z
   capture_last="$out/05-sphere-encounter.png"
-  for step in $(seq 1 24); do
+  # Capture needs up to 240 HP, not merely one successful beam hit. Stop
+  # immediately on a verified reward; otherwise cap this live pursuit at
+  # 160 screenshot-backed attempts (override downward for quick smoke runs).
+  capture_steps="${CAPTURE_SWEEP_STEPS:-160}"
+  if ! [[ "$capture_steps" =~ ^[0-9]+$ ]] || (( capture_steps < 1 || capture_steps > 160 )); then
+    echo "CAPTURE_SWEEP_STEPS must be an integer from 1 to 160" >&2
+    exit 2
+  fi
+  for step in $(seq 1 "$capture_steps"); do
     sweep=$(( (step - 1) % 12 + 1 ))
     case "$sweep" in
       1)  direction=Right; seconds=0.40 ;;
@@ -316,11 +324,11 @@ if [[ -f "$out/05-sphere-encounter.png" ]]; then
         python3 -c 'import json,sys; p=json.load(open(sys.argv[1])); print(p["horizontal_key"],p["horizontal_seconds"],p["vertical_key"],p["vertical_seconds"])' \
           "$out/sphere-aim-$step.json"
       )
-      aim_ds_key "$horizontal" "$horizontal_seconds"
-      aim_ds_key "$vertical" "$vertical_seconds"
-      sleep 0.35
+      aim_ds_key "$horizontal" "$horizontal_seconds" 0.06
+      aim_ds_key "$vertical" "$vertical_seconds" 0.06
+      sleep 0.08
     else
-      aim_ds_key "$direction" "$seconds"
+      aim_ds_key "$direction" "$seconds" 0.08
     fi
     capture_last="$out/05-sphere-sweep-$step.png"
     snapshot "05-sphere-sweep-$step"
