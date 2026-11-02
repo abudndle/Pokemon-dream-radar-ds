@@ -734,35 +734,39 @@ if [[ -f "$out/05-sphere-encounter.png" ]]; then
     fi
     snapshot "05-sphere-prefire-$step"
     prefire_frame="$out/05-sphere-prefire-$step.png"
-    if python3 tools/verify_melonds_navigation.py "$out" \
-        --observe-reward-screenshot "$prefire_frame" \
-        >"$out/sphere-reward-attempt.json" 2>/dev/null; then
-      mv "$out/sphere-reward-attempt.json" "$out/sphere-reward.json"
-      cp "$prefire_frame" "$out/05-capture-reward.png"
-      capture_last="$prefire_frame"
-      echo "PASS: capture reward observed before prefire $step" | tee -a "$out/runtime.log"
-      break
-    fi
-    rm -f "$out/sphere-reward-attempt.json"
-    if ! python3 tools/verify_melonds_navigation.py "$out" \
-        --observe-capture-progress "$prefire_frame" \
-        >"$out/sphere-prefire-progress-$step.json" 2>/dev/null; then
-      echo "WARNING: prefire frame $step is no longer a recognized sphere encounter" | tee -a "$out/runtime.log"
-      break
-    fi
-    if ! python3 tools/plan_melonds_aim.py "$prefire_frame" --target sphere \
-        >"$out/sphere-prefire-aim-$step.json" 2>"$out/sphere-prefire-error-$step.txt"; then
-      sphere_fire_skipped=$((sphere_fire_skipped + 1))
-      capture_last="$prefire_frame"
-      echo "INFO: prefire $step has no unique fresh target; no shot" >>"$out/runtime.log"
-      continue
-    fi
-    if ! python3 tools/sphere_prefire_gate.py "$out/sphere-prefire-aim-$step.json" \
-        >"$out/sphere-prefire-gate-$step.json" 2>/dev/null ||
-       ! python3 -c 'import json,sys; sys.exit(not json.load(open(sys.argv[1]))["fire_authorized"])' \
-        "$out/sphere-prefire-gate-$step.json"; then
-      # One bounded correction based on the new frame. A stays released,
-      # and a SECOND fresh screenshot must authorize any subsequent shot.
+    # One fresh PNG decode now checks reward, capture scene, unique target
+    # and observed-only 13px gate. Separate ImageMagick/JSON subprocesses
+    # previously let fast spheres drift between observation and A-button.
+    prefire_code=0
+    python3 tools/verify_sphere_prefire_frame.py "$prefire_frame" \
+      --reward "$out/sphere-reward-attempt.json" \
+      --progress "$out/sphere-prefire-progress-$step.json" \
+      --aim "$out/sphere-prefire-aim-$step.json" \
+      --gate "$out/sphere-prefire-gate-$step.json" \
+      >"$out/sphere-prefire-inspection-$step.json" \
+      2>"$out/sphere-prefire-error-$step.txt" || prefire_code=$?
+    case "$prefire_code" in
+      20)
+        mv "$out/sphere-reward-attempt.json" "$out/sphere-reward.json"
+        cp "$prefire_frame" "$out/05-capture-reward.png"
+        capture_last="$prefire_frame"
+        echo "PASS: capture reward observed before prefire $step" | tee -a "$out/runtime.log"
+        break ;;
+      12)
+        echo "WARNING: prefire frame $step is no longer a recognized sphere encounter" | tee -a "$out/runtime.log"
+        break ;;
+      11)
+        sphere_fire_skipped=$((sphere_fire_skipped + 1))
+        capture_last="$prefire_frame"
+        echo "INFO: prefire $step has no unique fresh target; no shot" >>"$out/runtime.log"
+        continue ;;
+      10) ;; # Unaligned; one no-fire correction is allowed.
+      0) ;;  # Directly observed and aligned.
+      *) echo "ERROR: prefire inspection failed ($prefire_code)" >&2; exit 1 ;;
+    esac
+    if [[ "$prefire_code" == 10 ]]; then
+      # The first observation is not aligned. A stays released; correct
+      # once and require an independent SECOND screenshot before any shot.
       read -r fix_h fix_h_seconds fix_v fix_v_seconds < <(
         python3 -c 'import json,sys; p=json.load(open(sys.argv[1])); print(p["horizontal_key"],round(min(0.12,p["horizontal_seconds"]),3),p["vertical_key"],round(min(0.12,p["vertical_seconds"]),3))' \
           "$out/sphere-prefire-aim-$step.json"
@@ -776,37 +780,32 @@ if [[ -f "$out/05-sphere-encounter.png" ]]; then
       fi
       snapshot "05-sphere-prefire-corrected-$step"
       prefire_frame="$out/05-sphere-prefire-corrected-$step.png"
-      if python3 tools/verify_melonds_navigation.py "$out" \
-          --observe-reward-screenshot "$prefire_frame" \
-          >"$out/sphere-reward-attempt.json" 2>/dev/null; then
-        mv "$out/sphere-reward-attempt.json" "$out/sphere-reward.json"
-        cp "$prefire_frame" "$out/05-capture-reward.png"
-        capture_last="$prefire_frame"
-        echo "PASS: capture reward observed during no-fire correction $step" | tee -a "$out/runtime.log"
-        break
-      fi
-      rm -f "$out/sphere-reward-attempt.json"
-      if ! python3 tools/verify_melonds_navigation.py "$out" \
-          --observe-capture-progress "$prefire_frame" \
-          >"$out/sphere-prefire-corrected-progress-$step.json" 2>/dev/null; then
-        echo "WARNING: corrected prefire frame $step is no longer a sphere encounter" | tee -a "$out/runtime.log"
-        break
-      fi
-      if ! python3 tools/plan_melonds_aim.py "$prefire_frame" --target sphere \
-          >"$out/sphere-prefire-aim-$step.json" 2>"$out/sphere-prefire-error-$step.txt"; then
-        sphere_fire_skipped=$((sphere_fire_skipped + 1))
-        capture_last="$prefire_frame"
-        continue
-      fi
-    fi
-    if ! python3 tools/sphere_prefire_gate.py "$out/sphere-prefire-aim-$step.json" \
-        >"$out/sphere-prefire-gate-$step.json" 2>/dev/null ||
-       ! python3 -c 'import json,sys; sys.exit(not json.load(open(sys.argv[1]))["fire_authorized"])' \
-        "$out/sphere-prefire-gate-$step.json"; then
-      sphere_fire_skipped=$((sphere_fire_skipped + 1))
-      capture_last="$prefire_frame"
-      echo "INFO: prefire $step remained outside observed 13px radius; no shot" >>"$out/runtime.log"
-      continue
+      corrected_code=0
+      python3 tools/verify_sphere_prefire_frame.py "$prefire_frame" \
+        --reward "$out/sphere-reward-attempt.json" \
+        --progress "$out/sphere-prefire-corrected-progress-$step.json" \
+        --aim "$out/sphere-prefire-aim-$step.json" \
+        --gate "$out/sphere-prefire-gate-$step.json" \
+        >"$out/sphere-prefire-corrected-inspection-$step.json" \
+        2>"$out/sphere-prefire-error-$step.txt" || corrected_code=$?
+      case "$corrected_code" in
+        20)
+          mv "$out/sphere-reward-attempt.json" "$out/sphere-reward.json"
+          cp "$prefire_frame" "$out/05-capture-reward.png"
+          capture_last="$prefire_frame"
+          echo "PASS: capture reward observed during no-fire correction $step" | tee -a "$out/runtime.log"
+          break ;;
+        12)
+          echo "WARNING: corrected prefire frame $step is no longer a sphere encounter" | tee -a "$out/runtime.log"
+          break ;;
+        11|10)
+          sphere_fire_skipped=$((sphere_fire_skipped + 1))
+          capture_last="$prefire_frame"
+          echo "INFO: corrected prefire $step remained ambiguous or unaligned; no shot" >>"$out/runtime.log"
+          continue ;;
+        0) ;;
+        *) echo "ERROR: corrected prefire inspection failed ($corrected_code)" >&2; exit 1 ;;
+      esac
     fi
     # The last observed target is uniquely aligned. Fire a short bounded
     # pulse, release A, then inspect the actual post-shot meter or Results.
