@@ -5,7 +5,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 from plan_melonds_aim import (locate_clouds, locate_cloud_edge_markers,
                               locate_orbs, locate_spheres, plan, plan_orb,
-                              plan_sphere, plan_sphere_motion)
+                              plan_sphere, plan_sphere_motion, plan_orb_motion)
 
 WIDTH, HEIGHT = 256, 403
 OFFSET = HEIGHT - 384
@@ -255,3 +255,38 @@ print("PASS: two-frame sphere motion lead is bounded and fails closed")
 print("PASS: encounter art planner rejects static white cloud, small projectile and unknown scenes")
 
 print("PASS: screenshot-driven cloud/Orb aim planner handles nearest target and invalid frames")
+
+
+# Moving Orbs live for only 210 frames. Two stationary samples permit a
+# bounded lead; predicted alignment alone must NEVER authorize a shot.
+orb_previous = orb_frame([(100, 96)])
+orb_current = orb_frame([(110, 96)])
+orb_lead = plan_orb_motion(orb_previous, orb_current, WIDTH, HEIGHT)
+assert orb_lead["observed_target_screen"] == {"x": 110, "y": 96}
+assert orb_lead["target_screen"] == {"x": 115, "y": 96}
+assert orb_lead["observed_displacement"] == {"x": 10, "y": 0}
+assert orb_lead["motion_prediction"] == "bounded"
+assert not orb_lead["within_safe_fire_radius"]
+assert orb_lead["horizontal_key"] == "Left"
+assert plan_orb_motion(orb_frame([(124, 96)]),
+                       orb_frame([(128, 96)]), WIDTH, HEIGHT)["within_safe_fire_radius"]
+assert plan_orb_motion(bytes(WIDTH * HEIGHT * 3),
+                       orb_current, WIDTH, HEIGHT)["motion_prediction"] == "previous_frame_unrecognized"
+assert plan_orb_motion(orb_frame([(60, 96)]),
+                       orb_current, WIDTH, HEIGHT)["motion_prediction"] == "discontinuity"
+ambiguous_orb = plan_orb_motion(orb_frame([(80, 96), (100, 96)]),
+                                orb_frame([(90, 96)]), WIDTH, HEIGHT)
+assert ambiguous_orb["motion_prediction"] == "ambiguous_previous_target"
+assert ambiguous_orb["target_screen"] == {"x": 90, "y": 96}
+for previous_frame, current_frame in (
+    (orb_previous[:-3], orb_current),
+    (orb_previous, orb_current[:-3]),
+    (orb_previous, frame([(128, 96)])),
+):
+    try:
+        plan_orb_motion(previous_frame, current_frame, WIDTH, HEIGHT)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("Invalid Orb motion frame accepted")
+print("PASS: moving-Orb lead is bounded, ambiguity fails closed and fire uses observed alignment")
