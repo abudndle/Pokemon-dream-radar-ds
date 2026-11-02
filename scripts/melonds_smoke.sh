@@ -928,6 +928,10 @@ fi
 # An encounter and a partially filled bar are NOT a completed capture.
 python3 tools/summarize_capture_attempt.py "$out" \
   --output "$out/sphere-attempt-report.json" | tee -a "$out/runtime.log"
+# A postfire target may have moved long after A was released. Measure that
+# displacement separately from meter deltas, never as proof of a beam hit.
+python3 tools/analyze_sphere_motion.py "$out" \
+  --output "$out/sphere-motion-report.json" | tee -a "$out/runtime.log"
 if [[ -f "$out/05-capture-reward.png" ]]; then
   cp "$out/05-capture-reward.png" "$out/06-results.png"
 elif [[ -f "$out/06-results.png" ]]; then
