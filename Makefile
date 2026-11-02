@@ -182,4 +182,5 @@ test-host:
 	python3 tests/test_nds_header.py
 	python3 tests/test_verify_emulator_screenshots.py
 	python3 tests/test_melonds_navigation.py
+	python3 tests/test_navigation_evidence.py
 	python3 tools/verify_assets.py
