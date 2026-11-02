@@ -30,7 +30,7 @@ def _json(path):
 def _image(path, font):
     if not path.is_file() or path.stat().st_size < 8:
         raise ValueError(f"Missing reward screenshot: {path}")
-    if path.open("rb").read(8) != b"\\x89PNG\\r\\n\\x1a\\n":
+    if path.open("rb").read(8) != b"\x89PNG\r\n\x1a\n":
         raise ValueError(f"Invalid PNG signature: {path}")
     pixels, width, height = decode_native_capture(path)
     return read_capture_reward(pixels, width, height, font)
@@ -80,7 +80,7 @@ def main():
     try:
         report = verify_reward_restart(args.first_dir, args.restart_dir, args.save_file)
     except (OSError, ValueError, KeyError, json.JSONDecodeError) as exc:
-        parser.exit(1, f"Reward restart acceptance failed: {exc}\\n")
+        parser.exit(1, f"Reward restart acceptance failed: {exc}\n")
     print(json.dumps(report, indent=2))
     print("PASS: exact visible reward independently restored after melonDS restart")
 
