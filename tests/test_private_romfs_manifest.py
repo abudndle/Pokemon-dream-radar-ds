@@ -4,11 +4,12 @@ import json
 import pathlib
 import sys
 import tempfile
+import zipfile
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "tools"))
 from verify_private_romfs import (
     ROOT, _index, _outside_repository, _write_private_report,
-    check, compare_inventory, load_manifest,
+    check, compare_inventory, load_manifest, verify_private_archives,
 )
 
 
@@ -61,6 +62,31 @@ with tempfile.TemporaryDirectory() as temporary:
     assert report.stat().st_mode & 0o077 == 0
     rejects(lambda: check(report=report))
     rejects(lambda: check(tmp / "source.ncch", tmp / "source.ncch"))
+
+    # Synthetic source-derived DARCs and UI archive; no Nintendo payloads.
+    darc_file = tmp / "synthetic_darc.zip"
+    with zipfile.ZipFile(darc_file, "w", zipfile.ZIP_DEFLATED) as out:
+        for entry in original["files"]:
+            if entry["path"].endswith(".carc"):
+                out.writestr(entry["path"][1:-5] + ".darc", b"darc synthetic")
+        out.writestr("inventory.json", "{}")
+    ui_file = tmp / "synthetic_ui.zip"
+    with zipfile.ZipFile(ui_file, "w", zipfile.ZIP_DEFLATED) as out:
+        for ext, amount in ((".bclim", 875), (".bclan", 417),
+                            (".bclyt", 135), (".msbt", 35)):
+            for i in range(amount):
+                out.writestr("Ui/synthetic_%04d%s" % (i, ext), b"x")
+    verified = verify_private_archives(original, darc_file, ui_file)
+    assert verified["darc"]["member_count"] == 178
+    assert verified["ui"]["member_count"] == 1462
+    assert all(x["integrity_verified"] for x in verified.values())
+    with zipfile.ZipFile(darc_file, "w") as out:
+        out.writestr("Ui/invalid.darc", b"darc")
+    rejects(lambda: verify_private_archives(original, darc_file))
+    with zipfile.ZipFile(ui_file, "w") as out:
+        out.writestr("Ui/one.bclim", b"x")
+    rejects(lambda: verify_private_archives(original, ui_zip=ui_file))
+
     bad = json.loads(json.dumps(original))
     bad["files"][0]["size"] += 1
     bad["types"]["carc"] -= 1
