@@ -12,6 +12,11 @@ on:
         type: boolean
         required: false
         default: false
+      require_orb_collection:
+        description: 'Require a saved Orb balance increase across the live search'
+        type: boolean
+        required: false
+        default: false
       capture_sweep_steps:
         description: 'Maximum live sphere pursuit steps (1–160)'
         type: choice
@@ -97,6 +102,7 @@ jobs:
         env:
           REQUIRE_TOUCH: ${{ inputs.require_touch && '1' || '0' }}
           REQUIRE_CAPTURE: ${{ inputs.require_capture && '1' || '0' }}
+          REQUIRE_ORB_COLLECTION: ${{ inputs.require_orb_collection && '1' || '0' }}
           CAPTURE_SWEEP_STEPS: ${{ inputs.capture_sweep_steps || '160' }}
         run: |
           xvfb-run -a -s '-screen 0 1280x900x24' \

@@ -213,14 +213,67 @@ def compare_radar_counters(before, after):
             "limitations": "A counter change alone does not prove a sphere encounter, capture, reward, or save."}
 
 
+
+def read_shop_orb_balance(pixels, width, height, font):
+    """Read the PERSISTENT Orb balance from the live Development Lab shop."""
+    prefix = "Development Lab  ORBS "
+    x, y = 8, 192 + 8
+    check_heading(pixels, width, height, x, y, prefix, font, ink="gold")
+    x += len(prefix) * 6
+    digits = ""
+    for _ in range(10):  # Save balance is uint32_t.
+        matches = []
+        for digit in "0123456789":
+            try:
+                check_heading(pixels, width, height, x, y, digit, font, ink="gold")
+            except ValueError:
+                continue
+            matches.append(digit)
+        if len(matches) != 1:
+            break
+        digits += matches[0]
+        x += 6
+    if not digits or (len(digits) > 1 and digits[0] == "0"):
+        raise ValueError("Persistent Orb balance missing or malformed")
+    check_heading(pixels, width, height, x, y, " ", font, ink="gold")
+    balance = int(digits)
+    if balance > 0xffffffff:
+        raise ValueError("Persistent Orb balance outside save range")
+    return {"saved_orbs": balance}
+
+
+def compare_shop_orb_balances(before, after):
+    """Credit collection only when an independently read shop balance rises."""
+    first, last = before["saved_orbs"], after["saved_orbs"]
+    if not all(isinstance(value, int) and not isinstance(value, bool)
+               and 0 <= value <= 0xffffffff for value in (first, last)):
+        raise ValueError("Invalid saved Orb balance")
+    gained = last - first
+    return {"before": before, "after": after,
+            "saved_orbs_gained": max(0, gained),
+            "orb_collection_observed": gained > 0,
+            "status": ("persistent_orb_balance_increased" if gained > 0
+                       else "persistent_orb_balance_unchanged" if gained == 0
+                       else "persistent_orb_balance_decreased"),
+            "limitations": "Displayed saved balance change during this emulator route, not restart or retail parity."}
+
+
 def compare_orb_counters(before, after):
-    """A decrease in visible live Orbs is evidence of collection, not saving."""
-    collected = before["orbs"] - after["orbs"]
-    return {"status": "orb_count_decreased" if collected > 0 else "orb_count_not_decreased",
+    """Count active-Orb disappearance without falsely claiming collection.
+
+    Dream Orbs also expire after 210 gameplay frames. Two radar screenshots
+    cannot distinguish an A-button hit from timeout, even if the test pressed
+    A between them. A verified collection needs an independently observed
+    increase in the persistent Orb balance (or equivalent game-state proof).
+    """
+    disappeared = before["orbs"] - after["orbs"]
+    return {"status": ("orb_count_decreased_unattributed" if disappeared > 0
+                       else "orb_count_not_decreased" if disappeared == 0
+                       else "orb_count_increased"),
             "before": before, "after": after,
-            "orbs_collected": max(0, collected),
-            "orb_collection_observed": collected > 0,
-            "limitations": "Does not establish an encounter, reward persistence or restart."}
+            "orbs_disappeared": max(0, disappeared),
+            "orb_collection_observed": False,
+            "limitations": "Live Orbs expire after 210 frames; a lower active count cannot prove collection. Compare independently verified persistent Orb balances."}
 
 
 def decode_native_capture(path):
@@ -330,11 +383,18 @@ def main():
                         help="Read the gold meter from a sphere screenshot")
     parser.add_argument("--observe-results-screenshot", type=Path,
                         help="Recognize a Results heading without assuming a reward")
+    parser.add_argument("--observe-shop-orbs-screenshot", type=Path,
+                        help="Read saved Orb balance from a Development Lab shop screenshot")
     args = parser.parse_args()
     if sum(v is not None for v in
            (args.observe_search_screenshot, args.observe_reward_screenshot,
-            args.observe_capture_progress, args.observe_results_screenshot)) > 1:
+            args.observe_capture_progress, args.observe_results_screenshot,
+            args.observe_shop_orbs_screenshot)) > 1:
         parser.error("Select only one screenshot observation")
+    if args.observe_shop_orbs_screenshot:
+        pixels, width, height = decode_native_capture(args.observe_shop_orbs_screenshot)
+        print(json.dumps(read_shop_orb_balance(pixels, width, height, font_rows())))
+        return
     if args.observe_results_screenshot:
         pixels, width, height = decode_native_capture(args.observe_results_screenshot)
         check_heading(pixels, width, height, 10, 8, "RESEARCH RESULTS", font_rows())

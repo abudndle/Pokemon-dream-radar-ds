@@ -54,6 +54,33 @@ counters or a recognized sphere transition in subsequent screenshots.
 The color/geometry heuristic is specific to the public DS fallback
 renderer; it does not recognize original 3DS sprites or establish parity.
 
+## Persistent Dream Orb collection evidence
+
+The radar's `ORBS` counter counts **currently active** objects, not saved
+currency. Those objects expire after 210 gameplay frames, so a decrease
+from 3 to 2 after pressing A does **not** prove an Orb was collected.
+The navigation report now records such changes as
+`orb_count_decreased_unattributed`, with
+`orb_collection_observed: false`.
+
+The melonDS smoke runner now also visits the Development Lab shop before
+and after the radar outing. It decodes the shop's gold
+`Development Lab  ORBS <balance>` label from native screenshot pixels
+and writes `orb-balance-before.json`, `orb-balance-after.json`, and
+`orb-balance-change.json`. Only an independently verified increase in
+this saved balance earns `orb_collection_observed: true`. The test route
+does not buy upgrades or spend Orbs between observations. An unreadable
+shop screenshot leaves collection **unverified** rather than assuming
+success.
+
+`REQUIRE_ORB_COLLECTION=1` (or the matching manual workflow input) fails
+the run unless the saved balance increased. The default run remains
+non-strict to permit navigation diagnostics when Orbs expire. This is
+still not proof of persistence after an emulator restart. The moving-Orb
+planner can use two consecutive screenshots only when the D-pad is
+stationary between them, and a fresh observed frame—not predicted
+position—must authorize firing.
+
 ## Optional live encounter instrumentation
 
 The Linux melonDS smoke workflow now tries screenshot-guided aiming on the

@@ -11,7 +11,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 from verify_melonds_navigation import (check_heading, font_rows, read_radar_counters,
                                        compare_radar_counters, compare_orb_counters,
                                        read_sphere_state, observe_search_state,
-                                       read_capture_reward, read_capture_progress)
+                                       read_capture_reward, read_capture_progress,
+                                       read_shop_orb_balance, compare_shop_orb_balances)
 
 font = font_rows()
 width, height = 256, 403
@@ -91,15 +92,22 @@ orb_only = compare_radar_counters(before, {"clouds": 5, "orbs": 1})
 assert orb_only["status"] == "counters_changed_without_confirmed_cloud_removal"
 assert not orb_only["cloud_removal_observed"]
 
-collected = compare_orb_counters({"clouds": 4, "orbs": 3},
-                                 {"clouds": 4, "orbs": 2})
-assert collected["status"] == "orb_count_decreased"
-assert collected["orbs_collected"] == 1
-assert collected["orb_collection_observed"]
+# A live Orb can disappear by expiry after 210 frames, not only by
+# collection. A shot plus lower active counter is NOT reward evidence.
+expired_or_hit = compare_orb_counters({"clouds": 4, "orbs": 3},
+                                      {"clouds": 4, "orbs": 2})
+assert expired_or_hit["status"] == "orb_count_decreased_unattributed"
+assert expired_or_hit["orbs_disappeared"] == 1
+assert not expired_or_hit["orb_collection_observed"]
 missed = compare_orb_counters({"clouds": 4, "orbs": 3},
                               {"clouds": 4, "orbs": 3})
 assert missed["status"] == "orb_count_not_decreased"
 assert not missed["orb_collection_observed"]
+spawned = compare_orb_counters({"clouds": 4, "orbs": 1},
+                               {"clouds": 4, "orbs": 3})
+assert spawned["status"] == "orb_count_increased"
+assert spawned["orbs_disappeared"] == 0
+assert not spawned["orb_collection_observed"]
 
 # The dedicated sphere scene has a GOLD capture-class label and a WHITE timer.
 # Do not confuse a radar cloud hit with a successful Pokemon/item capture.
@@ -246,3 +254,47 @@ print("PASS: capture meter and catalog-backed Pokemon/item results recognition")
 print("PASS: gold capture-class and white timer independently verify live sphere screens")
 
 print("PASS: emulator heading and radar-counter recognition reject blank, wrong-stage, shifted and scaled frames")
+
+
+# A radar Orb-count decrease can mean expiry. Verify the separate saved Orb
+# balance printed in the Development Lab shop (bottom DS screen) instead.
+def shop_frame(balance, rgb=(255, 225, 40)):
+    pixels = bytearray(width * height * 3)
+    label = "Development Lab  ORBS " + str(balance)
+    for index, letter in enumerate(label):
+        for row in range(8):
+            mask = font[(ord(letter) - 32) * 8 + row]
+            for column in range(6):
+                if mask & (1 << (5 - column)):
+                    at = ((192 + 8 + OFFSET + row) * width + 8 + index * 6 + column) * 3
+                    pixels[at:at + 3] = bytes(rgb)
+    return pixels
+
+
+for balance in (0, 1, 45, 4294967295):
+    assert read_shop_orb_balance(shop_frame(balance), width, height, font) == {"saved_orbs": balance}
+for invalid in (shop_frame(""), shop_frame("01"), shop_frame("4294967296"),
+                shop_frame(15, rgb=(255, 255, 255)),
+                bytes(width * height * 3)):
+    try:
+        read_shop_orb_balance(invalid, width, height, font)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("Invalid or wrong-color saved Orb balance accepted")
+gain = compare_shop_orb_balances({"saved_orbs": 10}, {"saved_orbs": 13})
+assert gain["orb_collection_observed"] and gain["saved_orbs_gained"] == 3
+assert gain["status"] == "persistent_orb_balance_increased"
+for previous, current in ((10, 10), (10, 9)):
+    comparison = compare_shop_orb_balances({"saved_orbs": previous},
+                                           {"saved_orbs": current})
+    assert not comparison["orb_collection_observed"]
+for invalid in ({"saved_orbs": -1}, {"saved_orbs": True},
+                {"saved_orbs": 4294967296}):
+    try:
+        compare_shop_orb_balances(invalid, {"saved_orbs": 1})
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("Invalid saved Orb comparison accepted")
+print("PASS: saved Orb balance is independent of timed-out radar Orb entities")
