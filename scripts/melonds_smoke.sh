@@ -434,7 +434,11 @@ if [[ -f "$out/05-sphere-encounter.png" ]]; then
       aim_ds_key "$vertical" "$vertical_seconds" 0.06
       sleep 0.08
     else
-      aim_ds_key "$direction" "$seconds" 0.08
+      # Do not substitute blind firing for failed screenshot tracking.
+      # Keep the diagnostic screenshot and classifier stderr, then stop:
+      # blind sweeps can hide the actual cause and dismiss a reward.
+      echo "WARNING: guided sphere tracking failed at step $step; stopping without blind firing" | tee -a "$out/runtime.log"
+      break
     fi
     capture_last="$out/05-sphere-sweep-$step.png"
     snapshot "05-sphere-sweep-$step"
