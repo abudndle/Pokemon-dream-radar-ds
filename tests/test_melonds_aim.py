@@ -1,5 +1,6 @@
 """Synthetic regression tests for screenshot-guided DS fallback aiming."""
 from pathlib import Path
+import struct
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
@@ -22,6 +23,10 @@ assert "int sy=c->y-game.aim_y+96;" in source_main
 assert "int px=game.sphere_x-game.aim_x+128;" in source_main
 assert "int py=game.sphere_y-game.aim_y+96;" in source_main
 assert (RETICLE_CENTER_X, RETICLE_CENTER_Y) == (128, 96)
+reticle_header = (Path(__file__).resolve().parents[1] / "nitrofs" / "reticle.spr").read_bytes()[:4]
+reticle_width, reticle_height = struct.unpack("<HH", reticle_header)
+assert (reticle_width, reticle_height) == (32, 32)
+assert (112 + reticle_width // 2, 80 + reticle_height // 2) == (RETICLE_CENTER_X, RETICLE_CENTER_Y)
 
 
 def frame(clouds):
