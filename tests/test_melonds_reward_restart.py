@@ -90,7 +90,6 @@ with tempfile.TemporaryDirectory() as tmp:
         "Emulator launcher PID 102 terminated\n")
     rejected(first, second, save)
     (second / "runtime.log").write_text(log)
-    (second / "runtime.log").write_text(log)
     (second / "runtime.log").write_text(log + "Emulator launcher PID: 103\nEmulator launcher PID 103 terminated\n")
     rejected(first, second, save)
     (second / "runtime.log").write_text(log)
