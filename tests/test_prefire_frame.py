@@ -2,13 +2,14 @@
 """Synthetic single-pass prefire checks; never substitutes for live melonDS."""
 from pathlib import Path
 import json
+import subprocess
 import sys
 import tempfile
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'tools'))
-from verify_sphere_prefire_frame import inspect_frame, write_evidence, EXIT_CODES
+from verify_sphere_prefire_frame import inspect_frame, write_evidence, pulse_if_aligned, EXIT_CODES
 
 pixels = b'synthetic-rgb'
 progress = {'filled_pixels': 7, 'bar_width': 177}
@@ -58,6 +59,45 @@ with tempfile.TemporaryDirectory() as tmp:
     write_evidence(paths, ('reward', reward, None, None, None))
     assert json.loads(paths['reward'].read_text()) == reward
     assert not paths['gate'].exists()
+
+# The default inspector is observation-only. The explicit low-latency
+# pulse cannot fire for reward, ambiguity, unaligned or ended encounters.
+with patch('verify_sphere_prefire_frame.subprocess.run') as run, \
+     patch('verify_sphere_prefire_frame.time.sleep') as sleep:
+    for status in ('reward', 'not_encounter', 'ambiguous', 'unaligned'):
+        assert pulse_if_aligned(status) is False
+    run.assert_not_called()
+    sleep.assert_not_called()
+    assert pulse_if_aligned('aligned') is True
+    assert run.call_count == 2
+    assert run.call_args_list[0].args[0] == [
+        'xdotool', 'keydown', '--clearmodifiers', 'z']
+    assert run.call_args_list[1].args[0] == ['xdotool', 'keyup', 'z']
+    sleep.assert_called_once_with(0.16)
+
+# Even if a pulse fails midway, A is released. This is a host regression,
+# not evidence that a moving sphere was hit in a real emulator.
+with patch('verify_sphere_prefire_frame.subprocess.run') as run, \
+     patch('verify_sphere_prefire_frame.time.sleep',
+           side_effect=RuntimeError('interrupted')):
+    try:
+        pulse_if_aligned('aligned')
+    except RuntimeError:
+        pass
+    else:
+        raise AssertionError('Interrupted pulse should propagate failure')
+    assert run.call_args_list[-1].args[0] == ['xdotool', 'keyup', 'z']
+
+with patch('verify_sphere_prefire_frame.subprocess.run',
+           side_effect=[subprocess.CalledProcessError(1, 'xdotool'), None]) as run:
+    try:
+        pulse_if_aligned('aligned')
+    except subprocess.CalledProcessError:
+        pass
+    else:
+        raise AssertionError('Failed keydown must not report a pulse')
+    assert run.call_count == 2
+    assert run.call_args_list[-1].args[0] == ['xdotool', 'keyup', 'z']
 
 assert EXIT_CODES == {'aligned':0,'unaligned':10,'ambiguous':11,'not_encounter':12,'reward':20}
 print('PASS: one fresh frame classifies reward/encounter/target/gate without stale authorization')

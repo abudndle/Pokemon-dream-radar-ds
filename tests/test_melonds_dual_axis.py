@@ -55,8 +55,8 @@ for args in (("z", "0.1", "Down", "0.1"),
 capture = script.split('capture_last=""\nif [[ -f "$out/05-sphere-encounter.png" ]]; then', 1)[1].split('# Persist an explicit meter ceiling', 1)[0]
 assert capture.count('aim_ds_pair "$horizontal" "$horizontal_seconds" "$vertical" "$vertical_seconds" 0.06') == 1
 assert capture.count('aim_ds_pair "$fix_h" "$fix_h_seconds" "$fix_v" "$fix_v_seconds" 0.04') == 1
-assert capture.index('aim_ds_pair "$horizontal"') < capture.index('snapshot "05-sphere-prefire-$step"')
-assert capture.index('aim_ds_pair "$fix_h"') < capture.index('snapshot "05-sphere-prefire-corrected-$step"')
+assert capture.index('aim_ds_pair "$horizontal"') < capture.index('snapshot_fast "05-sphere-prefire-$step"')
+assert capture.index('aim_ds_pair "$fix_h"') < capture.index('snapshot_fast "05-sphere-prefire-corrected-$step"')
 assert 'xdotool keydown --clearmodifiers z' not in function
 assert capture.count('sphere_diagonal_pulses=$((sphere_diagonal_pulses + 1))') == 2
 assert capture.count('sphere_single_axis_pulses=$((sphere_single_axis_pulses + 1))') == 2

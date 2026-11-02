@@ -124,6 +124,15 @@ snapshot() {
   identify "$out/$name.png" | tee -a "$out/runtime.log"
   test -s "$out/$name.png"
 }
+# Fast prefire snapshots omit redundant xwininfo/identify subprocesses.
+# ImageMagick import still fails if the window disappears; the fresh-frame
+# inspector independently checks decoded dimensions and rejects bad images.
+# Do not use this shortcut to assert a reward, hit, or save persistence.
+snapshot_fast() {
+  local name="$1"
+  import -silent -window "$window" "$out/$name.png"
+  test -s "$out/$name.png"
+}
 press_ds_key() {
   local key="$1" settle="${2:-2}"
   xdotool windowfocus "$window"
@@ -732,13 +741,13 @@ if [[ -f "$out/05-sphere-encounter.png" ]]; then
     else
       sphere_single_axis_pulses=$((sphere_single_axis_pulses + 1))
     fi
-    snapshot "05-sphere-prefire-$step"
+    snapshot_fast "05-sphere-prefire-$step"
     prefire_frame="$out/05-sphere-prefire-$step.png"
     # One fresh PNG decode now checks reward, capture scene, unique target
     # and observed-only 13px gate. Separate ImageMagick/JSON subprocesses
     # previously let fast spheres drift between observation and A-button.
     prefire_code=0
-    python3 tools/verify_sphere_prefire_frame.py "$prefire_frame" \
+    python3 tools/verify_sphere_prefire_frame.py "$prefire_frame" --fire-aligned \
       --reward "$out/sphere-reward-attempt.json" \
       --progress "$out/sphere-prefire-progress-$step.json" \
       --aim "$out/sphere-prefire-aim-$step.json" \
@@ -778,10 +787,10 @@ if [[ -f "$out/05-sphere-encounter.png" ]]; then
       else
         sphere_single_axis_pulses=$((sphere_single_axis_pulses + 1))
       fi
-      snapshot "05-sphere-prefire-corrected-$step"
+      snapshot_fast "05-sphere-prefire-corrected-$step"
       prefire_frame="$out/05-sphere-prefire-corrected-$step.png"
       corrected_code=0
-      python3 tools/verify_sphere_prefire_frame.py "$prefire_frame" \
+      python3 tools/verify_sphere_prefire_frame.py "$prefire_frame" --fire-aligned \
         --reward "$out/sphere-reward-attempt.json" \
         --progress "$out/sphere-prefire-corrected-progress-$step.json" \
         --aim "$out/sphere-prefire-aim-$step.json" \
@@ -807,12 +816,10 @@ if [[ -f "$out/05-sphere-encounter.png" ]]; then
         *) echo "ERROR: corrected prefire inspection failed ($corrected_code)" >&2; exit 1 ;;
       esac
     fi
-    # The last observed target is uniquely aligned. Fire a short bounded
-    # pulse, release A, then inspect the actual post-shot meter or Results.
+    # The aligned inspector has ALREADY pulsed and released A immediately
+    # after its fresh screenshot gate; no second shell-side shot is allowed.
+    # A pulse is not proof of a hit, capture or reward.
     sphere_fire_authorized=$((sphere_fire_authorized + 1))
-    xdotool keydown --clearmodifiers z
-    sleep 0.16
-    xdotool keyup z
     capture_last="$out/05-sphere-sweep-$step.png"
     snapshot "05-sphere-sweep-$step"
     if python3 tools/verify_melonds_navigation.py "$out" \

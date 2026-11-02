@@ -420,7 +420,7 @@ capture_section = smoke_source[capture_start:capture_end]
 off = capture_section.index("xdotool keyup z")
 samples = capture_section.index("for reacquire_sample in 1 2 3; do")
 found = capture_section.index('if [[ "$reacquire_state" != found ]]')
-on = capture_section.index("xdotool keydown --clearmodifiers z", samples)
+on = capture_section.index('python3 tools/verify_sphere_prefire_frame.py "$prefire_frame" --fire-aligned', samples)
 assert off < samples < found < on
 assert 'reacquire_state=ambiguous' in capture_section
 assert 'reacquire_state=found' in capture_section
