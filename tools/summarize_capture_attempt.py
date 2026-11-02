@@ -8,6 +8,7 @@ import argparse
 import json
 from pathlib import Path
 import subprocess
+import re
 
 from verify_melonds_navigation import (decode_native_capture, font_rows,
                                        read_capture_reward)
@@ -61,6 +62,47 @@ def summarize(directory):
         if data != expected:
             raise ValueError(f"Prefire decision does not match observed target: {path}")
         prefire_decisions.append(data)
+    # Correlate each inspector-reported A pulse with its own before/after
+    # screenshot-derived meter. A gate observation is NOT a fired shot, and
+    # even a positive meter delta is NOT proof of a completed capture.
+    # A missing postfire frame remains unpaired, never a zero-damage claim.
+    meters = {o["file"]: o["filled_pixels"] for o in observations}
+    pulse_rows = []
+    fired_steps = set()
+    pattern = re.compile(r"sphere-prefire-(?:(corrected|stationary)-)?inspection-([0-9]+)\\.json")
+    for path in sorted(directory.glob("sphere-prefire-*inspection-*.json")):
+        match = pattern.fullmatch(path.name)
+        if not match:
+            raise ValueError(f"Unknown prefire inspection evidence: {path}")
+        variant, step_text = match.groups()
+        step = int(step_text)
+        if step < 1:
+            raise ValueError(f"Invalid prefire step: {path}")
+        data = json.loads(path.read_text())
+        if not isinstance(data, dict) or type(data.get("fire_executed")) is not bool:
+            raise ValueError(f"Invalid prefire execution evidence: {path}")
+        if not data["fire_executed"]:
+            continue
+        if (data.get("status") != "aligned"
+                or data.get("fire_authorized") is not True
+                or step in fired_steps):
+            raise ValueError(f"Contradictory or duplicate prefire pulse: {path}")
+        gate_path = directory / f"sphere-prefire-gate-{step}.json"
+        if not gate_path.is_file():
+            raise ValueError(f"Fired pulse lacks observed gate: {path}")
+        gate = json.loads(gate_path.read_text())
+        if gate not in prefire_decisions or gate.get("fire_authorized") is not True:
+            raise ValueError(f"Fired pulse lacks valid aligned gate: {path}")
+        fired_steps.add(step)
+        prefix = "sphere-prefire-" + (variant + "-" if variant else "")
+        before = meters.get(f"{prefix}progress-{step}.json")
+        if before is None:
+            raise ValueError(f"Fired pulse lacks prefire meter observation: {path}")
+        after = meters.get(f"sphere-progress-{step}.json")
+        pulse_rows.append({"step": step, "prefire_meter": before,
+                           "postfire_meter": after,
+                           "meter_delta": after - before if after is not None else None})
+    paired = [p for p in pulse_rows if p["meter_delta"] is not None]
     reward_path = directory / "sphere-reward.json"
     image_path = directory / "05-capture-reward.png"
     reward_observed = False
@@ -92,6 +134,12 @@ def summarize(directory):
             "samples": len(observations),
             "max_meter_pixels": peak["filled_pixels"] if peak else 0,
             "max_meter_observation": peak["file"] if peak else None,
+            "inspector_reported_fire_pulses": len(pulse_rows),
+            "paired_postfire_meter_observations": len(paired),
+            "unpaired_fire_pulses": len(pulse_rows) - len(paired),
+            "positive_postfire_meter_deltas": sum(p["meter_delta"] > 0 for p in paired),
+            "max_postfire_meter_gain_pixels": max((p["meter_delta"] for p in paired), default=None),
+            "postfire_meter_delta_samples": pulse_rows,
             "prefire_gate_evaluations": len(prefire_decisions),
             "prefire_aligned_observations": sum(d["fire_authorized"] for d in prefire_decisions),
             "prefire_unaligned_observations": sum(not d["fire_authorized"] for d in prefire_decisions),
@@ -100,7 +148,7 @@ def summarize(directory):
             "reward_screen_observed": reward_observed,
             "reward": reward,
             "reward_persisted_after_restart": False,
-            "limitations": "Meter fill is not a capture; a Results reward screenshot is not restart persistence. Independent two-process reward restoration remains required."}
+            "limitations": "A reported key pulse and subsequent meter gain are not proof of a hit or capture; only a Results screenshot proves a visible reward, and independent two-process restoration is still required."}
 
 
 def main():
