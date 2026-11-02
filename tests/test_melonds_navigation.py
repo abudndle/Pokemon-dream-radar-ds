@@ -284,7 +284,9 @@ for invalid in (shop_frame(""), shop_frame("01"), shop_frame("4294967296"),
         raise AssertionError("Invalid or wrong-color saved Orb balance accepted")
 gain = compare_shop_orb_balances({"saved_orbs": 10}, {"saved_orbs": 13})
 assert gain["orb_collection_observed"] and gain["saved_orbs_gained"] == 3
-assert gain["status"] == "persistent_orb_balance_increased"
+assert gain["status"] == "session_balance_increased_persistence_unverified"
+assert gain["balance_increased"] and not gain["persistence_verified"]
+assert "restart" in gain["limitations"].lower()
 for previous, current in ((10, 10), (10, 9)):
     comparison = compare_shop_orb_balances({"saved_orbs": previous},
                                            {"saved_orbs": current})
