@@ -10,7 +10,9 @@ import argparse
 import json
 from pathlib import Path
 import re
-from verify_melonds_navigation import compare_restart_shop_orb_balances
+from verify_melonds_navigation import (compare_restart_shop_orb_balances,
+                                       decode_native_capture, font_rows,
+                                       read_shop_orb_balance)
 
 
 def _read_json(path):
@@ -27,7 +29,7 @@ def _pid(runtime):
     return int(match.group(1))
 
 
-def verify_restart(first_dir, second_dir, save_file):
+def verify_restart(first_dir, second_dir, save_file, *, verify_pixels=False):
     first_dir, second_dir, save_file = map(Path, (first_dir, second_dir, save_file))
     if first_dir.resolve() == second_dir.resolve():
         raise ValueError("Restart evidence must come from different output directories")
@@ -49,6 +51,21 @@ def verify_restart(first_dir, second_dir, save_file):
         raise ValueError("Second emulator process termination not recorded")
     first = _read_json(first_dir / "orb-balance-change.json")
     restarted = _read_json(second_dir / "orb-balance-before.json")
+    if verify_pixels:
+        # Re-read the visible gold ORBS digits from all three PNGs rather
+        # than trusting the sidecar JSON. CI must never accept invented or
+        # stale counter files as independent emulator observations.
+        font = font_rows()
+        observations = (
+            (first_dir / "03-shop-orbs-before.png", first["before"]),
+            (first_dir / "08-shop-orbs-after.png", first["after"]),
+            (second_dir / "03-shop-orbs-before.png", restarted),
+        )
+        for path, expected in observations:
+            pixels, width, height = decode_native_capture(path)
+            decoded = read_shop_orb_balance(pixels, width, height, font)
+            if decoded != expected:
+                raise ValueError(f"Screenshot Orb balance differs from JSON: {path}")
     result = compare_restart_shop_orb_balances(
         first["before"], first["after"], restarted,
         first_pid=first_pid, restart_pid=second_pid,
@@ -64,9 +81,12 @@ def main():
     parser.add_argument("first_dir", type=Path)
     parser.add_argument("restart_dir", type=Path)
     parser.add_argument("save_file", type=Path)
+    parser.add_argument("--verify-pixels", action="store_true",
+                        help="Decode each actual emulator PNG and cross-check the ORBS digits")
     args = parser.parse_args()
     try:
-        result = verify_restart(args.first_dir, args.restart_dir, args.save_file)
+        result = verify_restart(args.first_dir, args.restart_dir, args.save_file,
+                                verify_pixels=args.verify_pixels)
     except (ValueError, OSError, KeyError, json.JSONDecodeError) as exc:
         parser.exit(1, f"Clean-restart Orb acceptance failed: {exc}\n")
     print(json.dumps(result, indent=2))
