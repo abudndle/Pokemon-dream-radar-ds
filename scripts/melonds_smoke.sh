@@ -22,7 +22,7 @@ if [[ -n "${MELONDS_BIN:-}" ]]; then
   launcher=("$MELONDS_BIN")
 else
   command -v flatpak >/dev/null || { echo "Missing flatpak or MELONDS_BIN" >&2; exit 1; }
-  launcher=(flatpak run net.kuribo64.melonDS)
+  launcher=(flatpak run --env=QT_QPA_PLATFORMTHEME=generic --env=GTK_USE_PORTAL=0 --env=GSETTINGS_BACKEND=memory --env=DCONF_PROFILE=/dev/null net.kuribo64.melonDS)
 fi
 "${launcher[@]}" "$rom" >"$out/melonds.log" 2>&1 &
 pid=$!
@@ -35,9 +35,22 @@ cleanup(){
 trap cleanup EXIT
 window=""
 for attempt in $(seq 1 60); do
-  window="$(xdotool search --onlyvisible --name 'melonDS' 2>/dev/null | head -n 1 || true)"
+  window=""
+  while IFS= read -r candidate; do
+    [[ -n "$candidate" ]] || continue
+    geometry="$(xwininfo -id "$candidate" 2>/dev/null || true)"
+    width="$(sed -n 's/^  Width: \([0-9][0-9]*\)$/\1/p' <<<"$geometry" | head -n1)"
+    height="$(sed -n 's/^  Height: \([0-9][0-9]*\)$/\1/p' <<<"$geometry" | head -n1)"
+    if [[ "${width:-0}" -ge 256 && "${height:-0}" -ge 400 ]]; then
+      window="$candidate"
+      break
+    fi
+  done < <(xdotool search --onlyvisible --name 'melonDS' 2>/dev/null || true)
   [[ -n "$window" ]] && break
-  kill -0 "$pid" 2>/dev/null || { cat "$out/melonds.log" >&2; exit 1; }
+  if ! kill -0 "$pid" 2>/dev/null && ! xdotool search --onlyvisible --name 'melonDS' >/dev/null 2>&1; then
+    cat "$out/melonds.log" >&2
+    exit 1
+  fi
   sleep 1
 done
 if [[ -z "$window" ]]; then
@@ -50,7 +63,7 @@ echo "Window XID: $window" >>"$out/runtime.log"
 xwininfo -id "$window" >>"$out/runtime.log" 2>&1 || true
 snapshot() {
   local name="$1"
-  kill -0 "$pid" 2>/dev/null || { echo "melonDS exited before $name" >&2; exit 1; }
+  xwininfo -id "$window" >/dev/null 2>&1 || { echo "melonDS display closed before $name" >&2; exit 1; }
   import -silent -window "$window" "$out/$name.png"
   identify "$out/$name.png" | tee -a "$out/runtime.log"
   test -s "$out/$name.png"
