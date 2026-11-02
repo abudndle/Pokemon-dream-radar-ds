@@ -14,7 +14,8 @@ preserve = script.index('if [[ -f "$out/05-capture-reward.png" ]]; then', script
 leave = script.index('press_ds_key x\nsnapshot 07-lab-return', preserve)
 assert preserve < leave
 assert 'snapshot 06-results-preserved' in script[preserve:leave]
-assert 'original == visible' in script[preserve:leave]
+assert 'if original != visible:' in script[preserve:leave]
+assert 'raise SystemExit("Results reward changed before save/restart")' in script[preserve:leave]
 assert 'exit 0' in script[preserve:leave]
 assert 'REQUIRE_ORB_COLLECTION:-0' in script[preserve:leave]
 assert 'REQUIRE_TOUCH:-0' in script[preserve:leave]
