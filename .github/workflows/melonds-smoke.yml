@@ -121,9 +121,9 @@ jobs:
           REQUIRE_ORB_COLLECTION: ${{ inputs.require_orb_collection && '1' || '0' }}
           CAPTURE_SWEEP_STEPS: ${{ inputs.capture_sweep_steps || '160' }}
         run: |
-          xvfb-run -a -s '-screen 0 1280x900x24' \
+          dbus-run-session -- xvfb-run -a -s '-screen 0 1280x900x24' \
             env GSETTINGS_BACKEND=memory DCONF_PROFILE=/dev/null \
-            dbus-run-session -- bash scripts/melonds_smoke.sh "$GITHUB_WORKSPACE/melonds-dldi/dream_radar.nds" melonds-results
+            bash scripts/melonds_smoke.sh "$GITHUB_WORKSPACE/melonds-dldi/dream_radar.nds" melonds-results
           if [[ "${{ inputs.require_restart_persistence && '1' || '0' }}" == 1 ]]; then
             test -s melonds-dldi/saves/dream_radar.dreamradar.sav
             python3 - <<'PY'
@@ -134,9 +134,9 @@ jobs:
               raise SystemExit('No first-process Orb balance gain; cannot prove restart persistence')
           Path('melonds-first-gained.json').write_text(json.dumps(p['after']))
           PY
-            xvfb-run -a -s '-screen 0 1280x900x24' \
+            dbus-run-session -- xvfb-run -a -s '-screen 0 1280x900x24' \
               env GSETTINGS_BACKEND=memory DCONF_PROFILE=/dev/null REQUIRE_PREEXISTING_ORB=1 \
-              dbus-run-session -- bash scripts/melonds_smoke.sh "$GITHUB_WORKSPACE/melonds-dldi/dream_radar.nds" melonds-restart-results
+              bash scripts/melonds_smoke.sh "$GITHUB_WORKSPACE/melonds-dldi/dream_radar.nds" melonds-restart-results
             python3 - <<'PY'
           import json
           from pathlib import Path
