@@ -330,6 +330,25 @@ if [[ -f "$out/05-sphere-encounter.png" ]]; then
     previous_sphere="$capture_last"
     snapshot "05-sphere-before-$step"
     current_sphere="$out/05-sphere-before-$step.png"
+    # A reward can appear between the previous screenshot and this fresh
+    # pre-aim frame. Check it BEFORE moving or firing again; otherwise the
+    # sweep may dismiss Results and lose genuine capture evidence.
+    if python3 tools/verify_melonds_navigation.py "$out" \
+        --observe-reward-screenshot "$current_sphere" \
+        >"$out/sphere-reward-attempt.json" 2>/dev/null; then
+      mv "$out/sphere-reward-attempt.json" "$out/sphere-reward.json"
+      cp "$current_sphere" "$out/05-capture-reward.png"
+      capture_last="$current_sphere"
+      echo "PASS: real emulator capture reward observed before sweep movement $step" | tee -a "$out/runtime.log"
+      break
+    fi
+    rm -f "$out/sphere-reward-attempt.json"
+    if python3 tools/verify_melonds_navigation.py "$out" \
+        --observe-results-screenshot "$current_sphere" >/dev/null 2>&1; then
+      capture_last="$current_sphere"
+      echo "INFO: encounter ended before sweep movement $step without verified reward" | tee -a "$out/runtime.log"
+      break
+    fi
     # Unknown artwork/backgrounds fail closed to the bounded manual sweep.
     if python3 tools/plan_melonds_aim.py "$current_sphere" --target sphere \
         --previous-screenshot "$previous_sphere" \
