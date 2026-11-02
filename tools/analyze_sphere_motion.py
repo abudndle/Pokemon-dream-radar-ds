@@ -11,6 +11,7 @@ from pathlib import Path
 from statistics import median
 
 from plan_melonds_aim import plan_sphere
+from detect_projectile_interference import describe_projectiles
 from sphere_prefire_gate import evaluate
 from verify_melonds_navigation import decode_native_capture
 
@@ -66,7 +67,26 @@ def analyze(directory):
                  "prefire_target": point, "postfire_target": None,
                  "postfire_reticle_distance_pixels": None,
                  "postfire_target_displacement_pixels": None,
-                 "postfire_status": "missing_frame"}
+                 "postfire_status": "missing_frame",
+                 "prefire_projectile_status": "missing_frame",
+                 "prefire_projectile_centers": None,
+                 "prefire_projectile_near_reticle": None,
+                 "prefire_projectile_distance_pixels": None}
+        # A fresh prefire PNG may show a hostile ball close enough to
+        # intercept the shot. This is diagnostic, not a firing veto: the
+        # ball can move before the emulator handles A, and defensive shots
+        # against projectiles are legitimate gameplay.
+        prefire = directory / f"05-sphere-prefire-{candidates[0]}{step}.png"
+        if prefire.is_file():
+            pixels, width, height = decode_native_capture(prefire)
+            projectile = describe_projectiles(pixels, width, height)
+            entry.update({
+                "prefire_projectile_status": "inspected",
+                "prefire_projectile_centers": projectile["projectile_centers"],
+                "prefire_projectile_near_reticle": projectile["projectile_near_reticle"],
+                "prefire_projectile_distance_pixels":
+                    projectile["nearest_projectile_distance_pixels"],
+            })
         screenshot = directory / f"05-sphere-sweep-{step}.png"
         if screenshot.is_file():
             pixels, width, height = decode_native_capture(screenshot)
@@ -87,6 +107,7 @@ def analyze(directory):
         observations.append(entry)
     recognized = [o for o in observations if o["postfire_status"] == "unique_target"]
     distances = [o["postfire_reticle_distance_pixels"] for o in recognized]
+    inspected = [o for o in observations if o["prefire_projectile_status"] == "inspected"]
     return {
         "kind": "melonDS-postfire-target-motion-diagnostics",
         "inspector_reported_pulses": len(observations),
@@ -95,11 +116,19 @@ def analyze(directory):
             o["postfire_status"] == "target_not_uniquely_recognized" for o in observations),
         "postfire_frames_missing": sum(
             o["postfire_status"] == "missing_frame" for o in observations),
+        "prefire_projectile_frames_inspected": len(inspected),
+        "prefire_projectile_frames_missing": len(observations) - len(inspected),
+        "prefire_frames_with_projectiles": sum(
+            bool(o["prefire_projectile_centers"]) for o in inspected),
+        "prefire_projectiles_near_reticle": sum(
+            o["prefire_projectile_near_reticle"] is True for o in inspected),
         "median_postfire_reticle_distance_pixels": median(distances) if distances else None,
         "postfire_near_reticle_observations": sum(d <= 15 for d in distances),
         "shots": observations,
         "limitations": ("Postfire screenshots occur after key release and possible target "
-                        "motion. Alignment, movement and meter changes are diagnostics, "
+                        "motion. Hostile projectile recognition is fallback-only and may miss "
+                        "occluded balls; proximity cannot establish an actual interception. "
+                        "Alignment, movement and meter changes are diagnostics, "
                         "not proof of a hit, reward or saved restoration."),
     }
 
