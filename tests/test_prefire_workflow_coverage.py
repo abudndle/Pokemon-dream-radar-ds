@@ -10,6 +10,8 @@ makefile = (ROOT / "Makefile").read_text()
 
 for path in (
     "tools/sphere_prefire_gate.py",
+    "tools/verify_sphere_prefire_frame.py",
+    "tests/test_prefire_frame.py",
     "tests/test_sphere_prefire_gate.py",
     "tests/test_sphere_fire_gating.py",
     "tools/summarize_capture_attempt.py",
@@ -19,10 +21,11 @@ for path in (
 
 assert "python3 -m py_compile" in workflow
 assert re.search(r"python3 -m py_compile[^\n]*tools/sphere_prefire_gate.py", workflow)
-for test in ("test_sphere_prefire_gate.py", "test_sphere_fire_gating.py"):
+for test in ("test_sphere_prefire_gate.py", "test_sphere_fire_gating.py", "test_prefire_frame.py"):
     assert f"python3 tests/{test}" in workflow
     assert f"python3 tests/{test}" in makefile
-assert 'tools/sphere_prefire_gate.py "$out/sphere-prefire-aim-$step.json"' in script
+assert script.count('python3 tools/verify_sphere_prefire_frame.py "$prefire_frame"') == 2
+assert 'tools/sphere_prefire_gate.py' not in script.split('    snapshot "05-sphere-prefire-$step"', 1)[1].split('    # The last observed target is uniquely aligned.', 1)[0]
 assert 'snapshot "05-sphere-prefire-$step"' in script
 assert 'snapshot "05-sphere-prefire-corrected-$step"' in script
 
