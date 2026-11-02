@@ -97,6 +97,16 @@ jobs:
           Select = 16777221
           Start = 16777220
           EOF
+          cat >> "$HOME/.var/app/net.kuribo64.melonDS/config/melonDS/melonDS.toml" <<EOF
+[DLDI]
+Enable = true
+FolderSync = true
+ReadOnly = false
+ImageSize = 1073741824
+FolderPath = "$GITHUB_WORKSPACE/melonds-dldi"
+EOF
+          mkdir -p "$GITHUB_WORKSPACE/melonds-dldi/saves"
+          cp dream_radar.nds "$GITHUB_WORKSPACE/melonds-dldi/dream_radar.nds"
           cat "$HOME/.var/app/net.kuribo64.melonDS/config/melonDS/melonDS.toml"
       - name: Launch melonDS and capture actual emulator window
         env:
@@ -106,7 +116,16 @@ jobs:
           CAPTURE_SWEEP_STEPS: ${{ inputs.capture_sweep_steps || '160' }}
         run: |
           xvfb-run -a -s '-screen 0 1280x900x24' \
-            bash scripts/melonds_smoke.sh dream_radar.nds melonds-results
+            bash scripts/melonds_smoke.sh "$GITHUB_WORKSPACE/melonds-dldi/dream_radar.nds" melonds-results
+          mkdir -p melonds-first-run
+          cp -a melonds-results/. melonds-first-run/
+          test -s melonds-dldi/saves/dream_radar.dreamradar.sav
+          echo "PASS: homebrew save file created on writable melonDS DLDI storage"
+          xvfb-run -a -s '-screen 0 1280x900x24' \
+            env REQUIRE_PREEXISTING_ORB=1 \
+            bash scripts/melonds_smoke.sh "$GITHUB_WORKSPACE/melonds-dldi/dream_radar.nds" melonds-restart-results
+          test -s melonds-dldi/saves/dream_radar.dreamradar.sav
+          echo "PASS: clean second emulator process retained the homebrew save file"
       - name: Publish melonDS screenshot and logs
         if: always()
         uses: actions/upload-artifact@v4
@@ -117,5 +136,7 @@ jobs:
             melonds-results/*.log
             melonds-results/*.txt
             melonds-results/*.json
+            melonds-first-run/*
+            melonds-restart-results/*
           if-no-files-found: warn
           retention-days: 30
