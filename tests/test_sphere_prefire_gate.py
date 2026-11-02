@@ -26,7 +26,7 @@ assert evaluate(plan(0, 0))["fire_authorized"] is False
 # gameplay CaptureProfile radius; game_fire uses squared distance < r*r.
 source = (ROOT / "source/game.c").read_text()
 radii = [int(radius) for radius in re.findall(
-    r"\\{CAPTURE_[A-Z]+,\\s*(\\d+)\\s*,", source)]
+    r"\{CAPTURE_[A-Z]+,\s*(\d+)\s*,", source)]
 assert len(radii) == 5, radii
 assert SAFE_RADIUS == min(radii) - 1, (SAFE_RADIUS, radii)
 
