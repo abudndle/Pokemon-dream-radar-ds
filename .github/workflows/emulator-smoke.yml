@@ -12,6 +12,12 @@ on:
       - '.github/workflows/emulator-smoke.yml'
       - 'scripts/emulator_smoke.sh'
       - 'tools/verify_emulator_screenshots.py'
+      # Capture-planner changes also need a fresh ROM/emulator smoke result,
+      # even when they do not modify source/ or the renderer.
+      - 'tools/plan_melonds_aim.py'
+      - 'tools/summarize_capture_attempt.py'
+      - 'tests/test_melonds_aim.py'
+      - 'tests/test_capture_progress_summary.py'
       - 'tests/test_verify_emulator_screenshots.py'
       - 'source/**'
       - 'nitrofs/**'
