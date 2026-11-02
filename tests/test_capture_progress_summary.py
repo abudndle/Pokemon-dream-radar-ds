@@ -13,6 +13,7 @@ from summarize_capture_attempt import summarize
 with tempfile.TemporaryDirectory() as tmp:
     root = Path(tmp)
     assert summarize(root)["samples"] == 0
+    assert summarize(root)["max_meter_observation"] is None
     def observation(name, value, klass="swift"):
         (root / name).write_text(json.dumps({"encounter": {"capture_class": klass},
                                               "filled_pixels": value, "bar_width": 177}))
@@ -22,6 +23,7 @@ with tempfile.TemporaryDirectory() as tmp:
     observation("sphere-edge-progress-4.json", 33)
     result = summarize(root)
     assert result["samples"] == 4 and result["max_meter_pixels"] == 33
+    assert result["max_meter_observation"] == "sphere-edge-progress-4.json"
     assert not result["reward_screen_observed"] and not result["reward_persisted_after_restart"]
     (root / "sphere-reward.json").write_text(json.dumps({"reward_kind": "item", "reward_name": "Test Item"}))
     try:
