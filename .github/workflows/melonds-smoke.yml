@@ -55,6 +55,7 @@ on:
       - 'tools/check_capture_extension.py'
       - 'tools/verify_melonds_reward_restart.py'
       - 'tests/test_melonds_reward_restart.py'
+      - 'tests/test_reward_restart_workflow.py'
       - 'tests/test_capture_extension.py'
       - 'tests/test_capture_sweep_budget.py'
       - 'tests/test_capture_progress_summary.py'
@@ -98,6 +99,7 @@ jobs:
           python3 tests/test_melonds_cleanup.py
           python3 tests/test_melonds_clean_restart.py
           python3 tests/test_melonds_reward_restart.py
+          python3 tests/test_reward_restart_workflow.py
           python3 tests/test_restored_orbs_gate.py
       - name: Install native melonDS dependencies and screenshot tools
         run: |
