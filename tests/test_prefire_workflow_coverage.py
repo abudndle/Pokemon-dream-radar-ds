@@ -25,6 +25,7 @@ for test in ("test_sphere_prefire_gate.py", "test_sphere_fire_gating.py", "test_
     assert f"python3 tests/{test}" in workflow
     assert f"python3 tests/{test}" in makefile
 assert script.count('python3 tools/verify_sphere_prefire_frame.py "$prefire_frame"') == 2
+assert script.count('python3 tools/verify_sphere_prefire_frame.py "$prefire_frame" --fire-aligned') == 2
 assert 'tools/sphere_prefire_gate.py' not in script.split('    snapshot "05-sphere-prefire-$step"', 1)[1].split('    # The last observed target is uniquely aligned.', 1)[0]
 assert 'snapshot "05-sphere-prefire-$step"' in script
 assert 'snapshot "05-sphere-prefire-corrected-$step"' in script
