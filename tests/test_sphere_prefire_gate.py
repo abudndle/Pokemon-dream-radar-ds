@@ -3,13 +3,14 @@
 from pathlib import Path
 import copy
 import json
+import re
 import subprocess
 import sys
 import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
-from sphere_prefire_gate import evaluate
+from sphere_prefire_gate import SAFE_RADIUS, evaluate
 
 def plan(x, y):
     return {"candidate_spheres": 1, "target_screen": {"x": x, "y": y},
@@ -17,9 +18,17 @@ def plan(x, y):
 
 assert evaluate(plan(128, 96))["fire_authorized"] is True
 assert evaluate(plan(141, 96))["fire_authorized"] is True
-assert evaluate(plan(141, 97))["fire_authorized"] is False
-assert evaluate(plan(142, 96))["fire_authorized"] is False
+assert evaluate(plan(143, 96))["fire_authorized"] is True
+assert evaluate(plan(143, 97))["fire_authorized"] is False
+assert evaluate(plan(144, 96))["fire_authorized"] is False
 assert evaluate(plan(0, 0))["fire_authorized"] is False
+# Keep the screenshot-only firing radius strictly inside every actual
+# gameplay CaptureProfile radius; game_fire uses squared distance < r*r.
+source = (ROOT / "source/game.c").read_text()
+radii = [int(radius) for radius in re.findall(
+    r"\\{CAPTURE_[A-Z]+,\\s*(\\d+)\\s*,", source)]
+assert len(radii) == 5, radii
+assert SAFE_RADIUS == min(radii) - 1, (SAFE_RADIUS, radii)
 
 for changed in (
     {"candidate_spheres": 0}, {"candidate_spheres": 2},
