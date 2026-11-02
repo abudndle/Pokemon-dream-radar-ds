@@ -86,12 +86,17 @@ def correct_if_unaligned(status, aim):
     if gate["fire_authorized"]:
         raise ValueError("Aligned gate cannot request camera correction")
     dx, dy = aim["offset"]["x"], aim["offset"]["y"]
+    # The earlier 0.12 s cap moved at most ~43 pixels. Actual melonDS
+    # prefire diagnostics recorded many residuals above 50 pixels, leaving
+    # the next independently checked frame predictably out of alignment.
+    # Allow one larger bounded no-fire correction (<=72 px at 60 FPS).
+    # A fresh screenshot still gates every subsequent A pulse.
     axes = []
     for displacement, negative, positive in (
             (dx, "Left", "Right"), (dy, "Up", "Down")):
         if displacement:
             axes.append((negative if displacement < 0 else positive,
-                         round(min(0.12, abs(displacement) / 360), 3)))
+                         round(min(0.20, abs(displacement) / 360), 3)))
     if not axes:
         raise ValueError("Unaligned gate has no camera offset")
     held = []
