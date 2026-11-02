@@ -6,6 +6,7 @@
 #include <limits.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <errno.h>
 
 static uint32_t rnd(Game *g) {
     uint32_t x = g->save.random_seed;
@@ -335,6 +336,25 @@ int game_save(Game *g, const char *file) {
     char temporary[512];
     snprintf(temporary,sizeof temporary,"%s.tmp",file);
     int fd=open(temporary,O_WRONLY|O_CREAT|O_EXCL,0600);
+    if(fd<0 && errno==EEXIST) {
+        /* A power loss can strand a partial .tmp. On this single-process
+           homebrew save path, only clear it if the committed snapshot is
+           still structurally intact. Never erase the sole recoverable copy
+           when the destination is absent or corrupt. */
+        SaveData committed;
+        FILE *previous=fopen(file,"rb");
+        int intact=0;
+        if(previous) {
+            intact=fread(&committed,1,sizeof committed,previous)==sizeof committed;
+            if(intact && fgetc(previous)!=EOF)intact=0;
+            if(fclose(previous)!=0)intact=0;
+            if(intact)intact=committed.magic==SAVE_MAGIC &&
+                committed.version==SAVE_VERSION &&
+                committed.checksum==game_checksum(&committed);
+        }
+        if(intact && remove(temporary)==0)
+            fd=open(temporary,O_WRONLY|O_CREAT|O_EXCL,0600);
+    }
     if(fd<0)return 0;
     FILE *f=fdopen(fd,"wb");
     if(!f) {
