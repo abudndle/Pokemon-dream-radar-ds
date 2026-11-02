@@ -99,6 +99,18 @@ subsequent emulator restart is still required to prove persistence.
 The palette matcher is intentionally limited to the unscaled fallback
 renderer and may fail when the reticle obscures a sprite.
 
+### Bounded live Orb prefire observation
+
+The runner may inspect up to five **fresh, stationary** Orb screenshots after
+its directional corrections. Each observation gets its own PNG and
+`orb-fire-check-<sample>.json`; an A-button shot is permitted only when
+that very frame's planner reports `within_safe_fire_radius: true`.
+This addresses a real melonDS trace in which the final Orb was still
+25 pixels from the reticle after three correction passes. No stationary
+sample, no prediction, and no change to the active-Orb counter is accepted
+as proof of a collected Orb. An unreadable or unaligned sample causes no
+shot; the window is capped to avoid indefinite searching.
+
 ## Optional live encounter instrumentation
 
 The Linux melonDS smoke workflow now tries screenshot-guided aiming on the
