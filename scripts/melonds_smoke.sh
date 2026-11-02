@@ -581,6 +581,24 @@ if [[ -f "$out/05-sphere-encounter.png" ]]; then
     exit 2
   fi
   for step in $(seq 1 "$capture_steps"); do
+    # A longer pursuit is expensive and must earn its budget. Before step 221,
+    # extend only when independent screenshot-derived meter evidence shows
+    # meaningful progress; missing/malformed evidence fails the run closed.
+    # This MUST be the first statement in the loop: prefire no-shot branches
+    # use `continue` and would bypass a checkpoint at the end of step 220.
+    if (( step == 221 )); then
+      python3 tools/summarize_capture_attempt.py "$out" \
+        --output "$out/sphere-midpoint-report.json" >/dev/null
+      extension_code=0
+      python3 tools/check_capture_extension.py "$out/sphere-midpoint-report.json" \
+        >"$out/sphere-extension-decision.json" || extension_code=$?
+      case "$extension_code" in
+        0) echo "INFO: verified meter progress permits bounded steps 221-$capture_steps (not proof of capture)" | tee -a "$out/runtime.log" ;;
+        3) echo "INFO: no sufficient meter progress at 220 steps; ending pursuit without claiming capture" | tee -a "$out/runtime.log"
+           break ;;
+        *) echo "ERROR: invalid capture extension evidence ($extension_code)" >&2; exit 1 ;;
+      esac
+    fi
     sweep=$(( (step - 1) % 12 + 1 ))
     case "$sweep" in
       1)  direction=Right; seconds=0.40 ;;
@@ -842,22 +860,6 @@ if [[ -f "$out/05-sphere-encounter.png" ]]; then
     else
       echo "WARNING: unrecognized sphere/reward frame at step $step" | tee -a "$out/runtime.log"
       break
-    fi
-    # A longer pursuit is expensive and must earn its budget. At 220 steps,
-    # extend only when independent screenshot-derived meter evidence shows
-    # meaningful progress; missing/malformed evidence fails the run closed.
-    if (( step == 220 && capture_steps > 220 )); then
-      python3 tools/summarize_capture_attempt.py "$out" \
-        --output "$out/sphere-midpoint-report.json" >/dev/null
-      extension_code=0
-      python3 tools/check_capture_extension.py "$out/sphere-midpoint-report.json" \
-        >"$out/sphere-extension-decision.json" || extension_code=$?
-      case "$extension_code" in
-        0) echo "INFO: verified meter progress permits bounded steps 221-$capture_steps (not proof of capture)" | tee -a "$out/runtime.log" ;;
-        3) echo "INFO: no sufficient meter progress at 220 steps; ending pursuit without claiming capture" | tee -a "$out/runtime.log"
-           break ;;
-        *) echo "ERROR: invalid capture extension evidence ($extension_code)" >&2; exit 1 ;;
-      esac
     fi
   done
   xdotool keyup z
