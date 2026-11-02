@@ -393,3 +393,72 @@ except ValueError:
 else:
     raise AssertionError("Distinct fragmented encounter targets merged")
 print("PASS: real-style split blue/orange artwork is tracked, distinct sprites remain ambiguous")
+
+
+# The DS renderer draws 9x9 fills under a two-pixel 11x11 white border;
+# the visible interior is 7x7, as confirmed in actual melonDS screenshots.
+# The four RGB555 fills are:
+# 0xC1DF pink, 0x83E0 green, 0x829F orange, 0xFC00 blue.
+# Live screenshots may span several 45-frame color cycles while aiming.
+ORB_RGB = {
+    "pink": (255, 115, 132),
+    "green": (0, 255, 0),
+    "orange": (255, 165, 0),
+    "blue": (0, 0, 255),
+}
+
+
+def colored_orb_frame(orbs, size=7):
+    pixels = bytearray(WIDTH * HEIGHT * 3)
+    radius = size // 2
+    for cx, cy, color in orbs:
+        for y in range(cy + OFFSET - radius, cy + OFFSET + radius + 1):
+            for x in range(cx - radius, cx + radius + 1):
+                at = (y * WIDTH + x) * 3
+                pixels[at:at + 3] = bytes(ORB_RGB[color])
+    return pixels
+
+
+four_colors = colored_orb_frame([
+    (70, 70, "pink"), (120, 95, "green"),
+    (190, 60, "orange"), (160, 140, "blue"),
+])
+detected = locate_orbs(four_colors, WIDTH, HEIGHT)
+assert len(detected) == 4, detected
+assert {(x, y) for x, y, _ in detected} == {
+    (70, 70), (120, 95), (190, 60), (160, 140),
+}
+assert plan_orb(four_colors, WIDTH, HEIGHT)["target_screen"] == {"x": 120, "y": 95}
+
+# A palette change must not break stationary two-frame association or let
+# predicted alignment alone authorize firing.
+for old_color, new_color in (
+    ("pink", "green"), ("green", "orange"),
+    ("orange", "blue"), ("blue", "pink"),
+):
+    old = colored_orb_frame([(100, 96, old_color)])
+    new = colored_orb_frame([(110, 96, new_color)])
+    motion = plan_orb_motion(old, new, WIDTH, HEIGHT)
+    assert motion["motion_prediction"] == "bounded"
+    assert motion["observed_target_screen"] == {"x": 110, "y": 96}
+    assert motion["target_screen"] == {"x": 115, "y": 96}
+    assert not motion["within_safe_fire_radius"]
+
+for color in ORB_RGB:
+    aligned = plan_orb(colored_orb_frame([(128, 96, color)]), WIDTH, HEIGHT)
+    assert aligned["within_safe_fire_radius"], color
+    # Colored HUD glyphs are smaller than the visible 7x7 Orb interior.
+    if color != "pink":
+        assert locate_orbs(colored_orb_frame([(120, 95, color)], size=5),
+                           WIDTH, HEIGHT) == []
+
+# White, cyan, gold and red projectile colors are not Dream Orb targets.
+for rgb in ((255, 255, 255), (0, 255, 255),
+            (255, 255, 0), (255, 40, 40)):
+    noise = bytearray(WIDTH * HEIGHT * 3)
+    for y in range(92 + OFFSET, 101 + OFFSET):
+        for x in range(124, 133):
+            at = (y * WIDTH + x) * 3
+            noise[at:at + 3] = bytes(rgb)
+    assert locate_orbs(noise, WIDTH, HEIGHT) == [], rgb
+print("PASS: four-color Dream Orb cycling, motion and observed-only safe firing")
