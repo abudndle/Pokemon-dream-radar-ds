@@ -46,6 +46,11 @@ on:
       - 'tests/test_melonds_navigation.py'
       - 'tests/test_melonds_aim.py'
       - 'source/font6.h'
+# Keep the running emulator evidence intact while replacing redundant pending
+# PR revisions. Full melonDS gameplay sweeps are expensive on hosted runners.
+concurrency:
+  group: melonds-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
 jobs:
   melonds-boot:
     runs-on: ubuntu-24.04
