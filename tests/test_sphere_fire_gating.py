@@ -16,10 +16,15 @@ loop = script[start:end]
 call = 'python3 tools/verify_sphere_prefire_frame.py "$prefire_frame" --fire-aligned'
 assert loop.count(call) == 2, "Only fresh inspector calls may pulse A"
 assert 'xdotool keydown --clearmodifiers z' not in loop
+# Fast prefire capture retains a real X11 screenshot and nonempty-file check.
+fast = script.split('snapshot_fast() {', 1)[1].split('\n}', 1)[0]
+assert 'import -silent -window "$window" "$out/$name.png"' in fast
+assert 'test -s "$out/$name.png"' in fast
+assert 'identify ' not in fast and 'xwininfo ' not in fast
 first, second = [i for i in range(len(loop)) if loop.startswith(call, i)]
-assert loop.index('snapshot "05-sphere-prefire-$step"') < first
+assert loop.index('snapshot_fast "05-sphere-prefire-$step"') < first
 assert first < loop.index('case "$prefire_code" in')
-assert loop.index('snapshot "05-sphere-prefire-corrected-$step"') < second
+assert loop.index('snapshot_fast "05-sphere-prefire-corrected-$step"') < second
 assert second < loop.index('case "$corrected_code" in')
 assert loop.index('aim_ds_pair "$horizontal"') < first
 assert loop.index('aim_ds_pair "$fix_h"') < second
