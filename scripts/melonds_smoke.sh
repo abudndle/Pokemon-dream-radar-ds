@@ -838,8 +838,11 @@ if [[ -f "$out/05-sphere-encounter.png" ]]; then
           # A second no-fire correction is permitted only for a unique,
           # independently observed miss >26px. The next screenshot, not
           # this correction, must authorize any eventual A pulse.
-          if python3 -c 'import json,sys; p=json.load(open(sys.argv[1])); assert p["status"]=="unaligned" and p["camera_correction_executed"] is True and p["fire_executed"] is False' \
-              "$out/sphere-prefire-corrected-inspection-$step.json" 2>/dev/null; then
+          # Corrupt or contradictory inspector evidence is a HARD error,
+          # never a reason to silently fall back to the stationary path.
+          recorrection_decision="$(python3 -c 'import json,sys; p=json.load(open(sys.argv[1])); assert p["status"]=="unaligned" and type(p["camera_correction_executed"]) is bool and p["fire_executed"] is False; print("yes" if p["camera_correction_executed"] else "no")' \
+              "$out/sphere-prefire-corrected-inspection-$step.json")" || exit 1
+          if [[ "$recorrection_decision" == yes ]]; then
             sphere_inline_corrections=$((sphere_inline_corrections + 1))
             snapshot_fast "05-sphere-prefire-recorrected-$step"
             prefire_frame="$out/05-sphere-prefire-recorrected-$step.png"
