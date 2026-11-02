@@ -7,6 +7,10 @@ are required to mark a visible reward; a separate restart is needed for persiste
 import argparse
 import json
 from pathlib import Path
+import subprocess
+
+from verify_melonds_navigation import (decode_native_capture, font_rows,
+                                       read_capture_reward)
 
 PATTERNS = ("sphere-before-progress-*.json", "sphere-progress-*.json",
             "sphere-reacquire-progress-*.json", "sphere-edge-progress-*.json")
@@ -44,6 +48,17 @@ def summarize(directory):
             raise ValueError("Invalid capture reward sidecar")
         if image_path.open("rb").read(8) != b"\x89PNG\r\n\x1a\n":
             raise ValueError("Capture reward screenshot has no PNG signature")
+        # The sidecar alone is not evidence. Decode the actual emulator PNG
+        # and independently recognize a unique catalog-backed Results reward.
+        # A PNG signature or a fabricated JSON file must never mark capture.
+        try:
+            pixels, width, height = decode_native_capture(image_path)
+            visible = read_capture_reward(pixels, width, height, font_rows())
+        except (OSError, subprocess.SubprocessError) as exc:
+            raise ValueError("Capture reward screenshot could not be decoded") from exc
+        if visible != {"reward_kind": reward["reward_kind"],
+                        "reward_name": reward["reward_name"]}:
+            raise ValueError("Capture reward sidecar disagrees with visible Results")
         reward_observed = True
     return {"kind": "melonDS-sphere-capture-progress",
             "samples": len(observations),
@@ -63,7 +78,7 @@ def main():
     args = parser.parse_args()
     try:
         report = summarize(args.directory)
-    except (OSError, ValueError, json.JSONDecodeError) as exc:
+    except (OSError, ValueError, subprocess.SubprocessError, json.JSONDecodeError) as exc:
         parser.exit(1, f"Capture progress summary failed: {exc}\n")
     content = json.dumps(report, indent=2) + "\n"
     if args.output:

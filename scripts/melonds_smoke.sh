@@ -511,7 +511,9 @@ capture_last=""
 if [[ -f "$out/05-sphere-encounter.png" ]]; then
   echo "INFO: exercising bounded live sphere shooting; reward not yet verified" | tee -a "$out/runtime.log"
   xdotool windowfocus "$window"
-  xdotool keydown --clearmodifiers z
+  # A stale encounter screenshot never authorizes firing. Keep A released
+  # until a fresh capture frame identifies the actual sphere target.
+  xdotool keyup z
   capture_last="$out/05-sphere-encounter.png"
   # Capture needs up to 240 HP, not merely one successful beam hit. Stop
   # immediately on a verified reward; otherwise cap this live pursuit at
@@ -547,6 +549,8 @@ if [[ -f "$out/05-sphere-encounter.png" ]]; then
     # moves during screenshots; a stale one-frame position can chase the
     # target indefinitely. Extrapolate only a bounded two-frame displacement.
     previous_sphere="$capture_last"
+    # Never fire while taking an unverified frame or reading Results.
+    xdotool keyup z
     snapshot "05-sphere-before-$step"
     current_sphere="$out/05-sphere-before-$step.png"
     # A reward can appear between the previous screenshot and this fresh
@@ -669,7 +673,6 @@ if [[ -f "$out/05-sphere-encounter.png" ]]; then
         break
       fi
       reacquire_successes=$((reacquire_successes + 1))
-      xdotool keydown --clearmodifiers z
     fi
     guided_sphere_steps=$((guided_sphere_steps + 1))
     last_sphere_plan="$out/sphere-aim-$step.json"
@@ -677,9 +680,13 @@ if [[ -f "$out/05-sphere-encounter.png" ]]; then
       python3 -c 'import json,sys; p=json.load(open(sys.argv[1])); print(p["horizontal_key"],p["horizontal_seconds"],p["vertical_key"],p["vertical_seconds"])' \
         "$out/sphere-aim-$step.json"
     )
+    # Fire only after the fresh screenshot-backed aim plan succeeded.
+    # Release before capturing the next frame so Results cannot be skipped.
+    xdotool keydown --clearmodifiers z
     aim_ds_key "$horizontal" "$horizontal_seconds" 0.06
     aim_ds_key "$vertical" "$vertical_seconds" 0.06
     sleep 0.08
+    xdotool keyup z
     capture_last="$out/05-sphere-sweep-$step.png"
     snapshot "05-sphere-sweep-$step"
     if python3 tools/verify_melonds_navigation.py "$out" \

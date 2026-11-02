@@ -415,7 +415,7 @@ print("PASS: strict restart checks resumed shop before title input, and falls ba
 # Preserve the safe-fire invariant: no beam while the target is ambiguous,
 # at most three stationary samples, and no firing if all samples fail.
 capture_start = smoke_source.index('for step in $(seq 1 "$capture_steps")')
-capture_end = smoke_source.index('guided_sphere_steps=$((guided_sphere_steps + 1))', capture_start)
+capture_end = smoke_source.index('capture_last="$out/05-sphere-sweep-$step.png"', capture_start)
 capture_section = smoke_source[capture_start:capture_end]
 off = capture_section.index("xdotool keyup z")
 samples = capture_section.index("for reacquire_sample in 1 2 3; do")

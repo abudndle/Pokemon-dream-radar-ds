@@ -31,24 +31,57 @@ with tempfile.TemporaryDirectory() as tmp:
     else:
         raise AssertionError("Accepted reward JSON without screenshot")
     (root / "05-capture-reward.png").write_bytes(b"\x89PNG\r\n\x1a\nsynthetic")
-    assert summarize(root)["reward_screen_observed"]
-    assert not summarize(root)["reward_persisted_after_restart"]
-    for bad in (True, 178, -1, 12.5):
-        observation("sphere-progress-2.json", bad)
-        try:
-            summarize(root)
-        except ValueError:
-            pass
-        else:
-            raise AssertionError(f"Accepted invalid meter fill {bad!r}")
-    observation("sphere-progress-2.json", 20)
-    (root / "sphere-reward.json").write_text(json.dumps({"reward_kind": "pokemon", "reward_name": ""}))
+    # A valid signature and a catalog-looking JSON file do not establish
+    # actual emulator reward pixels. Reject the forged screenshot.
     try:
         summarize(root)
     except ValueError:
         pass
     else:
-        raise AssertionError("Accepted empty reward name")
+        raise AssertionError("PNG signature and JSON alone claimed a capture")
+
+    from unittest.mock import patch
+    with (patch("summarize_capture_attempt.decode_native_capture",
+                return_value=(b"synthetic-pixels", 256, 403)),
+          patch("summarize_capture_attempt.font_rows", return_value=[]),
+          patch("summarize_capture_attempt.read_capture_reward",
+                return_value={"reward_kind": "item", "reward_name": "Test Item"}) as read_reward):
+        assert summarize(root)["reward_screen_observed"]
+        assert not summarize(root)["reward_persisted_after_restart"]
+        assert read_reward.call_count == 2  # Two independent summaries read pixels
+        # The displayed reward must match the sidecar exactly; no swapping
+        # Pokémon for items or substituting a different catalog entry.
+        read_reward.return_value = {"reward_kind": "pokemon", "reward_name": "Test Item"}
+        try:
+            summarize(root)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("Mismatched screenshot reward kind accepted")
+        read_reward.return_value = {"reward_kind": "item", "reward_name": "Other Item"}
+        try:
+            summarize(root)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("Mismatched screenshot reward name accepted")
+        read_reward.return_value = {"reward_kind": "item", "reward_name": "Test Item"}
+        for bad in (True, 178, -1, 12.5):
+            observation("sphere-progress-2.json", bad)
+            try:
+                summarize(root)
+            except ValueError:
+                pass
+            else:
+                raise AssertionError(f"Accepted invalid meter fill {bad!r}")
+        observation("sphere-progress-2.json", 20)
+        (root / "sphere-reward.json").write_text(json.dumps({"reward_kind": "pokemon", "reward_name": ""}))
+        try:
+            summarize(root)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("Accepted empty reward name")
 
 with tempfile.TemporaryDirectory() as tmp:
     assert subprocess.run([sys.executable, str(ROOT / "tools/summarize_capture_attempt.py"), tmp],
