@@ -28,14 +28,34 @@ def _object(path):
     return value
 
 
+def distance_bands(values):
+    """Classify actual screenshot residuals, not predicted hit chances.
+
+    The old 0.12 s camera correction could move ~43 px; the expanded
+    0.20 s bound can move ~72 px at the DS fallback's 6 px/frame.
+    Neither threshold permits firing without a new aligned screenshot.
+    """
+    return {
+        'aligned_0_to_15': sum(value <= 15 for value in values),
+        'old_correction_16_to_43': sum(15 < value <= 43 for value in values),
+        'expanded_correction_44_to_72': sum(43 < value <= 72 for value in values),
+        'beyond_single_correction_over_72': sum(value > 72 for value in values),
+    }
+
+
 def analyze(directory):
     directory = Path(directory)
     rows = []
     missing_plans = 0
+    seen_steps = set()
     for gate_path in sorted(directory.glob('sphere-prefire-gate-*.json')):
         step_text = gate_path.stem.removeprefix('sphere-prefire-gate-')
-        if not step_text.isdecimal() or int(step_text) < 1:
+        if (not step_text.isdecimal() or int(step_text) < 1
+                or str(int(step_text)) != step_text):
             raise ValueError(f'Invalid prefire gate filename: {gate_path}')
+        if int(step_text) in seen_steps:
+            raise ValueError(f'Duplicate prefire gate step: {gate_path}')
+        seen_steps.add(int(step_text))
         gate = _object(gate_path)
         actual = _point(gate.get('observed_target_screen'), 'prefire gate')
         expected = evaluate({'candidate_spheres': 1, 'target_screen': actual,
@@ -75,11 +95,15 @@ def analyze(directory):
         'median_planned_to_prefire_residual_pixels': median(residuals) if residuals else None,
         'median_prefire_reticle_distance_pixels': median(distances) if distances else None,
         'prefire_within_15_pixels': sum(distance <= 15 for distance in distances),
+        'prefire_distance_bands': distance_bands(distances),
+        'camera_plan_residual_bands': distance_bands(residuals),
         'prefire_fire_authorized': sum(row['prefire_fire_authorized'] for row in rows),
         'rows': rows,
         'limitations': ('Camera plans may contain predictions, never firing authorization. '
                         'Initial-to-prefire motion uses only explicitly observed target positions. '
-                        'Reticle distance and displacement do not prove hits or persistent rewards.'),
+                        'The 43/72px bands are theoretical single-correction travel at 60 FPS, '
+                        'not calibrated live camera displacement. Reticle distance and '
+                        'displacement do not prove hits or persistent rewards.'),
     }
 
 
