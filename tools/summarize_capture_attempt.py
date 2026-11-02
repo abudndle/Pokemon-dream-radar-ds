@@ -69,7 +69,7 @@ def summarize(directory):
     meters = {o["file"]: o["filled_pixels"] for o in observations}
     pulse_rows = []
     fired_steps = set()
-    pattern = re.compile(r"sphere-prefire-(?:(corrected|stationary)-)?inspection-([0-9]+)\\.json")
+    pattern = re.compile(r"sphere-prefire-(?:(corrected|stationary)-)?inspection-([0-9]+)\.json")
     for path in sorted(directory.glob("sphere-prefire-*inspection-*.json")):
         match = pattern.fullmatch(path.name)
         if not match:
@@ -138,7 +138,7 @@ def summarize(directory):
             "paired_postfire_meter_observations": len(paired),
             "unpaired_fire_pulses": len(pulse_rows) - len(paired),
             "positive_postfire_meter_deltas": sum(p["meter_delta"] > 0 for p in paired),
-            "max_postfire_meter_gain_pixels": max((p["meter_delta"] for p in paired), default=None),
+            "max_postfire_meter_gain_pixels": max((max(0, p["meter_delta"]) for p in paired), default=None),
             "postfire_meter_delta_samples": pulse_rows,
             "prefire_gate_evaluations": len(prefire_decisions),
             "prefire_aligned_observations": sum(d["fire_authorized"] for d in prefire_decisions),
