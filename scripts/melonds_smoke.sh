@@ -116,7 +116,7 @@ if python3 tools/plan_melonds_aim.py "$out/05-radar.png" >"$out/aim-plan.json"; 
   snapshot 05-radar-aimed
   # CI emulation speed varies, so milliseconds are not a fixed DS frame count.
   # Re-read actual pixels after movement and correct the remaining offset
-  # before firing; two bounded iterations prevent an uncontrolled aim sweep.
+  # before firing; four bounded corrections also permit offscreen reacquisition.
   for correction in 1 2 3 4; do
     if ! python3 tools/plan_melonds_aim.py "$out/05-radar-aimed.png" >"$out/aim-correction-$correction.json"; then
       break
@@ -136,8 +136,10 @@ fi
 # a FRESH screenshot before firing; moving the reticle can reveal an offscreen
 # cloud or leave the last visible target too far away to hit.
 snapshot 05-radar-prefire
-if python3 tools/plan_melonds_aim.py "$out/05-radar-prefire.png"     >"$out/cloud-fire-check.json" &&
-   python3 -c 'import json,sys; p=json.load(open(sys.argv[1])); sys.exit(not (p["target_type"]=="cloud" and p["within_safe_fire_radius"]))'     "$out/cloud-fire-check.json"; then
+if python3 tools/plan_melonds_aim.py "$out/05-radar-prefire.png" \
+    >"$out/cloud-fire-check.json" &&
+   python3 -c 'import json,sys; p=json.load(open(sys.argv[1])); sys.exit(not (p["target_type"]=="cloud" and p["within_safe_fire_radius"]))' \
+    "$out/cloud-fire-check.json"; then
   press_ds_key z
 else
   echo "WARNING: cloud not aligned or only an offscreen marker; skipped blind shot" | tee -a "$out/runtime.log"
@@ -199,7 +201,7 @@ else
     echo "WARNING: no visible pink Dream Orb target; collection not verified" | tee -a "$out/runtime.log"
   fi
 fi
-# The initial pink cloud can produce Orbs instead of an encounter. Try at
+# The initial pink cloud can produce Orbs instead of an encounter. Try
 # at most eight bounded acquisition attempts (including offscreen cues),
 # always using fresh actual emulator screenshots.
 # The last cloud can finish the outing; recognize a genuine Results heading
@@ -244,8 +246,10 @@ for attempt in 1 2 3 4 5 6 7 8; do
   done
   snapshot "05-radar-retry-$attempt-prefire"
   latest_radar="$out/05-radar-retry-$attempt-prefire.png"
-  if ! python3 tools/plan_melonds_aim.py "$latest_radar"       >"$out/cloud-retry-$attempt-fire-check.json" ||
-     ! python3 -c 'import json,sys; p=json.load(open(sys.argv[1])); sys.exit(not (p["target_type"]=="cloud" and p["within_safe_fire_radius"]))'       "$out/cloud-retry-$attempt-fire-check.json"; then
+  if ! python3 tools/plan_melonds_aim.py "$latest_radar" \
+      >"$out/cloud-retry-$attempt-fire-check.json" ||
+     ! python3 -c 'import json,sys; p=json.load(open(sys.argv[1])); sys.exit(not (p["target_type"]=="cloud" and p["within_safe_fire_radius"]))' \
+      "$out/cloud-retry-$attempt-fire-check.json"; then
     echo "WARNING: retry $attempt cloud still offscreen or unaligned; moving to next acquisition" | tee -a "$out/runtime.log"
     continue
   fi
