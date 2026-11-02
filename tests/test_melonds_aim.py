@@ -583,3 +583,26 @@ except ValueError:
 else:
     raise AssertionError("Two separate clipped violet targets accepted as unique")
 print("PASS: clipped top-edge violet sphere reacquired without merging distinct targets")
+
+# Actual Linux melonDS run 41403493635 reached a SWIFT sphere at
+# top-screen y~167..191, then lost it because the saturated/dark detector
+# stopped at y=168. Keep the bottom of the top DS viewport detectable,
+# without treating the separate touchscreen as sphere artwork.
+bottom_swift = split_color_sphere_frame([(190, 178)])
+bottom_targets = locate_spheres(bottom_swift, WIDTH, HEIGHT)
+assert len(bottom_targets) == 1, bottom_targets
+assert 185 <= bottom_targets[0][0] <= 195
+assert 169 <= bottom_targets[0][1] <= 187
+bottom_motion = plan_sphere_motion(
+    split_color_sphere_frame([(180, 176)]),
+    bottom_swift, WIDTH, HEIGHT)
+assert bottom_motion["motion_prediction"] == "bounded"
+assert bottom_motion["observed_target_screen"]["y"] >= 169
+
+touchscreen_only = bytearray(sphere_frame(False))
+for y in range(205 + OFFSET, 227 + OFFSET):
+    for x in range(177, 199):
+        at = (y * WIDTH + x) * 3
+        touchscreen_only[at:at + 3] = bytes((24, 24, 32))
+assert locate_spheres(touchscreen_only, WIDTH, HEIGHT) == []
+print("PASS: lower-edge SWIFT artwork tracked without scanning touchscreen pixels")
