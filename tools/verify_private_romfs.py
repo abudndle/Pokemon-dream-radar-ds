@@ -146,7 +146,11 @@ def verify_private_archives(source, darc_zip=None, ui_zip=None,
                 expected = {name[1:-5] + ".darc"
                             for name in _index(source["files"])
                             if name.lower().endswith(".carc")}
-                if actual != expected or len(actual) != len(members) - 1:
+                if actual != expected or any(
+                    not item.filename.lower().endswith(".darc") and
+                    not item.filename.lower().endswith(".json")
+                    for item in members
+                ) or len(members) > len(actual) + 1:
                     raise ValueError("DARC archive coverage does not match NCCH")
                 for name in sorted(actual):
                     with archive.open(name) as handle:
