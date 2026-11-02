@@ -172,29 +172,37 @@ def plan_orb(pixels, width, height):
 
 
 def locate_spheres(pixels, width, height):
-    """Find large near-white encounter art on the known flat DS fallback scene.
+    """Locate high-contrast DS fallback encounter art, NOT the white backdrop.
 
-    This is deliberately conservative: non-flat or original 3DS backgrounds
-    are not supported, and a matching silhouette is not proof of a hit.
+    The static white cloud in game_top.raw was previously mistaken for the
+    moving sphere. Only a sufficiently large connected dark/saturated sprite
+    on the known flat backdrop is accepted; 13px hostile projectiles, reticle,
+    HUD and arbitrary textured/original scenes are not tracked.
     """
     if width != 256 or not 384 <= height <= 480 or len(pixels) != width * height * 3:
         raise ValueError("Expected an unscaled 256px-wide DS screenshot")
     offset = height - 384
+
     def pixel(x, y):
         at = (y * width + x) * 3
         return pixels[at:at + 3]
+
     left = pixel(4, offset + 100)
     right = pixel(250, offset + 100)
     if max(abs(a - b) for a, b in zip(left, right)) > 12 or not (
             150 <= left[0] <= 225 and 150 <= left[1] <= 235 and
             150 <= left[2] <= 240):
-        raise ValueError("Unknown or non-flat encounter backdrop; cannot safely track sphere")
+        raise ValueError("Unknown or non-flat encounter backdrop; cannot safely track art")
     marked = set()
     for y in range(offset + 42, offset + 169):
         for x in range(12, 244):
             r, g, b = pixel(x, y)
-            if r >= 230 and g >= 225 and b >= 225 and max(
-                    abs(r - left[0]), abs(g - left[1]), abs(b - left[2])) >= 20:
+            # The DS fallback background is grey/white/cyan. A target sprite
+            # has dark and/or saturated colored pixels; the white background
+            # cloud and pale reticle never satisfy these thresholds.
+            if max(r, g, b) < 95 or (
+                    max(r, g, b) - min(r, g, b) > 85 and
+                    max(r, g, b) > 120 and min(r, g, b) < 150):
                 marked.add((x, y))
     candidates = []
     while marked:
@@ -209,8 +217,8 @@ def locate_spheres(pixels, width, height):
                 if (nx, ny) in marked:
                     marked.remove((nx, ny))
                     stack.append((nx, ny))
-        # Exclude the small fixed reticle and individual HUD glyphs.
-        if len(xs) >= 350 and max(xs) - min(xs) >= 35 and max(ys) - min(ys) >= 20:
+        # Require an artwork footprint larger than the 13x13 enemy ball.
+        if len(xs) >= 35 and max(xs) - min(xs) >= 14 and max(ys) - min(ys) >= 14:
             candidates.append((round(sum(xs) / len(xs)),
                                round(sum(ys) / len(ys)) - offset, len(xs)))
     return sorted(candidates, key=lambda p: -p[2])
@@ -219,7 +227,7 @@ def locate_spheres(pixels, width, height):
 def plan_sphere(pixels, width, height):
     targets = locate_spheres(pixels, width, height)
     if len(targets) != 1:
-        raise ValueError("No unique white encounter silhouette; guided aim unverified")
+        raise ValueError("No unique high-contrast encounter artwork; guided aim unverified")
     x, y, count = targets[0]
     dx, dy = x - 128, y - 96
     return {"target_screen": {"x": x, "y": y},
@@ -229,7 +237,7 @@ def plan_sphere(pixels, width, height):
             "horizontal_seconds": round(min(0.22, abs(dx) / 360), 3),
             "vertical_seconds": round(min(0.22, abs(dy) / 360), 3),
             "candidate_spheres": len(targets),
-            "limitations": "White-silhouette DS fallback tracking only; moving target and capture are unverified."}
+            "limitations": "High-contrast DS fallback artwork tracking only; a target position is not a hit or capture."}
 
 
 def plan_sphere_motion(previous_pixels, pixels, width, height):
