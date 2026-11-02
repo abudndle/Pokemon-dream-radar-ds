@@ -616,3 +616,49 @@ for lower_edge in (pink_sphere_frame(120, 187),
     assert len(candidates) == 1, candidates
     assert candidates[0][1] >= 175, candidates
 print("PASS: pink and violet lower-edge silhouettes remain within top-screen scan")
+
+
+# Real PR #106 melonDS SWIFT frame 05-sphere-before-3 exposes only a
+# 24x7 orange/green rim below the black class HUD at top-screen y=37..43.
+# The older >=14px dark-component gate could not see that partial sprite.
+# Reproduce the measured geometry with synthetic pixels, never proprietary art.
+def upper_hud_swift_frame(*, orange=True, green=True, hud_gold=True):
+    pixels = bytearray(sphere_frame(False))
+    # Class-name HUD overlaps the top of the moving target.
+    for y in range(27 + OFFSET, 37 + OFFSET):
+        for x in range(0, 116):
+            at = (y * WIDTH + x) * 3
+            pixels[at:at + 3] = bytes((8, 8, 8))
+    if hud_gold:
+        for y in range(30 + OFFSET, 34 + OFFSET):
+            for x in range(16, 35):
+                at = (y * WIDTH + x) * 3
+                pixels[at:at + 3] = bytes((251, 251, 0))
+    if orange:
+        for y in range(37 + OFFSET, 41 + OFFSET):
+            for x in range(51, 75):
+                at = (y * WIDTH + x) * 3
+                pixels[at:at + 3] = bytes((251, 178, 24))
+    if green:
+        for y in range(41 + OFFSET, 44 + OFFSET):
+            for x in range(58, 74):
+                at = (y * WIDTH + x) * 3
+                pixels[at:at + 3] = bytes((48, 105, 48))
+    return pixels
+
+
+upper_swift = upper_hud_swift_frame()
+upper_candidates = locate_spheres(upper_swift, WIDTH, HEIGHT)
+assert len(upper_candidates) == 1, upper_candidates
+assert 59 <= upper_candidates[0][0] <= 68, upper_candidates
+assert 36 <= upper_candidates[0][1] <= 44, upper_candidates
+assert plan_sphere(upper_swift, WIDTH, HEIGHT)["candidate_spheres"] == 1
+for no_target in (
+    upper_hud_swift_frame(orange=False, green=False),
+    upper_hud_swift_frame(orange=True, green=False),
+    upper_hud_swift_frame(orange=False, green=True),
+):
+    assert locate_spheres(no_target, WIDTH, HEIGHT) == [], (
+        "HUD gold or incomplete color band accepted as SWIFT sphere"
+    )
+print("PASS: HUD-clipped SWIFT orange-green rim tracked without HUD false positives")
