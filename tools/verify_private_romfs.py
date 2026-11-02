@@ -9,6 +9,7 @@ import hashlib
 import json
 import os
 import tempfile
+import zipfile
 from collections import Counter
 from pathlib import Path
 
@@ -115,9 +116,59 @@ def _write_private_report(destination, data):
             os.unlink(temp_name)
 
 
-def check(ncch=None, report=None, manifest=DEFAULT_MANIFEST):
+UI_EXPECTED = {".bclim": 875, ".bclan": 417, ".bclyt": 135, ".msbt": 35}
+
+
+def verify_private_archives(source, darc_zip=None, ui_zip=None,
+                            ui_expected=UI_EXPECTED):
+    """Validate private extraction ZIPs without writing any original asset bytes."""
+    results = {}
+    for kind, path in (("darc", darc_zip), ("ui", ui_zip)):
+        if path is None:
+            continue
+        path = _outside_repository(path)
+        with zipfile.ZipFile(path) as archive:
+            members = [entry for entry in archive.infolist() if not entry.is_dir()]
+            if len(members) != len({item.filename for item in members}):
+                raise ValueError("Duplicate extraction ZIP member")
+            if sum(entry.file_size for entry in members) > 256 * 1024 * 1024:
+                raise ValueError("Extraction ZIP exceeds safe audit limit")
+            for item in members:
+                _safe_virtual_path("/" + item.filename)
+            if archive.testzip() is not None:
+                raise ValueError("Extraction ZIP failed CRC validation")
+            suffix_counts = dict(sorted(Counter(
+                Path(item.filename).suffix.lower() for item in members
+            ).items()))
+            if kind == "darc":
+                actual = {item.filename for item in members
+                          if item.filename.lower().endswith(".darc")}
+                expected = {name[1:-5] + ".darc"
+                            for name in _index(source["files"])
+                            if name.lower().endswith(".carc")}
+                if actual != expected or len(actual) != len(members) - 1:
+                    raise ValueError("DARC archive coverage does not match NCCH")
+                for name in sorted(actual):
+                    with archive.open(name) as handle:
+                        if handle.read(4) != b"darc":
+                            raise ValueError("Bad DARC magic")
+            elif suffix_counts != ui_expected:
+                raise ValueError("Original UI extraction is incomplete")
+        results[kind] = {
+            "member_count": len(members),
+            "types": suffix_counts,
+            "source_sha256": _sha256(path),
+            "integrity_verified": True,
+        }
+    return results
+
+
+def check(ncch=None, report=None, manifest=DEFAULT_MANIFEST,
+          darc_zip=None, ui_zip=None):
     source = load_manifest(manifest)
     if ncch is None:
+        if darc_zip is not None or ui_zip is not None:
+            raise ValueError("Archive checks require the original NCCH")
         if report is not None:
             raise ValueError("--report requires a private NCCH input")
         return {"metadata_only": True, "expected_count": source["file_count"],
@@ -136,6 +187,9 @@ def check(ncch=None, report=None, manifest=DEFAULT_MANIFEST):
         "romfs_comparison": verdict,
         "actual_types": actual["types"],
     }
+    result["private_archives"] = verify_private_archives(
+        source, darc_zip, ui_zip
+    )
     if report is not None:
         _write_private_report(report, result)
     return result
@@ -147,11 +201,17 @@ def main():
                         help="Path to privately stored, decrypted source NCCH")
     parser.add_argument("--report", type=Path,
                         help="Optional report path outside the public Git repository")
+    parser.add_argument("--darc-zip", type=Path,
+                        help="Privately held archive of the 177 extracted DARCs")
+    parser.add_argument("--ui-zip", type=Path,
+                        help="Privately held archive of 1462 extracted UI members")
     parser.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST)
     args = parser.parse_args()
     try:
-        result = check(args.ncch, args.report, args.manifest)
-    except (ValueError, OSError, UnicodeError, json.JSONDecodeError) as error:
+        result = check(args.ncch, args.report, args.manifest,
+                       args.darc_zip, args.ui_zip)
+    except (ValueError, OSError, UnicodeError, json.JSONDecodeError,
+            zipfile.BadZipFile, RuntimeError) as error:
         parser.exit(2, "FAIL: private asset verification: " +
                     type(error).__name__ + "\n")
     if result.get("metadata_only"):
@@ -166,6 +226,11 @@ def main():
               " files, " + str(len(verdict["missing_paths"])) + " missing, " +
               str(len(verdict["unexpected_paths"])) + " unexpected, " +
               str(len(verdict["size_mismatches"])) + " size mismatches")
+        if result["private_archives"]:
+            print("PASS: private archive CRC and coverage (" +
+                  ", ".join(kind + "=" + str(info["member_count"])
+                            for kind, info in sorted(result["private_archives"].items())) +
+                  ")")
         if not verdict["matches"]:
             parser.exit(1)
 
