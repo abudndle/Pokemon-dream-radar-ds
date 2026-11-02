@@ -26,7 +26,12 @@ else
 fi
 "${launcher[@]}" "$rom" >"$out/melonds.log" 2>&1 &
 pid=$!
-cleanup(){ kill "$pid" 2>/dev/null || true; wait "$pid" 2>/dev/null || true; }
+printf 'Emulator launcher PID: %s\n' "$pid" >>"$out/runtime.log"
+cleanup(){
+  kill "$pid" 2>/dev/null || true
+  wait "$pid" 2>/dev/null || true
+  printf 'Emulator launcher PID %s terminated\n' "$pid" >>"$out/runtime.log"
+}
 trap cleanup EXIT
 window=""
 for attempt in $(seq 1 60); do
@@ -115,6 +120,16 @@ if ! python3 tools/verify_melonds_navigation.py "$out" \
     >"$out/orb-balance-before.json"; then
   rm -f "$out/orb-balance-before.json"
   echo "WARNING: could not read pre-search saved Orb balance" | tee -a "$out/runtime.log"
+fi
+# On the second, independently launched emulator process, refuse to proceed
+# unless the first process' saved Orb gain was actually restored. Merely
+# setting REQUIRE_PREEXISTING_ORB in the workflow is not an assertion.
+if [[ "${REQUIRE_PREEXISTING_ORB:-0}" == 1 ]]; then
+  if [[ ! -s "$out/orb-balance-before.json" ]]; then
+    echo "Clean-restart acceptance failed: no readable pre-search Orb balance" >&2
+    exit 1
+  fi
+  python3 tools/check_restored_orbs.py "$out/orb-balance-before.json"
 fi
 press_ds_key x 0.3
 # Returning to the lab resets selection to START SEARCH.
