@@ -462,3 +462,52 @@ for rgb in ((255, 255, 255), (0, 255, 255),
             noise[at:at + 3] = bytes(rgb)
     assert locate_orbs(noise, WIDTH, HEIGHT) == [], rgb
 print("PASS: four-color Dream Orb cycling, motion and observed-only safe firing")
+
+
+# Real Linux melonDS run 41384327262 reached an ERRATIC sphere, but the
+# old tracker rejected the first frame. Pixel inspection found a compact
+# lavender silhouette x=89..109, top-screen y=57..75, RGB 211,178,243.
+# Recreate its geometry/colors synthetically; do not publish game artwork.
+def violet_sphere_frame(centers):
+    pixels = bytearray(sphere_frame(False))
+    for cx, cy in centers:
+        for y in range(cy - 9, cy + 10):
+            for x in range(cx - 10, cx + 11):
+                if ((x - cx) / 10) ** 2 + ((y - cy) / 9) ** 2 > 1:
+                    continue
+                at = ((y + OFFSET) * WIDTH + x) * 3
+                pixels[at:at + 3] = bytes((211, 178, 243))
+        # Tiny dark eyes are not separate moving sphere targets.
+        for x in (cx - 3, cx + 3):
+            at = ((cy + OFFSET) * WIDTH + x) * 3
+            pixels[at:at + 3] = bytes((24, 24, 32))
+    return pixels
+
+
+violet = violet_sphere_frame([(99, 66)])
+violet_targets = locate_spheres(violet, WIDTH, HEIGHT)
+assert len(violet_targets) == 1, violet_targets
+assert violet_targets[0][:2] == (99, 66)
+assert plan_sphere(violet, WIDTH, HEIGHT)["target_screen"] == {"x": 99, "y": 66}
+violet_motion = plan_sphere_motion(violet,
+                                   violet_sphere_frame([(108, 72)]),
+                                   WIDTH, HEIGHT)
+assert violet_motion["motion_prediction"] == "bounded"
+assert violet_motion["observed_target_screen"] == {"x": 108, "y": 72}
+
+# Small lavender UI glyphs and two distinct targets must fail closed.
+small_violet = bytearray(sphere_frame(False))
+for y in range(66 + OFFSET - 3, 66 + OFFSET + 4):
+    for x in range(99 - 3, 99 + 4):
+        at = (y * WIDTH + x) * 3
+        small_violet[at:at + 3] = bytes((211, 178, 243))
+assert locate_spheres(small_violet, WIDTH, HEIGHT) == []
+separate_violet = violet_sphere_frame([(70, 66), (175, 96)])
+assert len(locate_spheres(separate_violet, WIDTH, HEIGHT)) == 2
+try:
+    plan_sphere(separate_violet, WIDTH, HEIGHT)
+except ValueError:
+    pass
+else:
+    raise AssertionError("Two violet sphere silhouettes were accepted as unique")
+print("PASS: live-style violet ERRATIC sphere tracking rejects small glyphs and ambiguity")

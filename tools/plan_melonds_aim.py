@@ -364,6 +364,38 @@ def locate_spheres(pixels, width, height):
             candidates.append((round(sum(xs) / len(xs)),
                                round(sum(ys) / len(ys)) - offset, len(xs),
                                (min(xs), min(ys), max(xs), max(ys))))
+    # Actual 2026-11-02 Linux melonDS ERRATIC frames show a 21x19
+    # lavender sphere body (e.g. RGB 211,178,243), not the earlier
+    # dark/orange or pale-pink silhouettes. Its color is too low-contrast
+    # for the saturated pass and too blue-dominant for the pink pass.
+    # On the verified flat DS fallback backdrop, detect only compact
+    # lavender components; the static white cloud, cyan reticle and
+    # 13px hostile projectiles must not become aim targets.
+    violet = set()
+    for y in range(offset + 35, offset + 184):
+        for x in range(12, 244):
+            r, g, b = pixel(x, y)
+            if (180 <= r <= 245 and 135 <= g <= 215 and b >= 215
+                    and b >= g + 35 and r >= g + 20):
+                violet.add((x, y))
+    while violet:
+        stack = [violet.pop()]
+        xs, ys = [], []
+        while stack:
+            x, y = stack.pop()
+            xs.append(x)
+            ys.append(y)
+            for ny in (y - 1, y, y + 1):
+                for nx in (x - 1, x, x + 1):
+                    p = (nx, ny)
+                    if p in violet:
+                        violet.remove(p)
+                        stack.append(p)
+        w, h = max(xs) - min(xs), max(ys) - min(ys)
+        if 70 <= len(xs) <= 700 and 12 <= w <= 36 and 10 <= h <= 35:
+            candidates.append((round(sum(xs) / len(xs)),
+                               round(sum(ys) / len(ys)) - offset, len(xs),
+                               (min(xs), min(ys), max(xs), max(ys))))
     # A single sprite can contain both dark/saturated edges and a pastel
     # interior. The independent palette passes then report two overlapping
     # components for one real target, causing the unique-target planner to
