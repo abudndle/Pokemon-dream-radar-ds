@@ -197,12 +197,18 @@ def locate_spheres(pixels, width, height):
     for y in range(offset + 42, offset + 169):
         for x in range(12, 244):
             r, g, b = pixel(x, y)
-            # The DS fallback background is grey/white/cyan. A target sprite
-            # has dark and/or saturated colored pixels; the white background
-            # cloud and pale reticle never satisfy these thresholds.
-            if max(r, g, b) < 95 or (
-                    max(r, g, b) - min(r, g, b) > 85 and
-                    max(r, g, b) > 120 and min(r, g, b) < 150):
+            # The DS fallback background is grey/white/cyan. Most Pokemon
+            # sprites contain dark or saturated pixels, but some item/Pokemon
+            # thumbnails are pastel pink with *no* dark silhouette. Earlier
+            # tracking rejected every frame of a real DRIFTING encounter.
+            # Pink requires both red/blue dominance over green, excluding the
+            # static white cloud, cyan outline and near-white reticle.
+            dark_or_saturated = max(r, g, b) < 95 or (
+                max(r, g, b) - min(r, g, b) > 85 and
+                max(r, g, b) > 120 and min(r, g, b) < 150)
+            pastel_pink = (r >= 230 and r - g >= 16 and
+                           b - g >= 12 and b >= 180 and g <= 240)
+            if dark_or_saturated or pastel_pink:
                 marked.add((x, y))
     candidates = []
     while marked:
