@@ -101,7 +101,12 @@ with tempfile.TemporaryDirectory() as temp:
     invalid = copy.deepcopy(good)
     for stage in REQUIRED:
         invalid["captures"][stage] = invalid["captures"][REQUIRED[0]]
-    assert status(invalid)["status"] == "reused_captures"
+    assert status(invalid)["status"] == "reused_capture_paths"
+
+    # A single valid capture cannot be recycled for two milestone stages.
+    shared = copy.deepcopy(good)
+    shared["captures"]["restart"] = shared["captures"]["save"]
+    assert status(shared)["status"] == "reused_capture_paths"
 
     # Each file is a different, correctly checksummed PNG, but all display
     # exactly the same pixels. Distinct metadata must not fake ten frames.
