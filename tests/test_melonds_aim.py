@@ -606,3 +606,13 @@ for y in range(205 + OFFSET, 227 + OFFSET):
         touchscreen_only[at:at + 3] = bytes((24, 24, 32))
 assert locate_spheres(touchscreen_only, WIDTH, HEIGHT) == []
 print("PASS: lower-edge SWIFT artwork tracked without scanning touchscreen pixels")
+
+# All known fallback palettes must be able to reach the bottom of the
+# 192px top screen. Their synthetic artwork may extend below y=191 in
+# memory, but the classifier must inspect ONLY the top-screen portion.
+for lower_edge in (pink_sphere_frame(120, 187),
+                   violet_sphere_frame([(125, 187)])):
+    candidates = locate_spheres(lower_edge, WIDTH, HEIGHT)
+    assert len(candidates) == 1, candidates
+    assert candidates[0][1] >= 175, candidates
+print("PASS: pink and violet lower-edge silhouettes remain within top-screen scan")
