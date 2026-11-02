@@ -12,7 +12,8 @@ from verify_melonds_navigation import (check_heading, font_rows, read_radar_coun
                                        compare_radar_counters, compare_orb_counters,
                                        read_sphere_state, observe_search_state,
                                        read_capture_reward, read_capture_progress,
-                                       read_shop_orb_balance, compare_shop_orb_balances)
+                                       read_shop_orb_balance, compare_shop_orb_balances,
+                                       compare_restart_shop_orb_balances)
 
 font = font_rows()
 width, height = 256, 403
@@ -300,3 +301,49 @@ for invalid in ({"saved_orbs": -1}, {"saved_orbs": True},
     else:
         raise AssertionError("Invalid saved Orb comparison accepted")
 print("PASS: saved Orb balance is independent of timed-out radar Orb entities")
+
+
+# A balance increase during one process is not durable-save evidence.
+# A second process must independently read the same balance after the first
+# process exited and the emulator harness confirmed writable save media.
+def restart_check(before, collected, restarted, **overrides):
+    options = dict(first_pid=1001, restart_pid=1002,
+                   first_process_exited=True, save_media_present=True)
+    options.update(overrides)
+    return compare_restart_shop_orb_balances(
+        {"saved_orbs": before}, {"saved_orbs": collected},
+        {"saved_orbs": restarted}, **options)
+
+restored = restart_check(0, 2, 2)
+assert restored["persistence_verified"]
+assert restored["status"] == "clean_restart_orb_balance_restored"
+assert restored["orbs_gained"] == 2
+for args in ((0, 0, 0), (0, 2, 0), (0, 2, 1), (2, 1, 1)):
+    assert not restart_check(*args)["persistence_verified"], args
+for options in (
+    {"first_pid": 1001, "restart_pid": 1001},
+    {"first_process_exited": False},
+    {"save_media_present": False},
+):
+    assert not restart_check(0, 2, 2, **options)["persistence_verified"]
+for invalid in (
+    {"first_pid": True}, {"restart_pid": 0},
+    {"first_process_exited": 1}, {"save_media_present": "yes"},
+):
+    try:
+        restart_check(0, 2, 2, **invalid)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("Invalid restart provenance accepted")
+for invalid_balance in (True, -1, 4294967296, "2"):
+    try:
+        compare_restart_shop_orb_balances(
+            {"saved_orbs": 0}, {"saved_orbs": 2},
+            {"saved_orbs": invalid_balance}, first_pid=1001, restart_pid=1002,
+            first_process_exited=True, save_media_present=True)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("Invalid restarted Orb balance accepted")
+print("PASS: clean-restart Orb proof rejects same-process, missing-save and stale-balance evidence")
