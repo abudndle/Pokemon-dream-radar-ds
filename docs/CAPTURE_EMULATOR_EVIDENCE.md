@@ -81,6 +81,24 @@ planner can use two consecutive screenshots only when the D-pad is
 stationary between them, and a fresh observed frame—not predicted
 position—must authorize firing.
 
+### Four-color Orb targeting (DS fallback)
+
+The screenshot-guided Orb planner recognizes all four **runtime** RGB555
+fills from `source/main.c`: pink `0xC1DF`, green `0x83E0`, orange
+`0x829F`, and blue `0xFC00`. Orbs can change color while the runner
+moves the D-pad or samples consecutive frames; the previous pink-only
+classifier could lose a real target at a color transition. Separate color
+components and conservative size bounds reduce accidental matches to
+small HUD glyphs. This is a test of the DS adaptation, not extraction of
+the original game's textures or motion rules.
+
+A detected Orb, a guided aiming plan, or a disappearing Orb does **not**
+prove collection. Only the independently decoded before/after saved
+shop balance can establish a collected Orb for this smoke route, and a
+subsequent emulator restart is still required to prove persistence.
+The palette matcher is intentionally limited to the unscaled fallback
+renderer and may fail when the reticle obscures a sprite.
+
 ## Optional live encounter instrumentation
 
 The Linux melonDS smoke workflow now tries screenshot-guided aiming on the
