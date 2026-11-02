@@ -525,6 +525,8 @@ if [[ -f "$out/05-sphere-encounter.png" ]]; then
   reacquire_successes=0
   edge_recovery_attempts=0
   edge_recovery_successes=0
+  sphere_fire_authorized=0
+  sphere_fire_skipped=0
   last_sphere_plan=""
   capture_steps="${CAPTURE_SWEEP_STEPS:-220}"
   if ! [[ "$capture_steps" =~ ^[0-9]+$ ]] || (( capture_steps < 1 || capture_steps > 220 )); then
@@ -682,12 +684,87 @@ if [[ -f "$out/05-sphere-encounter.png" ]]; then
       python3 -c 'import json,sys; p=json.load(open(sys.argv[1])); print(p["horizontal_key"],p["horizontal_seconds"],p["vertical_key"],p["vertical_seconds"])' \
         "$out/sphere-aim-$step.json"
     )
-    # Fire only after the fresh screenshot-backed aim plan succeeded.
-    # Release before capturing the next frame so Results cannot be skipped.
-    xdotool keydown --clearmodifiers z
+    # Camera motion invalidates the old target coordinates. Move with A
+    # RELEASED, then independently observe the sphere near the reticle.
+    # Never fire merely because an earlier moving-target prediction existed.
     aim_ds_key "$horizontal" "$horizontal_seconds" 0.06
     aim_ds_key "$vertical" "$vertical_seconds" 0.06
-    sleep 0.08
+    snapshot "05-sphere-prefire-$step"
+    prefire_frame="$out/05-sphere-prefire-$step.png"
+    if python3 tools/verify_melonds_navigation.py "$out" \
+        --observe-reward-screenshot "$prefire_frame" \
+        >"$out/sphere-reward-attempt.json" 2>/dev/null; then
+      mv "$out/sphere-reward-attempt.json" "$out/sphere-reward.json"
+      cp "$prefire_frame" "$out/05-capture-reward.png"
+      capture_last="$prefire_frame"
+      echo "PASS: capture reward observed before prefire $step" | tee -a "$out/runtime.log"
+      break
+    fi
+    rm -f "$out/sphere-reward-attempt.json"
+    if ! python3 tools/verify_melonds_navigation.py "$out" \
+        --observe-capture-progress "$prefire_frame" \
+        >"$out/sphere-prefire-progress-$step.json" 2>/dev/null; then
+      echo "WARNING: prefire frame $step is no longer a recognized sphere encounter" | tee -a "$out/runtime.log"
+      break
+    fi
+    if ! python3 tools/plan_melonds_aim.py "$prefire_frame" --target sphere \
+        >"$out/sphere-prefire-aim-$step.json" 2>"$out/sphere-prefire-error-$step.txt"; then
+      sphere_fire_skipped=$((sphere_fire_skipped + 1))
+      capture_last="$prefire_frame"
+      echo "INFO: prefire $step has no unique fresh target; no shot" >>"$out/runtime.log"
+      continue
+    fi
+    if ! python3 tools/sphere_prefire_gate.py "$out/sphere-prefire-aim-$step.json" \
+        >"$out/sphere-prefire-gate-$step.json" 2>/dev/null ||
+       ! python3 -c 'import json,sys; sys.exit(not json.load(open(sys.argv[1]))["fire_authorized"])' \
+        "$out/sphere-prefire-gate-$step.json"; then
+      # One bounded correction based on the new frame. A stays released,
+      # and a SECOND fresh screenshot must authorize any subsequent shot.
+      read -r fix_h fix_h_seconds fix_v fix_v_seconds < <(
+        python3 -c 'import json,sys; p=json.load(open(sys.argv[1])); print(p["horizontal_key"],round(min(0.12,p["horizontal_seconds"]),3),p["vertical_key"],round(min(0.12,p["vertical_seconds"]),3))' \
+          "$out/sphere-prefire-aim-$step.json"
+      )
+      aim_ds_key "$fix_h" "$fix_h_seconds" 0.04
+      aim_ds_key "$fix_v" "$fix_v_seconds" 0.04
+      snapshot "05-sphere-prefire-corrected-$step"
+      prefire_frame="$out/05-sphere-prefire-corrected-$step.png"
+      if python3 tools/verify_melonds_navigation.py "$out" \
+          --observe-reward-screenshot "$prefire_frame" \
+          >"$out/sphere-reward-attempt.json" 2>/dev/null; then
+        mv "$out/sphere-reward-attempt.json" "$out/sphere-reward.json"
+        cp "$prefire_frame" "$out/05-capture-reward.png"
+        capture_last="$prefire_frame"
+        echo "PASS: capture reward observed during no-fire correction $step" | tee -a "$out/runtime.log"
+        break
+      fi
+      rm -f "$out/sphere-reward-attempt.json"
+      if ! python3 tools/verify_melonds_navigation.py "$out" \
+          --observe-capture-progress "$prefire_frame" \
+          >"$out/sphere-prefire-corrected-progress-$step.json" 2>/dev/null; then
+        echo "WARNING: corrected prefire frame $step is no longer a sphere encounter" | tee -a "$out/runtime.log"
+        break
+      fi
+      if ! python3 tools/plan_melonds_aim.py "$prefire_frame" --target sphere \
+          >"$out/sphere-prefire-aim-$step.json" 2>"$out/sphere-prefire-error-$step.txt"; then
+        sphere_fire_skipped=$((sphere_fire_skipped + 1))
+        capture_last="$prefire_frame"
+        continue
+      fi
+    fi
+    if ! python3 tools/sphere_prefire_gate.py "$out/sphere-prefire-aim-$step.json" \
+        >"$out/sphere-prefire-gate-$step.json" 2>/dev/null ||
+       ! python3 -c 'import json,sys; sys.exit(not json.load(open(sys.argv[1]))["fire_authorized"])' \
+        "$out/sphere-prefire-gate-$step.json"; then
+      sphere_fire_skipped=$((sphere_fire_skipped + 1))
+      capture_last="$prefire_frame"
+      echo "INFO: prefire $step remained outside observed 13px radius; no shot" >>"$out/runtime.log"
+      continue
+    fi
+    # The last observed target is uniquely aligned. Fire a short bounded
+    # pulse, release A, then inspect the actual post-shot meter or Results.
+    sphere_fire_authorized=$((sphere_fire_authorized + 1))
+    xdotool keydown --clearmodifiers z
+    sleep 0.16
     xdotool keyup z
     capture_last="$out/05-sphere-sweep-$step.png"
     snapshot "05-sphere-sweep-$step"
@@ -715,6 +792,7 @@ if [[ -f "$out/05-sphere-encounter.png" ]]; then
   done
   xdotool keyup z
   echo "INFO: guided sphere aim used $guided_sphere_steps of $capture_steps allowed attempts" | tee -a "$out/runtime.log"
+  echo "INFO: fresh aligned prefire shots $sphere_fire_authorized; unaligned/ambiguous skipped $sphere_fire_skipped" | tee -a "$out/runtime.log"
   echo "INFO: sphere reacquisition succeeded $reacquire_successes of $reacquire_attempts attempts" | tee -a "$out/runtime.log"
   echo "INFO: no-fire edge camera recovery succeeded $edge_recovery_successes of $edge_recovery_attempts attempts" | tee -a "$out/runtime.log"
 fi
