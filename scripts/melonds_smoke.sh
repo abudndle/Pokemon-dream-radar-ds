@@ -22,7 +22,7 @@ if [[ -n "${MELONDS_BIN:-}" ]]; then
   launcher=("$MELONDS_BIN")
 else
   command -v flatpak >/dev/null || { echo "Missing flatpak or MELONDS_BIN" >&2; exit 1; }
-  launcher=(flatpak run --env=QT_QPA_PLATFORMTHEME=generic --env=GTK_USE_PORTAL=0 net.kuribo64.melonDS)
+  launcher=(flatpak run --env=QT_QPA_PLATFORMTHEME=generic --env=GTK_USE_PORTAL=0 --env=GSETTINGS_BACKEND=memory --env=DCONF_PROFILE=/dev/null net.kuribo64.melonDS)
 fi
 "${launcher[@]}" "$rom" >"$out/melonds.log" 2>&1 &
 pid=$!
