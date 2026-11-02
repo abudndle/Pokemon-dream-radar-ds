@@ -529,3 +529,22 @@ except ValueError:
 else:
     raise AssertionError("Two violet sphere silhouettes were accepted as unique")
 print("PASS: live-style violet ERRATIC sphere tracking rejects small glyphs and ambiguity")
+
+# A transiently ambiguous frame must not force an unverified blind sweep.
+# The shell smoke runner now samples one more stationary frame and retries
+# this same continuity gate; a newly unique target can be reacquired.
+transient_ambiguous = bytearray(sphere_frame(False))
+paint_encounter(transient_ambiguous, 95, 99)
+paint_encounter(transient_ambiguous, 145, 99)
+try:
+    plan_sphere_motion(previous, transient_ambiguous, WIDTH, HEIGHT)
+except ValueError:
+    pass
+else:
+    raise AssertionError("Ambiguous intermediate frame accepted as a target")
+reacquired_target = plan_sphere_motion(
+    previous, shifted_sphere_frame(12, 6), WIDTH, HEIGHT)
+assert reacquired_target["motion_prediction"] == "bounded"
+assert reacquired_target["observed_target_screen"] == {"x": 132, "y": 105}
+assert reacquired_target["candidate_spheres"] == 1
+print("PASS: ambiguous sphere frame fails closed; fresh unique frame reacquires")
