@@ -27,6 +27,10 @@ for bad in (
     {**base, "meter_width_pixels": 0},
     {**base, "capture_classes_observed": []},
     {**base, "capture_classes_observed": ["unknown"]},
+    {**base, "capture_classes_observed": [{"drifting": True}]},
+    {**base, "capture_classes_observed": [["drifting"]]},
+    {**base, "capture_classes_observed": [None]},
+    {**base, "capture_classes_observed": [42]},
     {**base, "reward_screen_observed": "false"},
     {"max_meter_pixels": 110},
 ):
@@ -41,7 +45,8 @@ with tempfile.TemporaryDirectory() as tmp:
     path = Path(tmp) / "progress.json"
     cmd = [sys.executable, str(ROOT / "tools/check_capture_extension.py"), str(path)]
     for evidence, expected in ((base, 0), ({**base, "max_meter_pixels": 0}, 3),
-                               ({**base, "samples": -1}, 2)):
+                               ({**base, "samples": -1}, 2),
+                               ({**base, "capture_classes_observed": [{"bad": True}]}, 2)):
         path.write_text(json.dumps(evidence))
         result = subprocess.run(cmd, capture_output=True, text=True)
         assert result.returncode == expected, (result.returncode, result.stderr)
