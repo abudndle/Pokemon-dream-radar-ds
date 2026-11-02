@@ -3,8 +3,9 @@ from pathlib import Path
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
-from plan_melonds_aim import (locate_clouds, locate_orbs, locate_spheres,
-                              plan, plan_orb, plan_sphere, plan_sphere_motion)
+from plan_melonds_aim import (locate_clouds, locate_cloud_edge_markers,
+                              locate_orbs, locate_spheres, plan, plan_orb,
+                              plan_sphere, plan_sphere_motion)
 
 WIDTH, HEIGHT = 256, 403
 OFFSET = HEIGHT - 384
@@ -28,6 +29,12 @@ assert p["target_screen"] == {"x": 107, "y": 83}
 assert p["offset"] == {"x": -21, "y": -13}
 assert p["horizontal_key"] == "Left" and p["vertical_key"] == "Up"
 assert p["candidate_clouds"] == 3
+assert p["target_type"] == "cloud"
+assert p["candidate_edge_markers"] == 0
+assert not p["within_safe_fire_radius"]
+assert plan(frame([(128, 96)]), WIDTH, HEIGHT)["within_safe_fire_radius"]
+assert plan(frame([(142, 96)]), WIDTH, HEIGHT)["within_safe_fire_radius"]
+assert not plan(frame([(143, 96)]), WIDTH, HEIGHT)["within_safe_fire_radius"]
 assert p["horizontal_seconds"] > 0 and p["vertical_seconds"] > 0
 
 right = plan(frame([(155, 110)]), WIDTH, HEIGHT)
@@ -44,6 +51,49 @@ for pixels, width, height in (
         pass
     else:
         raise AssertionError("Invalid or empty screenshot accepted as a cloud target")
+
+
+# A gold 11x11 cloud direction cue is not a cloud: it can guide movement,
+# but must NEVER authorize A firing. The HUD and 7x7 Orb edge cue are excluded.
+def edge_frame(x, y, size=11):
+    pixels = bytearray(WIDTH * HEIGHT * 3)
+    for py in range(y + OFFSET, y + OFFSET + size):
+        for px in range(x, x + size):
+            if py in (y + OFFSET, y + OFFSET + size - 1) or px in (x, x + size - 1):
+                at = (py * WIDTH + px) * 3
+                pixels[at:at + 3] = bytes((251, 251, 0))
+    return pixels
+
+
+for x, y in ((234, 45), (11, 65), (95, 170)):
+    edge = edge_frame(x, y)
+    assert len(locate_cloud_edge_markers(edge, WIDTH, HEIGHT)) == 1
+    guided_edge = plan(edge, WIDTH, HEIGHT)
+    assert guided_edge["target_type"] == "edge_marker"
+    assert guided_edge["candidate_clouds"] == 0
+    assert guided_edge["candidate_edge_markers"] == 1
+    assert not guided_edge["within_safe_fire_radius"]
+    assert guided_edge["horizontal_key"] != "none" or guided_edge["vertical_key"] != "none"
+
+for invalid in (edge_frame(90, 80), edge_frame(234, 45, 7)):
+    assert locate_cloud_edge_markers(invalid, WIDTH, HEIGHT) == []
+    try:
+        plan(invalid, WIDTH, HEIGHT)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("HUD gold or small Orb edge cue accepted as a cloud")
+
+# A real visible cloud takes priority over edge cues.
+combined = bytearray(edge_frame(234, 45))
+for y in range(96 + OFFSET - 3, 96 + OFFSET + 4):
+    for x in range(128 - 6, 128 + 7):
+        at = (y * WIDTH + x) * 3
+        combined[at:at + 3] = bytes((230, 90, 220))
+assert plan(combined, WIDTH, HEIGHT)["target_type"] == "cloud"
+assert plan(combined, WIDTH, HEIGHT)["within_safe_fire_radius"]
+print("PASS: cloud edge acquisition guides movement but never authorizes unsafe fire")
+
 
 def orb_frame(coords):
     pixels = bytearray(WIDTH * HEIGHT * 3)
