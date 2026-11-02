@@ -252,6 +252,42 @@ aim_ds_key() {
   xdotool keyup "$key"
   sleep "$settle"
 }
+# Move both independent DS fallback camera axes together during sphere
+# pursuit. Sequential key pulses add latency while the target keeps moving.
+# This helper never presses A; the fresh post-movement screenshot remains
+# the only authority for a subsequent bounded shot.
+aim_ds_pair() {
+  local hkey="$1" hsec="$2" vkey="$3" vsec="$4" settle="${5:-0.06}"
+  [[ "$hkey" =~ ^(Left|Right|none)$ && "$vkey" =~ ^(Up|Down|none)$ ]] || return 2
+  [[ "$hsec" =~ ^(0|0\.[0-9]{1,3})$ && "$vsec" =~ ^(0|0\.[0-9]{1,3})$ ]] || return 2
+  if [[ "$hkey" == none || "$hsec" =~ ^0(\.0+)?$ ]]; then
+    aim_ds_key "$vkey" "$vsec" "$settle"
+    return
+  fi
+  if [[ "$vkey" == none || "$vsec" =~ ^0(\.0+)?$ ]]; then
+    aim_ds_key "$hkey" "$hsec" "$settle"
+    return
+  fi
+  local first second first_seconds remaining
+  read -r first second first_seconds remaining < <(
+    awk -v h="$hsec" -v v="$vsec" 'BEGIN {
+      if (h <= v) printf "horizontal vertical %.3f %.3f\n", h, v-h;
+      else printf "vertical horizontal %.3f %.3f\n", v, h-v;
+    }'
+  )
+  local first_key="$hkey" second_key="$vkey"
+  if [[ "$first" == vertical ]]; then
+    first_key="$vkey"
+    second_key="$hkey"
+  fi
+  xdotool windowfocus "$window"
+  xdotool keydown --clearmodifiers "$hkey" "$vkey"
+  sleep "$first_seconds"
+  xdotool keyup "$first_key"
+  sleep "$remaining"
+  xdotool keyup "$second_key"
+  sleep "$settle"
+}
 # Capture a paired before/after record for each Orb-aim input pulse. These
 # measurements expose whether a key moves the reticle, camera, or target;
 # they do not authorize firing. The normal observed-alignment gate remains
@@ -527,6 +563,8 @@ if [[ -f "$out/05-sphere-encounter.png" ]]; then
   edge_recovery_successes=0
   sphere_fire_authorized=0
   sphere_fire_skipped=0
+  sphere_diagonal_pulses=0
+  sphere_single_axis_pulses=0
   last_sphere_plan=""
   capture_steps="${CAPTURE_SWEEP_STEPS:-220}"
   if ! [[ "$capture_steps" =~ ^[0-9]+$ ]] || (( capture_steps < 1 || capture_steps > 220 )); then
@@ -687,8 +725,13 @@ if [[ -f "$out/05-sphere-encounter.png" ]]; then
     # Camera motion invalidates the old target coordinates. Move with A
     # RELEASED, then independently observe the sphere near the reticle.
     # Never fire merely because an earlier moving-target prediction existed.
-    aim_ds_key "$horizontal" "$horizontal_seconds" 0.06
-    aim_ds_key "$vertical" "$vertical_seconds" 0.06
+    aim_ds_pair "$horizontal" "$horizontal_seconds" "$vertical" "$vertical_seconds" 0.06
+    if [[ "$horizontal" != none && "$vertical" != none &&
+          "$horizontal_seconds" != 0 && "$vertical_seconds" != 0 ]]; then
+      sphere_diagonal_pulses=$((sphere_diagonal_pulses + 1))
+    else
+      sphere_single_axis_pulses=$((sphere_single_axis_pulses + 1))
+    fi
     snapshot "05-sphere-prefire-$step"
     prefire_frame="$out/05-sphere-prefire-$step.png"
     if python3 tools/verify_melonds_navigation.py "$out" \
@@ -724,8 +767,13 @@ if [[ -f "$out/05-sphere-encounter.png" ]]; then
         python3 -c 'import json,sys; p=json.load(open(sys.argv[1])); print(p["horizontal_key"],round(min(0.12,p["horizontal_seconds"]),3),p["vertical_key"],round(min(0.12,p["vertical_seconds"]),3))' \
           "$out/sphere-prefire-aim-$step.json"
       )
-      aim_ds_key "$fix_h" "$fix_h_seconds" 0.04
-      aim_ds_key "$fix_v" "$fix_v_seconds" 0.04
+      aim_ds_pair "$fix_h" "$fix_h_seconds" "$fix_v" "$fix_v_seconds" 0.04
+      if [[ "$fix_h" != none && "$fix_v" != none &&
+            "$fix_h_seconds" != 0 && "$fix_v_seconds" != 0 ]]; then
+        sphere_diagonal_pulses=$((sphere_diagonal_pulses + 1))
+      else
+        sphere_single_axis_pulses=$((sphere_single_axis_pulses + 1))
+      fi
       snapshot "05-sphere-prefire-corrected-$step"
       prefire_frame="$out/05-sphere-prefire-corrected-$step.png"
       if python3 tools/verify_melonds_navigation.py "$out" \
@@ -793,6 +841,7 @@ if [[ -f "$out/05-sphere-encounter.png" ]]; then
   xdotool keyup z
   echo "INFO: guided sphere aim used $guided_sphere_steps of $capture_steps allowed attempts" | tee -a "$out/runtime.log"
   echo "INFO: fresh aligned prefire shots $sphere_fire_authorized; unaligned/ambiguous skipped $sphere_fire_skipped" | tee -a "$out/runtime.log"
+  echo "INFO: sphere camera pulses diagonal=$sphere_diagonal_pulses single_axis_or_none=$sphere_single_axis_pulses (not proof of hits)" | tee -a "$out/runtime.log"
   echo "INFO: sphere reacquisition succeeded $reacquire_successes of $reacquire_attempts attempts" | tee -a "$out/runtime.log"
   echo "INFO: no-fire edge camera recovery succeeded $edge_recovery_successes of $edge_recovery_attempts attempts" | tee -a "$out/runtime.log"
 fi
