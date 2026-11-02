@@ -61,6 +61,14 @@ for attempt in $(seq 1 60); do
 done
 if [[ -z "$window" ]]; then
   xwininfo -root -tree >"$out/window-tree.txt" 2>&1 || true
+  # A native build can crash before opening X11. Preserve a bounded stack
+  # trace so a failing CI run identifies the fault instead of guessing.
+  if [[ -n "${MELONDS_BIN:-}" ]] && command -v gdb >/dev/null; then
+    timeout 25s gdb -batch -ex 'set pagination off' -ex run \
+      -ex 'thread apply all bt 8' --args "$MELONDS_BIN" "$rom" \
+      >"$out/native-backtrace.txt" 2>&1 || true
+    tail -n 100 "$out/native-backtrace.txt" >&2
+  fi
   cat "$out/melonds.log" >&2
   echo "melonDS window did not appear; no screenshot claimed" >&2
   exit 1
