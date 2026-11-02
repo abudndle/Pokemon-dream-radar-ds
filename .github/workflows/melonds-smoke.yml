@@ -98,13 +98,13 @@ jobs:
           Start = 16777220
           EOF
           cat >> "$HOME/.var/app/net.kuribo64.melonDS/config/melonDS/melonDS.toml" <<EOF
-[DLDI]
-Enable = true
-FolderSync = true
-ReadOnly = false
-ImageSize = 1073741824
-FolderPath = "$GITHUB_WORKSPACE/melonds-dldi"
-EOF
+          [DLDI]
+          Enable = true
+          FolderSync = true
+          ReadOnly = false
+          ImageSize = 1073741824
+          FolderPath = "$GITHUB_WORKSPACE/melonds-dldi"
+          EOF
           mkdir -p "$GITHUB_WORKSPACE/melonds-dldi/saves"
           cp dream_radar.nds "$GITHUB_WORKSPACE/melonds-dldi/dream_radar.nds"
           cat "$HOME/.var/app/net.kuribo64.melonDS/config/melonDS/melonDS.toml"
