@@ -57,7 +57,9 @@ on:
       - 'tests/test_prefire_workflow_coverage.py'
       - 'tools/summarize_capture_attempt.py'
       - 'tools/analyze_sphere_motion.py'
+      - 'tools/detect_projectile_interference.py'
       - 'tests/test_sphere_motion_diagnostics.py'
+      - 'tests/test_projectile_interference.py'
       - 'tools/check_capture_extension.py'
       - 'tools/verify_melonds_reward_restart.py'
       - 'tests/test_melonds_reward_restart.py'
@@ -89,7 +91,7 @@ jobs:
       - name: Validate encounter recognition and smoke-script syntax
         run: |
           bash -n scripts/melonds_smoke.sh
-          python3 -m py_compile tools/verify_melonds_navigation.py tools/validate_navigation_evidence.py tools/plan_melonds_aim.py tools/plan_sphere_recovery.py tools/sphere_prefire_gate.py tools/check_stationary_retry.py tools/verify_sphere_prefire_frame.py tools/verify_sphere_preaim_frame.py tools/summarize_capture_attempt.py tools/analyze_sphere_motion.py tools/check_capture_extension.py tools/verify_melonds_reward_restart.py
+          python3 -m py_compile tools/verify_melonds_navigation.py tools/validate_navigation_evidence.py tools/plan_melonds_aim.py tools/plan_sphere_recovery.py tools/sphere_prefire_gate.py tools/check_stationary_retry.py tools/verify_sphere_prefire_frame.py tools/verify_sphere_preaim_frame.py tools/summarize_capture_attempt.py tools/analyze_sphere_motion.py tools/detect_projectile_interference.py tools/check_capture_extension.py tools/verify_melonds_reward_restart.py
           python3 tests/test_navigation_evidence.py
           python3 tests/test_melonds_navigation.py
           python3 tests/test_melonds_aim.py
@@ -103,6 +105,7 @@ jobs:
           python3 tests/test_prefire_workflow_coverage.py
           python3 tests/test_capture_progress_summary.py
           python3 tests/test_sphere_motion_diagnostics.py
+          python3 tests/test_projectile_interference.py
           python3 tests/test_capture_extension.py
           python3 tests/test_capture_sweep_budget.py
           python3 tests/test_melonds_cleanup.py
