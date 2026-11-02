@@ -37,4 +37,6 @@ jobs:
       - name: Run screenshot recognition regression checks
         run: python3 tests/test_melonds_navigation.py
       - name: Reject false clean-restart Orb evidence
-        run: python3 tests/test_melonds_clean_restart.py
+        run: |
+          python3 tests/test_melonds_cleanup.py
+          python3 tests/test_melonds_clean_restart.py
