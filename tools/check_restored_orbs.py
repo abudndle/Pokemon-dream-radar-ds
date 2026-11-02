@@ -39,9 +39,9 @@ def main():
     except (ValueError, OSError) as exc:
         parser.exit(1, f"{exc}\n")
     if args.expected_balance is None:
-        print(f"PASS: restarted emulator read {balance} positive saved Dream Orbs (exact persistence unverified)")
+        print(f"PASS: restarted emulator read {balance} previously saved Dream Orbs (positive only; exact persistence unverified)")
     else:
-        print(f"PASS: restarted emulator read {balance} saved Dream Orbs (exact first-session balance matched)")
+        print(f"PASS: restarted emulator read {balance} previously saved Dream Orbs (exact first-session balance matched)")
 
 
 if __name__ == "__main__":
