@@ -45,6 +45,15 @@ def verify_restart(first_dir, second_dir, save_file, *, verify_pixels=False):
     first_log = (first_dir / "runtime.log").read_text()
     second_log = (second_dir / "runtime.log").read_text()
     first_pid, second_pid = _pid(first_log), _pid(second_log)
+    # A SIGKILL may interrupt FAT/DLDI flushing. Never treat the cleanup
+    # trap's later "terminated" line as proof of a graceful save shutdown.
+    for label, runtime, launcher_pid in (
+        ("first", first_log, first_pid), ("second", second_log, second_pid)
+    ):
+        if f"Emulator launcher PID {launcher_pid} force-killed" in runtime:
+            raise ValueError(f"{label} emulator was force-killed; save flush unverified")
+        if f"Emulator launcher PID {launcher_pid} still running" in runtime:
+            raise ValueError(f"{label} emulator did not terminate cleanly")
     first_exited = f"Emulator launcher PID {first_pid} terminated" in first_log
     second_exited = f"Emulator launcher PID {second_pid} terminated" in second_log
     if not second_exited:
