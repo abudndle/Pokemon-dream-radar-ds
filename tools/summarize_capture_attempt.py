@@ -16,7 +16,8 @@ from sphere_prefire_gate import evaluate as evaluate_prefire
 PATTERNS = ("sphere-before-progress-*.json", "sphere-progress-*.json",
             "sphere-reacquire-progress-*.json", "sphere-edge-progress-*.json",
             "sphere-prefire-progress-*.json",
-            "sphere-prefire-corrected-progress-*.json")
+            "sphere-prefire-corrected-progress-*.json",
+            "sphere-prefire-stationary-progress-*.json")
 CLASSES = {"drifting", "swift", "erratic", "legendary", "item"}
 
 
