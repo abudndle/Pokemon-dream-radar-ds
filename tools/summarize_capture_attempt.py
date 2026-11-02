@@ -102,6 +102,7 @@ def summarize(directory):
         pulse_rows.append({"step": step, "prefire_meter": before,
                            "postfire_meter": after,
                            "meter_delta": after - before if after is not None else None})
+    pulse_rows.sort(key=lambda p: p["step"])
     paired = [p for p in pulse_rows if p["meter_delta"] is not None]
     reward_path = directory / "sphere-reward.json"
     image_path = directory / "05-capture-reward.png"
