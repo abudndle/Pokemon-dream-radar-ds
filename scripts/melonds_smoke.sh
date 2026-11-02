@@ -36,7 +36,7 @@ cleanup(){
   # real AppImage run, which cannot establish that FAT/DLDI writes flushed.
   if [[ -n "${window:-}" ]]; then
     xdotool windowclose "$window" 2>/dev/null || true
-    printf 'Emulator GUI close requested for XID %s\\n' "$window" >>"$out/runtime.log"
+    printf 'Emulator GUI close requested for XID %s\n' "$window" >>"$out/runtime.log"
     for attempt in {1..25}; do
       state="$(ps -o stat= -p "$pid" 2>/dev/null || true)"
       [[ -z "$state" || "$state" == Z* ]] && break
