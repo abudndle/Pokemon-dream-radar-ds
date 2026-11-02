@@ -206,6 +206,50 @@ except ValueError:
     pass
 else:
     raise AssertionError("Blank current sphere frame accepted as a target")
+# During live shooting, a second large foreground sprite can appear.
+# Preserve continuity with the previously unique encounter target, but never
+# choose between two equally plausible objects or accept an unknown backdrop.
+def paint_encounter(frame_pixels, cx, cy):
+    for y in range(cy - 10 + OFFSET, cy + 11 + OFFSET):
+        for x in range(cx - 10, cx + 11):
+            at = (y * WIDTH + x) * 3
+            frame_pixels[at:at + 3] = bytes((24, 24, 32))
+
+
+with_distractor = bytearray(shifted_sphere_frame(10, 10))
+paint_encounter(with_distractor, 205, 145)
+assert len(locate_spheres(with_distractor, WIDTH, HEIGHT)) == 2
+try:
+    plan_sphere(with_distractor, WIDTH, HEIGHT)
+except ValueError:
+    pass
+else:
+    raise AssertionError("Unassociated multi-object frame accepted as unique")
+
+tracked = plan_sphere_motion(previous, with_distractor, WIDTH, HEIGHT)
+assert tracked["motion_match"] == "previous_unique_target"
+assert tracked["candidate_spheres"] == 2
+assert tracked["observed_target_screen"] == {"x": 130, "y": 109}
+assert tracked["target_screen"] == {"x": 135, "y": 114}
+assert tracked["motion_prediction"] == "bounded"
+
+ambiguous = bytearray(sphere_frame(False))
+paint_encounter(ambiguous, 95, 99)
+paint_encounter(ambiguous, 145, 99)
+assert len(locate_spheres(ambiguous, WIDTH, HEIGHT)) == 2
+for old_frame, new_frame in (
+    (previous, ambiguous),
+    (bytes(WIDTH * HEIGHT * 3), with_distractor),
+):
+    try:
+        plan_sphere_motion(old_frame, new_frame, WIDTH, HEIGHT)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("Ambiguous or untracked multiple sphere objects accepted")
+
+print("PASS: temporal sphere association tracks only an unambiguous known target")
+
 print("PASS: two-frame sphere motion lead is bounded and fails closed")
 
 print("PASS: encounter art planner rejects static white cloud, small projectile and unknown scenes")
