@@ -540,7 +540,9 @@ def plan_sphere_motion(previous_pixels, pixels, width, height):
     lead_x = max(-18, min(18, round(dx * 0.5)))
     lead_y = max(-18, min(18, round(dy * 0.5)))
     x = max(20, min(236, observed["x"] + lead_x))
-    y = max(30, min(164, observed["y"] + lead_y))
+    # An ERRATIC target may be partly clipped by the DS viewport edge.
+    # Never force a valid observed y=0..29 target down to y=30.
+    y = max(0, min(183, observed["y"] + lead_y))
     offset_x, offset_y = x - RETICLE_CENTER_X, y - RETICLE_CENTER_Y
     current.update({
         "target_screen": {"x": x, "y": y},
