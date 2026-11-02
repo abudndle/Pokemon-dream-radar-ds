@@ -3,12 +3,25 @@ from pathlib import Path
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
-from plan_melonds_aim import (locate_clouds, locate_cloud_edge_markers,
+from plan_melonds_aim import (RETICLE_CENTER_X, RETICLE_CENTER_Y,
+                              locate_clouds, locate_cloud_edge_markers,
                               locate_orbs, locate_spheres, plan, plan_orb,
                               plan_sphere, plan_sphere_motion, plan_orb_motion)
 
 WIDTH, HEIGHT = 256, 403
 OFFSET = HEIGHT - 384
+
+# The fallback renderer draws its reticle sprite at (112,80) on a 256x192
+# screen. Its authored 32x32 sight is centered at (128,96), which also
+# matches the world-to-screen transforms in source/main.c. Guard this
+# source/planner contract so a renderer change cannot silently stale aiming.
+source_main = (Path(__file__).resolve().parents[1] / "source" / "main.c").read_text()
+assert "draw_sprite(top,S_RETICLE,112,80);" in source_main
+assert "int sx=c->x-game.aim_x+128;" in source_main
+assert "int sy=c->y-game.aim_y+96;" in source_main
+assert "int px=game.sphere_x-game.aim_x+128;" in source_main
+assert "int py=game.sphere_y-game.aim_y+96;" in source_main
+assert (RETICLE_CENTER_X, RETICLE_CENTER_Y) == (128, 96)
 
 
 def frame(clouds):
