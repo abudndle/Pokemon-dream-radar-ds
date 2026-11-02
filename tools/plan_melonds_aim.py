@@ -46,20 +46,73 @@ def locate_clouds(pixels, width, height):
     return sorted(found, key=lambda c: ((c[0] - 128) ** 2 + (c[1] - 96) ** 2, -c[2]))
 
 
+
+def locate_cloud_edge_markers(pixels, width, height):
+    """Find 11px gold offscreen-cloud cues; these are NEVER fire targets.
+
+    The DS fallback renderer clamps cloud direction markers to x=11/234
+    or y=11/170. Reject ordinary gold HUD text and 7px Orb indicators.
+    """
+    if width != 256 or not 384 <= height <= 480 or len(pixels) != width * height * 3:
+        raise ValueError("Expected an unscaled 256px-wide DS screenshot")
+    offset = height - 384
+    marked = set()
+    for y in range(offset + 20, offset + 181):
+        for x in range(5, 250):
+            at = (y * width + x) * 3
+            r, g, b = pixels[at:at + 3]
+            if r >= 235 and g >= 210 and b <= 70:
+                marked.add((x, y))
+    found = []
+    while marked:
+        stack = [marked.pop()]
+        component = []
+        while stack:
+            x, y = stack.pop()
+            component.append((x, y))
+            for ny in (y - 1, y, y + 1):
+                for nx in (x - 1, x, x + 1):
+                    p = (nx, ny)
+                    if p in marked:
+                        marked.remove(p)
+                        stack.append(p)
+        if len(component) < 25:
+            continue
+        xs, ys = zip(*component)
+        left, right = min(xs), max(xs)
+        top, bottom = min(ys) - offset, max(ys) - offset
+        if not (9 <= right - left <= 11 and 8 <= bottom - top <= 11):
+            continue
+        if not (left in range(10, 13) or left in range(233, 236)
+                or top in range(10, 13) or top in range(169, 172)):
+            continue
+        found.append((round((left + right) / 2),
+                      round((top + bottom) / 2), len(component)))
+    return sorted(found, key=lambda p: ((p[0] - 128) ** 2 +
+                                       (p[1] - 96) ** 2, -p[2]))
+
+
+
 def plan(pixels, width, height):
     targets = locate_clouds(pixels, width, height)
-    if not targets:
-        raise ValueError("No pink-shadow cloud found; aim is unverified")
-    x, y, count = targets[0]
+    markers = [] if targets else locate_cloud_edge_markers(pixels, width, height)
+    if not targets and not markers:
+        raise ValueError("No visible cloud or offscreen cloud marker; aim unverified")
+    x, y, count = (targets or markers)[0]
     dx, dy = x - 128, y - 96
+    visible = bool(targets)
     return {"target_screen": {"x": x, "y": y},
+            "target_type": "cloud" if visible else "edge_marker",
             "offset": {"x": dx, "y": dy},
             "horizontal_key": "Right" if dx > 0 else "Left" if dx < 0 else "none",
             "vertical_key": "Down" if dy > 0 else "Up" if dy < 0 else "none",
             "horizontal_seconds": round(min(0.25, abs(dx) / 360), 3),
             "vertical_seconds": round(min(0.25, abs(dy) / 360), 3),
             "candidate_clouds": len(targets),
-            "limitations": "Approximate aiming based on public DS fallback sprite colors; hit not verified."}
+            "candidate_edge_markers": len(markers),
+            "reticle_distance_squared": dx * dx + dy * dy,
+            "within_safe_fire_radius": visible and dx * dx + dy * dy <= 14 * 14,
+            "limitations": "Offscreen gold cues guide movement only; firing requires a fresh visible cloud within 14px and independent counter verification."}
 
 
 
