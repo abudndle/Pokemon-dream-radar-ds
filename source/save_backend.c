@@ -350,7 +350,7 @@ int save_backend_write(SaveBackend *backend,Game *g) {
     char temp[TW_MAX_PATH],bak[TW_MAX_PATH];
     char sidecar[TW_MAX_PATH],bak_sidecar[TW_MAX_PATH];
     size_t len=strlen(backend->active);
-    if(len+sizeof(".tmp")>sizeof temp || len+sizeof(".bak")>sizeof bak ||
+    if(len+sizeof(".tmp.tmp")>sizeof temp || len+sizeof(".bak")>sizeof bak ||
        len+sizeof(".radar")>sizeof sidecar ||
        len+sizeof(".bak.radar")>sizeof bak_sidecar)return 0;
     snprintf(temp,sizeof temp,"%s.tmp",backend->active);
@@ -358,6 +358,16 @@ int save_backend_write(SaveBackend *backend,Game *g) {
     snprintf(sidecar,sizeof sidecar,"%s.radar",backend->active);
     snprintf(bak_sidecar,sizeof bak_sidecar,"%s.bak.radar",backend->active);
     int rotated_primary=0;
+    /* A crash can leave either the backend's .tmp or the serializer's
+       nested .tmp.tmp on FAT. Neither is committed: the primary/backup pair
+       remains authoritative. Discard only these staging files before retry. */
+    char nested_stage[TW_MAX_PATH];
+    /* Length was checked for both suffixes above; avoid a compiler-
+       dependent truncation warning from formatting a bounded path. */
+    memcpy(nested_stage,temp,len+4);
+    memcpy(nested_stage+len+4,".tmp",sizeof(".tmp"));
+    if(remove(nested_stage)!=0 && errno!=ENOENT)return 0;
+    if(remove(temp)!=0 && errno!=ENOENT)return 0;
     if(!game_save(g,temp)) {remove(temp);return 0;}
     /* We only rotate the current save AFTER the replacement is complete. */
     struct stat st;

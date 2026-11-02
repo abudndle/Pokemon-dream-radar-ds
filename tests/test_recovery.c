@@ -72,7 +72,17 @@ int main(void) {
     assert(game_load(&direct_loaded,standalone) && direct_loaded.save.orbs==77);
     Game g;game_new(&g,1);
     g.save.orbs=123;
+    /* A terminated write may leave two distinct staging names, neither
+       of which should block future saves or supersede committed progress. */
+    char stale_stage[TW_MAX_PATH],nested_stage[TW_MAX_PATH];
+    assert(snprintf(stale_stage,sizeof stale_stage,"%s.tmp",backend.active)<(int)sizeof stale_stage);
+    assert(snprintf(nested_stage,sizeof nested_stage,"%s.tmp",stale_stage)<(int)sizeof nested_stage);
+    FILE *orphan=fopen(stale_stage,"wb");
+    assert(orphan && fputs("old partial",orphan)>=0 && fclose(orphan)==0);
+    orphan=fopen(nested_stage,"wb");
+    assert(orphan && fputs("nested partial",orphan)>=0 && fclose(orphan)==0);
     assert(save_backend_write(&backend,&g));
+    assert(access(stale_stage,F_OK)!=0 && access(nested_stage,F_OK)!=0);
     g.save.orbs=222;
     assert(save_backend_write(&backend,&g));
     char bak[TW_MAX_PATH];suffix(bak,sizeof bak,backend.active,".bak");

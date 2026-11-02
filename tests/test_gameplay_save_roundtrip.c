@@ -81,6 +81,58 @@ int main(void) {
     assert(game_load(&loaded,path));
     assert(loaded.save.pending_count==0 && game_legendary_at(&loaded,0)==15);
     assert(game_item_slot_kind(&loaded,0)==7);
+    /* An interrupted save can leave a stale staging file behind. Do not
+       destroy the previously committed reward state or reuse that file. */
+    char staging[sizeof(path)+5];
+    assert(snprintf(staging,sizeof staging,"%s.tmp",path)>0);
+    FILE *stale=fopen(staging,"wb");
+    assert(stale);
+    assert(fputs("incomplete-save",stale)>=0);
+    assert(fclose(stale)==0);
+    Game attempted=g;
+    attempted.save.orbs=saved_orbs+23;
+    /* Recovery must preserve the last valid committed save while clearing
+       an abandoned staging file and allowing the next save to proceed. */
+    assert(game_save(&attempted,path));
+    assert(access(staging,F_OK)!=0);
+    game_new(&loaded,5678);
+    assert(game_load(&loaded,path));
+    assert(loaded.save.orbs==saved_orbs+23);
+    assert(game_item_slot_kind(&loaded,0)==7);
+    assert(game_legendary_at(&loaded,0)==15);
+    /* If the committed save is corrupt, a stranded staging file may be the
+       only recoverable copy. Fail closed without deleting that file. */
+    FILE *damaged=fopen(path,"wb");
+    assert(damaged);
+    assert(fputs("corrupt",damaged)>=0);
+    assert(fclose(damaged)==0);
+    stale=fopen(staging,"wb");
+    assert(stale);
+    assert(fputs("recoverable-staging",stale)>=0);
+    assert(fclose(stale)==0);
+    assert(!game_save(&attempted,path));
+    assert(access(staging,F_OK)==0);
+    assert(unlink(staging)==0);
+    /* A matching checksum alone is insufficient: the committed record
+       may still contain semantically impossible gameplay values. */
+    SaveData impossible=attempted.save;
+    impossible.pending_count=MAX_CAUGHT+1;
+    impossible.checksum=game_checksum(&impossible);
+    damaged=fopen(path,"wb");
+    assert(damaged);
+    assert(fwrite(&impossible,1,sizeof impossible,damaged)==sizeof impossible);
+    assert(fclose(damaged)==0);
+    stale=fopen(staging,"wb");
+    assert(stale);
+    assert(fputs("preserve-possible-recovery",stale)>=0);
+    assert(fclose(stale)==0);
+    assert(!game_save(&attempted,path));
+    assert(access(staging,F_OK)==0);
+    assert(unlink(staging)==0);
+    assert(game_save(&attempted,path));
+    game_new(&loaded,7890);
+    assert(game_load(&loaded,path));
+    assert(loaded.save.orbs==saved_orbs+23);
     /* Corrupt the stored Pokémon ID without updating its checksum.
        A second load must reject it and leave a fresh game unchanged. */
     FILE *corrupt=fopen(path,"r+b");
