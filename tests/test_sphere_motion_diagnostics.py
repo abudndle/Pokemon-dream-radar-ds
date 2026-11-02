@@ -128,7 +128,7 @@ with tempfile.TemporaryDirectory() as tmp:
         raise AssertionError("Forged firing gate accepted")
     write(gate_path, original)
     write(root / "sphere-prefire-corrected-inspection-1.json",
-          {"fire_executed": True})
+          {"status": "aligned", "fire_authorized": True, "fire_executed": True})
     try:
         analyze(root)
     except ValueError as exc:
