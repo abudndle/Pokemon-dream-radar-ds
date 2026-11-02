@@ -247,7 +247,6 @@ def plan_orb_motion(previous_pixels, pixels, width, height):
         "vertical_seconds": round(min(0.5, abs(offset_y) / 360), 3),
         "motion_prediction": "bounded",
         "observed_displacement": {"x": dx, "y": dy},
-        "camera_only_lead_pixels": {"x": lead_x, "y": lead_y},
     })
     return current
 
@@ -600,6 +599,7 @@ def plan_sphere_motion(previous_pixels, pixels, width, height):
         "vertical_seconds": round(min(0.22, abs(offset_y) / 360), 3),
         "motion_prediction": "bounded",
         "observed_displacement": {"x": dx, "y": dy},
+        "camera_only_lead_pixels": {"x": lead_x, "y": lead_y},
     })
     return current
 
