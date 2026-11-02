@@ -155,7 +155,7 @@ with patch('verify_sphere_prefire_frame.subprocess.run') as run, \
 # Both axes are independently capped and released; this never fires A.
 far = {'candidate_spheres': 1, 'target_screen': {'x': 238, 'y': 180},
        'offset': {'x': 110, 'y': 84}}
-with patch('verify_sphere_prefire_frame.subprocess.run') as run, \\
+with patch('verify_sphere_prefire_frame.subprocess.run') as run, \
      patch('verify_sphere_prefire_frame.time.sleep') as sleep:
     assert correct_if_unaligned('unaligned', far) is True
     assert [c.args[0] for c in run.call_args_list] == [
@@ -168,7 +168,7 @@ with patch('verify_sphere_prefire_frame.subprocess.run') as run, \\
 # A moderate residual is no longer truncated at the old 0.12-second cap.
 moderate = {'candidate_spheres': 1, 'target_screen': {'x': 182, 'y': 96},
             'offset': {'x': 54, 'y': 0}}
-with patch('verify_sphere_prefire_frame.subprocess.run') as run, \\
+with patch('verify_sphere_prefire_frame.subprocess.run') as run, \
      patch('verify_sphere_prefire_frame.time.sleep') as sleep:
     assert correct_if_unaligned('unaligned', moderate) is True
     sleep.assert_called_once_with(0.15)
