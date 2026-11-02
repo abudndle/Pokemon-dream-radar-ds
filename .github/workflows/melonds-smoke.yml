@@ -23,11 +23,11 @@ on:
         required: false
         default: false
       capture_sweep_steps:
-        description: 'Maximum live sphere pursuit steps (1–220)'
+        description: 'Maximum live sphere pursuit steps (1–440; after 220 requires observed meter progress)'
         type: choice
-        options: ['40', '80', '160', '220']
+        options: ['40', '80', '160', '220', '440']
         required: false
-        default: '220'
+        default: '440'
   push:
     branches: [main, milestone-next-parity-audit-20261101]
   pull_request:
@@ -52,6 +52,9 @@ on:
       - 'tests/test_melonds_dual_axis.py'
       - 'tests/test_prefire_workflow_coverage.py'
       - 'tools/summarize_capture_attempt.py'
+      - 'tools/check_capture_extension.py'
+      - 'tests/test_capture_extension.py'
+      - 'tests/test_capture_sweep_budget.py'
       - 'tests/test_capture_progress_summary.py'
       - 'tests/test_sphere_edge_recovery.py'
       - 'tests/test_melonds_navigation.py'
@@ -77,7 +80,7 @@ jobs:
       - name: Validate encounter recognition and smoke-script syntax
         run: |
           bash -n scripts/melonds_smoke.sh
-          python3 -m py_compile tools/verify_melonds_navigation.py tools/validate_navigation_evidence.py tools/plan_melonds_aim.py tools/plan_sphere_recovery.py tools/sphere_prefire_gate.py tools/verify_sphere_prefire_frame.py tools/summarize_capture_attempt.py
+          python3 -m py_compile tools/verify_melonds_navigation.py tools/validate_navigation_evidence.py tools/plan_melonds_aim.py tools/plan_sphere_recovery.py tools/sphere_prefire_gate.py tools/verify_sphere_prefire_frame.py tools/summarize_capture_attempt.py tools/check_capture_extension.py
           python3 tests/test_navigation_evidence.py
           python3 tests/test_melonds_navigation.py
           python3 tests/test_melonds_aim.py
@@ -88,6 +91,8 @@ jobs:
           python3 tests/test_melonds_dual_axis.py
           python3 tests/test_prefire_workflow_coverage.py
           python3 tests/test_capture_progress_summary.py
+          python3 tests/test_capture_extension.py
+          python3 tests/test_capture_sweep_budget.py
           python3 tests/test_melonds_cleanup.py
           python3 tests/test_melonds_clean_restart.py
           python3 tests/test_restored_orbs_gate.py
@@ -169,7 +174,7 @@ jobs:
           REQUIRE_TOUCH: ${{ inputs.require_touch && '1' || '0' }}
           REQUIRE_CAPTURE: ${{ inputs.require_capture && '1' || '0' }}
           REQUIRE_ORB_COLLECTION: ${{ inputs.require_orb_collection && '1' || '0' }}
-          CAPTURE_SWEEP_STEPS: ${{ inputs.capture_sweep_steps || '220' }}
+          CAPTURE_SWEEP_STEPS: ${{ inputs.capture_sweep_steps || '440' }}
         run: |
           xvfb-run -a -s '-screen 0 1280x900x24' \
             env QT_QPA_PLATFORM=xcb QT_QPA_PLATFORMTHEME=generic QT_OPENGL=software QT_XCB_GL_INTEGRATION=none GSETTINGS_BACKEND=memory MESA_LOADER_DRIVER_OVERRIDE=softpipe \

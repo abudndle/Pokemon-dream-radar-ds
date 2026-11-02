@@ -562,7 +562,7 @@ if [[ -f "$out/05-sphere-encounter.png" ]]; then
   capture_last="$out/05-sphere-encounter.png"
   # Capture needs up to 240 HP, not merely one successful beam hit. Stop
   # immediately on a verified reward; otherwise cap this live pursuit at
-  # 220 screenshot-backed attempts (override downward for quick smoke runs).
+  # 440 screenshot-backed attempts only if 220 steps show real meter progress.
   # The prior 160-step live ITEM encounter reached 170/177 meter pixels
   # without a reward; extend the bounded attempt rather than claim capture.
   guided_sphere_steps=0
@@ -575,12 +575,30 @@ if [[ -f "$out/05-sphere-encounter.png" ]]; then
   sphere_diagonal_pulses=0
   sphere_single_axis_pulses=0
   last_sphere_plan=""
-  capture_steps="${CAPTURE_SWEEP_STEPS:-220}"
-  if ! [[ "$capture_steps" =~ ^[0-9]+$ ]] || (( capture_steps < 1 || capture_steps > 220 )); then
-    echo "CAPTURE_SWEEP_STEPS must be an integer from 1 to 220" >&2
+  capture_steps="${CAPTURE_SWEEP_STEPS:-440}"
+  if ! [[ "$capture_steps" =~ ^[0-9]+$ ]] || (( capture_steps < 1 || capture_steps > 440 )); then
+    echo "CAPTURE_SWEEP_STEPS must be an integer from 1 to 440" >&2
     exit 2
   fi
   for step in $(seq 1 "$capture_steps"); do
+    # A longer pursuit is expensive and must earn its budget. Before step 221,
+    # extend only when independent screenshot-derived meter evidence shows
+    # meaningful progress; missing/malformed evidence fails the run closed.
+    # This MUST be the first statement in the loop: prefire no-shot branches
+    # use `continue` and would bypass a checkpoint at the end of step 220.
+    if (( step == 221 )); then
+      python3 tools/summarize_capture_attempt.py "$out" \
+        --output "$out/sphere-midpoint-report.json" >/dev/null
+      extension_code=0
+      python3 tools/check_capture_extension.py "$out/sphere-midpoint-report.json" \
+        >"$out/sphere-extension-decision.json" || extension_code=$?
+      case "$extension_code" in
+        0) echo "INFO: verified meter progress permits bounded steps 221-$capture_steps (not proof of capture)" | tee -a "$out/runtime.log" ;;
+        3) echo "INFO: no sufficient meter progress at 220 steps; ending pursuit without claiming capture" | tee -a "$out/runtime.log"
+           break ;;
+        *) echo "ERROR: invalid capture extension evidence ($extension_code)" >&2; exit 1 ;;
+      esac
+    fi
     sweep=$(( (step - 1) % 12 + 1 ))
     case "$sweep" in
       1)  direction=Right; seconds=0.40 ;;
