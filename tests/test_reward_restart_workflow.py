@@ -11,7 +11,7 @@ assert '--observe-reward-screenshot "$out/01-title.png"' in script
 assert 'cp "$out/01-title.png" "$out/03-restored-capture-reward.png"' in script
 assert 'exit 0' in script[script.index('if [[ "${REQUIRE_PREEXISTING_REWARD:-0}"'):script.index('if [[ "${REQUIRE_PREEXISTING_ORB:-0}"')]
 preserve = script.index('if [[ -f "$out/05-capture-reward.png" ]]; then', script.index('# A verified reward must remain'))
-leave = script.index('press_ds_key x\\nsnapshot 07-lab-return', preserve)
+leave = script.index('press_ds_key x\nsnapshot 07-lab-return', preserve)
 assert preserve < leave
 assert 'snapshot 06-results-preserved' in script[preserve:leave]
 assert 'original == visible' in script[preserve:leave]
