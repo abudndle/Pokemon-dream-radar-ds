@@ -49,7 +49,7 @@ def locate_clouds(pixels, width, height):
         cx = round(sum(xs) / len(xs))
         cy = round(sum(ys) / len(ys)) - offset
         found.append((cx, cy, len(component)))
-    return sorted(found, key=lambda c: ((c[0] - 128) ** 2 + (c[1] - 96) ** 2, -c[2]))
+    return sorted(found, key=lambda c: ((c[0] - RETICLE_CENTER_X) ** 2 + (c[1] - RETICLE_CENTER_Y) ** 2, -c[2]))
 
 
 
@@ -94,8 +94,8 @@ def locate_cloud_edge_markers(pixels, width, height):
             continue
         found.append((round((left + right) / 2),
                       round((top + bottom) / 2), len(component)))
-    return sorted(found, key=lambda p: ((p[0] - 128) ** 2 +
-                                       (p[1] - 96) ** 2, -p[2]))
+    return sorted(found, key=lambda p: ((p[0] - RETICLE_CENTER_X) ** 2 +
+                                       (p[1] - RETICLE_CENTER_Y) ** 2, -p[2]))
 
 
 
