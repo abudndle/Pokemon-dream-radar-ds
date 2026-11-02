@@ -10,6 +10,8 @@ on:
       - 'tools/audit_capture_milestone.py'
       - 'tools/analyze_sphere_motion.py'
       - 'tools/detect_projectile_interference.py'
+      - 'tools/analyze_prefire_drift.py'
+      - 'tests/test_prefire_drift.py'
       - 'tests/test_capture_emulator_evidence.py'
       - 'docs/PARALLEL_PORT_WORKSTREAMS.md'
       - 'Makefile'
