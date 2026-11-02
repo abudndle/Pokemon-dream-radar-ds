@@ -29,6 +29,18 @@ int main(void) {
     assert(g.save.pending_count==0 && game_legendary_at(&g,0)==15);
     assert(g.save.pending_items[0]==1);
     assert(game_item_slot_kind(&g,0)==7);
+    /* A real radar shot, not an expired Orb entity, must credit persistent
+       currency. Verify the exact saved balance after disk round-trip. */
+    uint32_t old_orbs=g.save.orbs, old_total=g.save.total_orbs;
+    g.screen=STATE_RADAR;
+    g.aim_x=128;g.aim_y=96;
+    g.dream_orbs[0].alive=1;
+    g.dream_orbs[0].x=128;g.dream_orbs[0].y=96;
+    g.dream_orbs[0].ttl=100;
+    game_fire(&g);
+    assert(!g.dream_orbs[0].alive);
+    assert(g.save.orbs==old_orbs+1 && g.save.total_orbs==old_total+1);
+    uint32_t saved_orbs=g.save.orbs, saved_total=g.save.total_orbs;
     uint32_t searches=g.save.searches;
     assert(game_save(&g,path));
     game_new(&loaded,98765);
@@ -39,6 +51,8 @@ int main(void) {
     assert(loaded.save.pending_items[0]==1);
     assert(game_item_slot_kind(&loaded,0)==7);
     assert(loaded.save.searches==searches);
+    assert(loaded.save.orbs==saved_orbs);
+    assert(loaded.save.total_orbs==saved_total);
     assert(loaded.save.reserved[8]==ITEM_LAYOUT_MARKER);
     /* Invalid runtime state cannot truncate previously valid progress. */
     Game invalid=g;
