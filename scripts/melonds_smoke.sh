@@ -563,6 +563,8 @@ if [[ -f "$out/05-sphere-encounter.png" ]]; then
   edge_recovery_successes=0
   sphere_fire_authorized=0
   sphere_fire_skipped=0
+  sphere_diagonal_pulses=0
+  sphere_single_axis_pulses=0
   last_sphere_plan=""
   capture_steps="${CAPTURE_SWEEP_STEPS:-220}"
   if ! [[ "$capture_steps" =~ ^[0-9]+$ ]] || (( capture_steps < 1 || capture_steps > 220 )); then
@@ -724,6 +726,12 @@ if [[ -f "$out/05-sphere-encounter.png" ]]; then
     # RELEASED, then independently observe the sphere near the reticle.
     # Never fire merely because an earlier moving-target prediction existed.
     aim_ds_pair "$horizontal" "$horizontal_seconds" "$vertical" "$vertical_seconds" 0.06
+    if [[ "$horizontal" != none && "$vertical" != none &&
+          "$horizontal_seconds" != 0 && "$vertical_seconds" != 0 ]]; then
+      sphere_diagonal_pulses=$((sphere_diagonal_pulses + 1))
+    else
+      sphere_single_axis_pulses=$((sphere_single_axis_pulses + 1))
+    fi
     snapshot "05-sphere-prefire-$step"
     prefire_frame="$out/05-sphere-prefire-$step.png"
     if python3 tools/verify_melonds_navigation.py "$out" \
@@ -760,6 +768,12 @@ if [[ -f "$out/05-sphere-encounter.png" ]]; then
           "$out/sphere-prefire-aim-$step.json"
       )
       aim_ds_pair "$fix_h" "$fix_h_seconds" "$fix_v" "$fix_v_seconds" 0.04
+      if [[ "$fix_h" != none && "$fix_v" != none &&
+            "$fix_h_seconds" != 0 && "$fix_v_seconds" != 0 ]]; then
+        sphere_diagonal_pulses=$((sphere_diagonal_pulses + 1))
+      else
+        sphere_single_axis_pulses=$((sphere_single_axis_pulses + 1))
+      fi
       snapshot "05-sphere-prefire-corrected-$step"
       prefire_frame="$out/05-sphere-prefire-corrected-$step.png"
       if python3 tools/verify_melonds_navigation.py "$out" \
@@ -827,6 +841,7 @@ if [[ -f "$out/05-sphere-encounter.png" ]]; then
   xdotool keyup z
   echo "INFO: guided sphere aim used $guided_sphere_steps of $capture_steps allowed attempts" | tee -a "$out/runtime.log"
   echo "INFO: fresh aligned prefire shots $sphere_fire_authorized; unaligned/ambiguous skipped $sphere_fire_skipped" | tee -a "$out/runtime.log"
+  echo "INFO: sphere camera pulses diagonal=$sphere_diagonal_pulses single_axis_or_none=$sphere_single_axis_pulses (not proof of hits)" | tee -a "$out/runtime.log"
   echo "INFO: sphere reacquisition succeeded $reacquire_successes of $reacquire_attempts attempts" | tee -a "$out/runtime.log"
   echo "INFO: no-fire edge camera recovery succeeded $edge_recovery_successes of $edge_recovery_attempts attempts" | tee -a "$out/runtime.log"
 fi
