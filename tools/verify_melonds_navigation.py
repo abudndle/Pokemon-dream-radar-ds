@@ -260,6 +260,52 @@ def compare_shop_orb_balances(before, after):
             "limitations": "A displayed balance increase within one emulator session does not prove it was written to save media or survives restart. Require a clean emulator restart and independent reread before claiming persistence."}
 
 
+
+def compare_restart_shop_orb_balances(before, collected, restarted, *,
+                                      first_pid, restart_pid,
+                                      first_process_exited=False,
+                                      save_media_present=False):
+    """Gate a clean-restart Orb persistence claim on independent observations.
+
+    All three balances must come from independently decoded Development Lab
+    screenshots. Process identifiers and save-media evidence must be supplied
+    by the emulator harness, not inferred from the screenshots. This verifies
+    Orb balance restoration only, not Pokemon/item rewards or hardware saves.
+    """
+    values = (before, collected, restarted)
+    for observation in values:
+        if not isinstance(observation, dict):
+            raise ValueError("Shop balance observation must be an object")
+        value = observation.get("saved_orbs")
+        if (not isinstance(value, int) or isinstance(value, bool)
+                or not 0 <= value <= 0xffffffff):
+            raise ValueError("Invalid saved Orb observation")
+    for pid in (first_pid, restart_pid):
+        if not isinstance(pid, int) or isinstance(pid, bool) or pid <= 0:
+            raise ValueError("Invalid emulator process identifier")
+    if not isinstance(first_process_exited, bool) or not isinstance(save_media_present, bool):
+        raise ValueError("Restart evidence flags must be booleans")
+    gained = collected["saved_orbs"] - before["saved_orbs"]
+    separate_processes = first_pid != restart_pid and first_process_exited
+    restored = restarted["saved_orbs"] == collected["saved_orbs"]
+    verified = gained > 0 and restored and separate_processes and save_media_present
+    return {
+        "before": before, "collected": collected, "restarted": restarted,
+        "orbs_gained": max(0, gained),
+        "separate_processes_observed": separate_processes,
+        "save_media_present": save_media_present,
+        "restart_balance_matches": restored,
+        "persistence_verified": verified,
+        "status": ("clean_restart_orb_balance_restored" if verified
+                   else "restart_persistence_unverified"),
+        "limitations": ("Requires real screenshots from both emulator processes, "
+                        "a confirmed first-process exit, and actual writable save "
+                        "media; caller-supplied identifiers are not independent proof. "
+                        "Does not establish Pokemon/item capture, cartridge transfer "
+                        "or original-game parity."),
+    }
+
+
 def compare_orb_counters(before, after):
     """Count active-Orb disappearance without falsely claiming collection.
 
