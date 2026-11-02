@@ -74,22 +74,20 @@ jobs:
       - name: Validate PNG-backed capture and reward CLI after ImageMagick install
         run: |
           python3 tests/test_melonds_navigation.py
-      - name: Install checksum-pinned official melonDS 1.1 Ubuntu x86_64 binary
+      - name: Install checksum-pinned official melonDS 1.1 AppImage
         run: |
-          curl --fail --location --retry 3 --output "$RUNNER_TEMP/melonds-1.1.zip" \
-            https://github.com/melonDS-emu/melonDS/releases/download/1.1/melonDS-1.1-ubuntu-x86_64.zip
-          echo '99465129f5413b2aad332e4377e523cf3cda905dc329d47dcb1ad01ce2cb3f66  '"$RUNNER_TEMP/melonds-1.1.zip" | sha256sum --check
-          mkdir -p "$RUNNER_TEMP/melonds-native"
-          unzip -q "$RUNNER_TEMP/melonds-1.1.zip" -d "$RUNNER_TEMP/melonds-native"
-          binary="$(find "$RUNNER_TEMP/melonds-native" -type f -name melonDS -print -quit)"
+          curl --fail --location --retry 3 --output "$RUNNER_TEMP/melonds-1.1-appimage.zip" \
+            https://github.com/melonDS-emu/melonDS/releases/download/1.1/melonDS-1.1-appimage-x86_64.zip
+          echo 'bf377420a2e95f2cd2cdda17d5372b51c2534f858b038db9ec6d129554875124  '"$RUNNER_TEMP/melonds-1.1-appimage.zip" | sha256sum --check
+          mkdir -p "$RUNNER_TEMP/melonds-appimage"
+          unzip -q "$RUNNER_TEMP/melonds-1.1-appimage.zip" -d "$RUNNER_TEMP/melonds-appimage"
+          binary="$(find "$RUNNER_TEMP/melonds-appimage" -type f -iname '*.AppImage' -print -quit)"
           test -n "$binary"
           chmod +x "$binary"
           echo "MELONDS_BIN=$binary" >> "$GITHUB_ENV"
-          ldd "$binary" | tee "$RUNNER_TEMP/melonds-native-dependencies.txt"
-          if grep -q 'not found' "$RUNNER_TEMP/melonds-native-dependencies.txt"; then
-            echo 'Missing official melonDS native dependencies' >&2
-            exit 1
-          fi
+          # Avoid requiring FUSE on a hosted CI runner; use bundled Qt instead
+          # of the native Ubuntu build that hung before creating a DS window.
+          echo 'APPIMAGE_EXTRACT_AND_RUN=1' >> "$GITHUB_ENV"
       - name: Build latest DS/DSi ROM
         run: |
           python3 tools/stage_title_ui.py ui_mapping/original_pane_geometry.json nitrofs/title.drui
