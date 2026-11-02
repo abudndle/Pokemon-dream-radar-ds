@@ -19,6 +19,8 @@ for path in (
     "tests/test_sphere_prefire_gate.py",
     "tests/test_sphere_fire_gating.py",
     "tools/summarize_capture_attempt.py",
+    "tools/analyze_sphere_motion.py",
+    "tests/test_sphere_motion_diagnostics.py",
     "tests/test_capture_progress_summary.py",
 ):
     assert f"      - '{path}'" in workflow, f"Missing pull-request path trigger: {path}"
@@ -26,7 +28,8 @@ for path in (
 assert "python3 -m py_compile" in workflow
 assert re.search(r"python3 -m py_compile[^\n]*tools/sphere_prefire_gate.py", workflow)
 for test in ("test_sphere_prefire_gate.py", "test_sphere_fire_gating.py",
-             "test_prefire_frame.py", "test_sphere_preaim_frame.py"):
+             "test_prefire_frame.py", "test_sphere_preaim_frame.py",
+             "test_sphere_motion_diagnostics.py"):
     assert f"python3 tests/{test}" in workflow
     assert f"python3 tests/{test}" in makefile
 assert script.count('python3 tools/verify_sphere_preaim_frame.py "$current_sphere"') == 1
