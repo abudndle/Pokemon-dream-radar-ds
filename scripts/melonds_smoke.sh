@@ -185,8 +185,14 @@ if [[ ! -f "$out/05-sphere-encounter.png" ]] && \
   aim_ds_key "$horizontal" "$horizontal_seconds" 0.06
   aim_ds_key "$vertical" "$vertical_seconds" 0.06
   snapshot 05-radar-orb-aimed
+  # Observe the moving Orb twice WITHOUT moving the D-pad between samples.
+  # Reticle movement would contaminate the apparent Orb velocity.
   for correction in 1 2 3; do
-    if ! python3 tools/plan_melonds_aim.py "$out/05-radar-orb-aimed.png" --target orb >"$out/orb-aim-correction-$correction.json"; then
+    previous_orb_frame="$out/05-radar-orb-aimed.png"
+    sleep 0.06
+    snapshot "05-radar-orb-motion-$correction"
+    if ! python3 tools/plan_melonds_aim.py "$out/05-radar-orb-motion-$correction.png" --target orb \
+        --previous-screenshot "$previous_orb_frame" >"$out/orb-aim-correction-$correction.json"; then
       break
     fi
     read -r horizontal horizontal_seconds vertical vertical_seconds < <(
@@ -199,7 +205,8 @@ if [[ ! -f "$out/05-sphere-encounter.png" ]] && \
   done
   # A moving Orb can leave the reticle during correction. Do not fire at a
   # cloud just because an Orb was visible in an earlier screenshot.
-  latest_radar="$out/05-radar-orb-aimed.png"
+  snapshot 05-radar-orb-prefire
+  latest_radar="$out/05-radar-orb-prefire.png"
   if python3 tools/plan_melonds_aim.py "$latest_radar" --target orb \
       >"$out/orb-fire-check.json" &&
      python3 -c 'import json,sys; sys.exit(not json.load(open(sys.argv[1]))["within_safe_fire_radius"])' \
