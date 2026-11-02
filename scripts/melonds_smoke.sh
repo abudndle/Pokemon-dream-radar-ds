@@ -83,6 +83,13 @@ if python3 tools/verify_melonds_navigation.py "$out" --stage 02-intro >>"$out/ru
 else
   mv "$out/02-intro.png" "$out/02-title-touch-unverified.png"
   echo "WARNING: title stylus input unverified; testing independent DS Start input" | tee -a "$out/runtime.log"
+  # Keep both the original tap frame and a second frame after a longer
+  # settling period to distinguish a delayed transition from a missed tap.
+  sleep 2
+  snapshot 02-title-touch-delayed
+  if python3 tools/verify_melonds_navigation.py "$out" --stage 02-intro --screenshot "$out/02-title-touch-delayed.png" >/dev/null 2>&1; then
+    echo "INFO: delayed stylus transition observed; retaining diagnostic frame" | tee -a "$out/runtime.log"
+  fi
   press_ds_key Return
   snapshot 02-intro
   python3 tools/verify_melonds_navigation.py "$out" --stage 02-intro
