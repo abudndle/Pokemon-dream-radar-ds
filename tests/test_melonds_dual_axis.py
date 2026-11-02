@@ -58,4 +58,8 @@ assert capture.count('aim_ds_pair "$fix_h" "$fix_h_seconds" "$fix_v" "$fix_v_sec
 assert capture.index('aim_ds_pair "$horizontal"') < capture.index('snapshot "05-sphere-prefire-$step"')
 assert capture.index('aim_ds_pair "$fix_h"') < capture.index('snapshot "05-sphere-prefire-corrected-$step"')
 assert 'xdotool keydown --clearmodifiers z' not in function
+assert capture.count('sphere_diagonal_pulses=$((sphere_diagonal_pulses + 1))') == 2
+assert capture.count('sphere_single_axis_pulses=$((sphere_single_axis_pulses + 1))') == 2
+assert 'sphere camera pulses diagonal=$sphere_diagonal_pulses' in capture
+
 print("PASS: simultaneous bounded D-pad axes release independently; A stays gated by fresh screenshots")
