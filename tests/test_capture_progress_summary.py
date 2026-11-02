@@ -9,11 +9,13 @@ import tempfile
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
 from summarize_capture_attempt import summarize
+from sphere_prefire_gate import evaluate as evaluate_prefire
 
 with tempfile.TemporaryDirectory() as tmp:
     root = Path(tmp)
     assert summarize(root)["samples"] == 0
     assert summarize(root)["max_meter_observation"] is None
+    assert summarize(root)["prefire_gate_evaluations"] == 0
     def observation(name, value, klass="swift"):
         (root / name).write_text(json.dumps({"encounter": {"capture_class": klass},
                                               "filled_pixels": value, "bar_width": 177}))
@@ -21,8 +23,35 @@ with tempfile.TemporaryDirectory() as tmp:
     observation("sphere-before-progress-1.json", 0)
     observation("sphere-reacquire-progress-3-1.json", 14)
     observation("sphere-edge-progress-4.json", 33)
+    observation("sphere-prefire-progress-5.json", 12)
+    observation("sphere-prefire-corrected-progress-5.json", 17)
+    aligned = evaluate_prefire({"candidate_spheres": 1,
+                                "target_screen": {"x": 128, "y": 96},
+                                "offset": {"x": 0, "y": 0}})
+    unaligned = evaluate_prefire({"candidate_spheres": 1,
+                                  "target_screen": {"x": 150, "y": 96},
+                                  "offset": {"x": 22, "y": 0}})
+    (root / "sphere-prefire-gate-5.json").write_text(json.dumps(aligned))
+    (root / "sphere-prefire-gate-6.json").write_text(json.dumps(unaligned))
     result = summarize(root)
-    assert result["samples"] == 4 and result["max_meter_pixels"] == 33
+    assert result["samples"] == 6
+    assert result["prefire_gate_evaluations"] == 2
+    assert result["prefire_aligned_observations"] == 1
+    assert result["prefire_unaligned_observations"] == 1
+    assert result["max_meter_pixels"] == 33
+    # Corrupted alignment sidecars must not become evidence of an aligned shot.
+    forged = dict(aligned)
+    forged["fire_authorized"] = False
+    (root / "sphere-prefire-gate-5.json").write_text(json.dumps(forged))
+    try:
+        summarize(root)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("Forged prefire authorization was accepted")
+    (root / "sphere-prefire-gate-5.json").write_text(json.dumps(aligned))
+    result = summarize(root)
+    assert result["samples"] == 6 and result["max_meter_pixels"] == 33
     assert result["max_meter_observation"] == "sphere-edge-progress-4.json"
     assert not result["reward_screen_observed"] and not result["reward_persisted_after_restart"]
     (root / "sphere-reward.json").write_text(json.dumps({"reward_kind": "item", "reward_name": "Test Item"}))
