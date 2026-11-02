@@ -117,7 +117,7 @@ if python3 tools/plan_melonds_aim.py "$out/05-radar.png" >"$out/aim-plan.json"; 
   # CI emulation speed varies, so milliseconds are not a fixed DS frame count.
   # Re-read actual pixels after movement and correct the remaining offset
   # before firing; two bounded iterations prevent an uncontrolled aim sweep.
-  for correction in 1 2; do
+  for correction in 1 2 3 4; do
     if ! python3 tools/plan_melonds_aim.py "$out/05-radar-aimed.png" >"$out/aim-correction-$correction.json"; then
       break
     fi
@@ -130,11 +130,19 @@ if python3 tools/plan_melonds_aim.py "$out/05-radar.png" >"$out/aim-plan.json"; 
     snapshot 05-radar-aimed
   done
 else
-  echo "WARNING: screenshot-guided aim unavailable; trying center reticle" | tee -a "$out/runtime.log"
+  echo "WARNING: screenshot-guided aim unavailable; no blind cloud shot" | tee -a "$out/runtime.log"
 fi
-# The original A button fires the beam in radar. Compare the actual counter
-# frame after firing; an input attempt alone is not a successful cloud hit.
-press_ds_key z
+# A gold edge marker is a navigation cue, never a hittable cloud. Recheck
+# a FRESH screenshot before firing; moving the reticle can reveal an offscreen
+# cloud or leave the last visible target too far away to hit.
+snapshot 05-radar-prefire
+if python3 tools/plan_melonds_aim.py "$out/05-radar-prefire.png"     >"$out/cloud-fire-check.json" &&
+   python3 -c 'import json,sys; p=json.load(open(sys.argv[1])); sys.exit(not (p["target_type"]=="cloud" and p["within_safe_fire_radius"]))'     "$out/cloud-fire-check.json"; then
+  press_ds_key z
+else
+  echo "WARNING: cloud not aligned or only an offscreen marker; skipped blind shot" | tee -a "$out/runtime.log"
+fi
+# A changed counter after a real A input is the only evidence of a cloud hit.
 snapshot 05-radar-postfire
 # A changed counter can indicate an Orb drop; a GOLD encounter label and
 # independent timer are required to assert a sphere transition.
@@ -159,7 +167,7 @@ if [[ ! -f "$out/05-sphere-encounter.png" ]] && \
   aim_ds_key "$horizontal" "$horizontal_seconds"
   aim_ds_key "$vertical" "$vertical_seconds"
   snapshot 05-radar-orb-aimed
-  for correction in 1 2; do
+  for correction in 1 2 3 4; do
     if ! python3 tools/plan_melonds_aim.py "$out/05-radar-orb-aimed.png" --target orb >"$out/orb-aim-correction-$correction.json"; then
       break
     fi
@@ -192,11 +200,12 @@ else
   fi
 fi
 # The initial pink cloud can produce Orbs instead of an encounter. Try at
-# most four additional clouds, always using fresh actual emulator screenshots.
+# at most eight bounded acquisition attempts (including offscreen cues),
+# always using fresh actual emulator screenshots.
 # The last cloud can finish the outing; recognize a genuine Results heading
 # instead of assuming a B-button press is still in radar. Never assert a
 # sphere without its class label and active timer.
-for attempt in 1 2 3 4; do
+for attempt in 1 2 3 4 5 6 7 8; do
   [[ -f "$out/05-sphere-encounter.png" ]] && break
   if ! python3 tools/verify_melonds_navigation.py "$out" \
       --observe-search-screenshot "$latest_radar" >"$out/search-retry-$attempt-before.json"; then
@@ -219,7 +228,7 @@ for attempt in 1 2 3 4; do
   aim_ds_key "$horizontal" "$horizontal_seconds"
   aim_ds_key "$vertical" "$vertical_seconds"
   snapshot "05-radar-retry-$attempt-aimed"
-  for correction in 1 2; do
+  for correction in 1 2 3 4; do
     if ! python3 tools/plan_melonds_aim.py "$out/05-radar-retry-$attempt-aimed.png" \
         >"$out/aim-retry-$attempt-correction-$correction.json"; then
       break
@@ -233,6 +242,13 @@ for attempt in 1 2 3 4; do
     aim_ds_key "$vertical" "$vertical_seconds"
     snapshot "05-radar-retry-$attempt-aimed"
   done
+  snapshot "05-radar-retry-$attempt-prefire"
+  latest_radar="$out/05-radar-retry-$attempt-prefire.png"
+  if ! python3 tools/plan_melonds_aim.py "$latest_radar"       >"$out/cloud-retry-$attempt-fire-check.json" ||
+     ! python3 -c 'import json,sys; p=json.load(open(sys.argv[1])); sys.exit(not (p["target_type"]=="cloud" and p["within_safe_fire_radius"]))'       "$out/cloud-retry-$attempt-fire-check.json"; then
+    echo "WARNING: retry $attempt cloud still offscreen or unaligned; moving to next acquisition" | tee -a "$out/runtime.log"
+    continue
+  fi
   press_ds_key z
   snapshot "05-radar-retry-$attempt-postfire"
   latest_radar="$out/05-radar-retry-$attempt-postfire.png"
