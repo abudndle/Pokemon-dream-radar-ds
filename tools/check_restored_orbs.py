@@ -26,12 +26,16 @@ def require_restored_orbs(observation, expected_balance=None):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("observation", type=Path)
-    parser.add_argument("--expected-balance", type=int, default=None,\n                        help="Require an exact first-session balance; positive alone is insufficient")\n    args = parser.parse_args()
+    parser.add_argument("--expected-balance", type=int, default=None,
+                        help="Require an exact first-session balance; positive alone is insufficient")
+    args = parser.parse_args()
     try:
         balance = require_restored_orbs(json.loads(args.observation.read_text()), args.expected_balance)
     except (ValueError, OSError) as exc:
-        parser.exit(1, f"{exc}\n")
-    print(f"PASS: restarted emulator read {balance} previously saved Dream Orbs"\n          + (" (exact first-session balance matched)" if args.expected_balance is not None else " (positive balance only; exact persistence unverified)"))
+        parser.exit(1, f"{exc}
+")
+    print(f"PASS: restarted emulator read {balance} previously saved Dream Orbs"
+          + (" (exact first-session balance matched)" if args.expected_balance is not None else " (positive balance only; exact persistence unverified)"))
 
 
 if __name__ == "__main__":
