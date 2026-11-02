@@ -10,6 +10,7 @@ import argparse
 import json
 from pathlib import Path
 import subprocess
+import time
 
 from plan_melonds_aim import plan_sphere
 from sphere_prefire_gate import evaluate
@@ -53,11 +54,31 @@ def write_evidence(paths, result):
     return status
 
 
+def pulse_if_aligned(status):
+    """Fire inside the fresh-frame inspector, minimizing post-gate delay.
+
+    The only permitted pulse follows the same-frame unique-target gate.
+    Always release A even if keydown, sleeping, or the emulator fails.
+    The return value records an input pulse, NOT a verified hit.
+    """
+    if status != "aligned":
+        return False
+    try:
+        subprocess.run(["xdotool", "keydown", "--clearmodifiers", "z"],
+                       check=True, timeout=3)
+        time.sleep(0.16)
+    finally:
+        subprocess.run(["xdotool", "keyup", "z"], check=True, timeout=3)
+    return True
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("screenshot", type=Path)
     for name in ("reward", "progress", "aim", "gate"):
         parser.add_argument("--" + name, required=True, type=Path)
+    parser.add_argument("--fire-aligned", action="store_true",
+                        help="Pulse DS A immediately after a fresh aligned observation; never on other statuses")
     args = parser.parse_args()
     paths = {name: getattr(args, name) for name in ("reward", "progress", "aim", "gate")}
     # A failed decode must not leave stale gate JSON that looks authorized.
@@ -67,9 +88,14 @@ def main():
         pixels, width, height = decode_native_capture(args.screenshot)
         result = inspect_frame(pixels, width, height, font_rows())
         status = write_evidence(paths, result)
-    except (OSError, ValueError, subprocess.CalledProcessError) as exc:
+        fired = pulse_if_aligned(status) if args.fire_aligned else False
+    except (OSError, ValueError, subprocess.CalledProcessError,
+            subprocess.TimeoutExpired) as exc:
+        # A failed key pulse must never leave an authorized gate sidecar.
+        paths["gate"].unlink(missing_ok=True)
         parser.exit(13, f"Prefire frame inspection failed: {exc}\n")
     print(json.dumps({"status": status, "fire_authorized": status == "aligned",
+                      "fire_executed": fired,
                       "limitations": "Fresh fallback screenshot only; not proof of hit, capture, save or restart."}))
     return EXIT_CODES[status]
 
