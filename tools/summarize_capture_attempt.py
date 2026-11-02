@@ -18,6 +18,7 @@ PATTERNS = ("sphere-before-progress-*.json", "sphere-progress-*.json",
             "sphere-reacquire-progress-*.json", "sphere-edge-progress-*.json",
             "sphere-prefire-progress-*.json",
             "sphere-prefire-corrected-progress-*.json",
+            "sphere-prefire-recorrected-progress-*.json",
             "sphere-prefire-stationary-progress-*.json")
 CLASSES = {"drifting", "swift", "erratic", "legendary", "item"}
 
@@ -71,7 +72,7 @@ def summarize(directory):
     pulse_rows = []
     pulse_classes = {}
     fired_steps = set()
-    pattern = re.compile(r"sphere-prefire-(?:(corrected|stationary)-)?inspection-([0-9]+)\.json")
+    pattern = re.compile(r"sphere-prefire-(?:(corrected|recorrected|stationary)-)?inspection-([0-9]+)\.json")
     for path in sorted(directory.glob("sphere-prefire-*inspection-*.json")):
         match = pattern.fullmatch(path.name)
         if not match:
