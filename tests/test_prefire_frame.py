@@ -150,6 +150,30 @@ with patch('verify_sphere_prefire_frame.subprocess.run') as run, \
         ['xdotool', 'keyup', 'Down'], ['xdotool', 'keyup', 'Right']]
     assert [round(c.args[0], 3) for c in sleep.call_args_list] == [0.05, 0.05]
 
+# Live prefire residuals frequently exceed 43 pixels. A single fresh
+# observation can now command up to 0.20 seconds of CAMERA movement only.
+# Both axes are independently capped and released; this never fires A.
+far = {'candidate_spheres': 1, 'target_screen': {'x': 238, 'y': 180},
+       'offset': {'x': 110, 'y': 84}}
+with patch('verify_sphere_prefire_frame.subprocess.run') as run, \
+     patch('verify_sphere_prefire_frame.time.sleep') as sleep:
+    assert correct_if_unaligned('unaligned', far) is True
+    assert [c.args[0] for c in run.call_args_list] == [
+        ['xdotool', 'keyup', 'z'],
+        ['xdotool', 'keydown', '--clearmodifiers', 'Right'],
+        ['xdotool', 'keydown', '--clearmodifiers', 'Down'],
+        ['xdotool', 'keyup', 'Right'], ['xdotool', 'keyup', 'Down']]
+    assert [round(c.args[0], 3) for c in sleep.call_args_list] == [0.20, 0.0]
+
+# A moderate residual is no longer truncated at the old 0.12-second cap.
+moderate = {'candidate_spheres': 1, 'target_screen': {'x': 182, 'y': 96},
+            'offset': {'x': 54, 'y': 0}}
+with patch('verify_sphere_prefire_frame.subprocess.run') as run, \
+     patch('verify_sphere_prefire_frame.time.sleep') as sleep:
+    assert correct_if_unaligned('unaligned', moderate) is True
+    sleep.assert_called_once_with(0.15)
+    assert run.call_args_list[-1].args[0] == ['xdotool', 'keyup', 'Right']
+
 # Predicted, ambiguous, aligned or forged offsets can never request a
 # camera correction; no input is sent on any validation failure.
 with patch('verify_sphere_prefire_frame.subprocess.run') as run:
