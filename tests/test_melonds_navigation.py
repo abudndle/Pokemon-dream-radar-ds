@@ -377,3 +377,55 @@ smoke_source = (Path(__file__).resolve().parents[1] /
 assert 'if [[ "${REQUIRE_PREEXISTING_ORB:-0}" == 1 ]]' in smoke_source
 assert 'python3 tools/check_restored_orbs.py "$out/orb-balance-before.json"' in smoke_source
 print("PASS: second-process Orb CLI rejects absent, zero and malformed saved balances")
+
+# Restart may resume directly into the Development Lab shop rather than the
+# title screen. Exercise the exact PNG-backed observer used at boot, with
+# both a valid saved shop and a wrong-scene frame; no Nintendo assets needed.
+if shutil.which("identify") and shutil.which("convert"):
+    with tempfile.TemporaryDirectory() as tmp:
+        boot_png = Path(tmp) / "01-title.png"
+        observer = [sys.executable, str(Path(__file__).resolve().parents[1] /
+                                        "tools" / "verify_melonds_navigation.py"),
+                    tmp, "--observe-shop-orbs-screenshot", str(boot_png)]
+        write_png(boot_png, shop_frame(2))
+        restored_shop = subprocess.run(observer, capture_output=True, text=True)
+        assert restored_shop.returncode == 0, restored_shop.stderr
+        assert json.loads(restored_shop.stdout) == {"saved_orbs": 2}
+        write_png(boot_png, radar_frame("CLOUDS 5  ORBS 0"))
+        wrong_scene = subprocess.run(observer, capture_output=True, text=True)
+        assert wrong_scene.returncode != 0, wrong_scene.stdout
+    print("PASS: resumed shop boot pixels decoded; wrong scene rejected")
+else:
+    print("SKIP: resume-boot PNG integration requires ImageMagick")
+
+# The strict second-process path must inspect boot pixels before touching
+# the screen, and only short-circuit on an independently decoded shop balance.
+boot_snapshot = smoke_source.index("snapshot 01-title")
+resume_branch = smoke_source.index('if [[ "${REQUIRE_PREEXISTING_ORB:-0}" == 1 ]]', boot_snapshot)
+first_touch = smoke_source.index("touch_ds 128 269", boot_snapshot)
+assert boot_snapshot < resume_branch < first_touch
+resume_block = smoke_source[resume_branch:first_touch]
+assert '--observe-shop-orbs-screenshot "$out/01-title.png"' in resume_block
+assert 'cp "$out/01-title.png" "$out/03-shop-orbs-before.png"' in resume_block
+assert '--expected-balance "$EXPECTED_RESTORED_ORBS"' in resume_block
+assert 'rm -f "$out/orb-balance-before.json"' in resume_block
+print("PASS: strict restart checks resumed shop before title input, and falls back safely")
+
+# A temporarily obscured sphere can become visible a few frames later.
+# Preserve the safe-fire invariant: no beam while the target is ambiguous,
+# at most three stationary samples, and no firing if all samples fail.
+capture_start = smoke_source.index('for step in $(seq 1 "$capture_steps")')
+capture_end = smoke_source.index('guided_sphere_steps=$((guided_sphere_steps + 1))', capture_start)
+capture_section = smoke_source[capture_start:capture_end]
+off = capture_section.index("xdotool keyup z")
+samples = capture_section.index("for reacquire_sample in 1 2 3; do")
+found = capture_section.index('if [[ "$reacquire_state" != found ]]')
+on = capture_section.index("xdotool keydown --clearmodifiers z", samples)
+assert off < samples < found < on
+assert 'reacquire_state=ambiguous' in capture_section
+assert 'reacquire_state=found' in capture_section
+assert 'reacquire_state=ended' in capture_section
+assert 'break' in capture_section[found:on]
+assert '--observe-capture-progress "$reacquired"' in capture_section
+assert '--observe-reward-screenshot "$reacquired"' in capture_section
+print("PASS: three-frame sphere reacquisition never fires blindly or exceeds its bound")

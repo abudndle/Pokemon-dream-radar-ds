@@ -17,6 +17,11 @@ on:
         type: boolean
         required: false
         default: false
+      require_restart_persistence:
+        description: 'Require writable DLDI save and exact restored Orb balance in fresh melonDS process'
+        type: boolean
+        required: false
+        default: false
       capture_sweep_steps:
         description: 'Maximum live sphere pursuit steps (1–160)'
         type: choice
@@ -40,7 +45,16 @@ on:
       - 'tools/plan_melonds_aim.py'
       - 'tests/test_melonds_navigation.py'
       - 'tests/test_melonds_aim.py'
+      - 'tests/test_melonds_cleanup.py'
+      - 'tests/test_restored_orbs_gate.py'
+      - 'tools/check_restored_orbs.py'
       - 'source/font6.h'
+# Superseded PR/push runs are expensive and should not block newer fixes.
+# Manual strict restart runs retain their own run-id group and are never
+# canceled by a new push, preserving acceptance evidence.
+concurrency:
+  group: melonds-${{ github.workflow }}-${{ github.event_name == 'workflow_dispatch' && github.run_id || github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}
 jobs:
   melonds-boot:
     runs-on: ubuntu-24.04
@@ -56,18 +70,35 @@ jobs:
           python3 tests/test_navigation_evidence.py
           python3 tests/test_melonds_navigation.py
           python3 tests/test_melonds_aim.py
-      - name: Install Flatpak and screenshot tools
+          python3 tests/test_melonds_cleanup.py
+          python3 tests/test_melonds_clean_restart.py
+          python3 tests/test_restored_orbs_gate.py
+      - name: Install native melonDS dependencies and screenshot tools
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends flatpak xvfb xauth xdotool imagemagick x11-utils
-          sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+          sudo apt-get install -y --no-install-recommends curl unzip gdb xvfb xauth xdotool imagemagick x11-utils dbus-daemon qt6-base-dev qt6-multimedia-dev libqt6svg6 libenet7 libsdl2-2.0-0 libslirp0 libfaad2
       - name: Validate PNG-backed capture and reward CLI after ImageMagick install
         run: |
           python3 tests/test_melonds_navigation.py
-      - name: Install official melonDS Flatpak
+      - name: Install checksum-pinned official melonDS 1.1 AppImage
         run: |
-          sudo flatpak install --noninteractive -y flathub net.kuribo64.melonDS
-          flatpak info net.kuribo64.melonDS
+          curl --fail --location --retry 3 --output "$RUNNER_TEMP/melonds-1.1-appimage.zip" \
+            https://github.com/melonDS-emu/melonDS/releases/download/1.1/melonDS-1.1-appimage-x86_64.zip
+          echo 'bf377420a2e95f2cd2cdda17d5372b51c2534f858b038db9ec6d129554875124  '"$RUNNER_TEMP/melonds-1.1-appimage.zip" | sha256sum --check
+          mkdir -p "$RUNNER_TEMP/melonds-appimage"
+          unzip -q "$RUNNER_TEMP/melonds-1.1-appimage.zip" -d "$RUNNER_TEMP/melonds-appimage"
+          binary="$(find "$RUNNER_TEMP/melonds-appimage" -type f -iname '*.AppImage' -print -quit)"
+          test -n "$binary"
+          chmod +x "$binary"
+          # Extract the signed-release archive's AppImage payload explicitly.
+          # The hosted runner has no FUSE mount, and some AppImage runtimes
+          # silently exit before spawning the GUI in extract-and-run mode.
+          (cd "$RUNNER_TEMP/melonds-appimage" && "$binary" --appimage-extract)
+          runner="$RUNNER_TEMP/melonds-appimage/squashfs-root/AppRun"
+          test -x "$runner"
+          echo "MELONDS_BIN=$runner" >> "$GITHUB_ENV"
+          echo "APPDIR=$RUNNER_TEMP/melonds-appimage/squashfs-root" >> "$GITHUB_ENV"
+          ls -l "$runner"
       - name: Build latest DS/DSi ROM
         run: |
           python3 tools/stage_title_ui.py ui_mapping/original_pane_geometry.json nitrofs/title.drui
@@ -80,8 +111,13 @@ jobs:
           python3 scripts/check_nds.py dream_radar.nds
       - name: Configure melonDS keyboard mappings
         run: |
-          mkdir -p "$HOME/.var/app/net.kuribo64.melonDS/config/melonDS"
-          cat > "$HOME/.var/app/net.kuribo64.melonDS/config/melonDS/melonDS.toml" <<'EOF'
+          mkdir -p "$HOME/.config/melonDS"
+          cat > "$HOME/.config/melonDS/melonDS.toml" <<'EOF'
+          [Screen]
+          UseGL = false
+          VSync = false
+          [3D]
+          Renderer = 0
           [Instance0]
           [Instance0.Keyboard]
           A = 90
@@ -97,7 +133,19 @@ jobs:
           Select = 16777221
           Start = 16777220
           EOF
-          cat "$HOME/.var/app/net.kuribo64.melonDS/config/melonDS/melonDS.toml"
+          cat >> "$HOME/.config/melonDS/melonDS.toml" <<EOF
+          [DLDI]
+          # melonDS stores a size COMBOBOX INDEX: 0=Auto, 1=256MB, 2=512MB,
+          # 3=1GB. A byte count here is invalid and may block startup.
+          Enable = true
+          FolderSync = true
+          ReadOnly = false
+          ImageSize = 1
+          FolderPath = "$GITHUB_WORKSPACE/melonds-dldi"
+          EOF
+          mkdir -p "$GITHUB_WORKSPACE/melonds-dldi/saves"
+          cp dream_radar.nds "$GITHUB_WORKSPACE/melonds-dldi/dream_radar.nds"
+          cat "$HOME/.config/melonDS/melonDS.toml"
       - name: Launch melonDS and capture actual emulator window
         env:
           REQUIRE_TOUCH: ${{ inputs.require_touch && '1' || '0' }}
@@ -106,7 +154,34 @@ jobs:
           CAPTURE_SWEEP_STEPS: ${{ inputs.capture_sweep_steps || '160' }}
         run: |
           xvfb-run -a -s '-screen 0 1280x900x24' \
-            bash scripts/melonds_smoke.sh dream_radar.nds melonds-results
+            env QT_QPA_PLATFORM=xcb QT_QPA_PLATFORMTHEME=generic QT_OPENGL=software QT_XCB_GL_INTEGRATION=none GSETTINGS_BACKEND=memory MESA_LOADER_DRIVER_OVERRIDE=softpipe \
+            dbus-run-session -- bash scripts/melonds_smoke.sh "$GITHUB_WORKSPACE/melonds-dldi/dream_radar.nds" melonds-results
+          # Keep save-media diagnostics even when the randomized outing
+          # gained no Orbs; filenames and sizes reveal whether DLDI wrote.
+          echo "DLDI save inventory (relative paths and byte sizes):"
+          for directory in melonds-dldi/saves melonds-dldi/DreamRadarDSi; do
+            if [[ -d "$directory" ]]; then
+              find "$directory" -maxdepth 2 -type f -printf '%p %s bytes\n'
+            fi
+          done
+          # Opportunistically verify a clean restart on ordinary CI runs that
+          # actually gained Orbs. Strict manual mode still fails when no gain
+          # exists; a no-gain smoke run is never reported as persistence proof.
+          if [[ "${{ inputs.require_restart_persistence && '1' || '0' }}" == 1 ]] || \
+             python3 -c 'import json,sys; from pathlib import Path; p=Path("melonds-results/orb-balance-change.json"); r=json.loads(p.read_text()) if p.is_file() else {}; sys.exit(r.get("balance_increased") is not True)'; then
+            test -s melonds-dldi/saves/dream_radar.dreamradar.sav
+            expected_orbs="$(python3 -c 'import json; from pathlib import Path; p=json.loads(Path("melonds-results/orb-balance-change.json").read_text()); assert p.get("balance_increased") is True, "No first-session Orb gain"; n=p["after"]["saved_orbs"]; assert type(n) is int and 0 < n <= 0xffffffff; print(n)')"
+            xvfb-run -a -s '-screen 0 1280x900x24' \
+              env QT_QPA_PLATFORM=xcb QT_QPA_PLATFORMTHEME=generic QT_OPENGL=software QT_XCB_GL_INTEGRATION=none GSETTINGS_BACKEND=memory MESA_LOADER_DRIVER_OVERRIDE=softpipe REQUIRE_PREEXISTING_ORB=1 EXPECTED_RESTORED_ORBS="$expected_orbs" \
+              dbus-run-session -- bash scripts/melonds_smoke.sh "$GITHUB_WORKSPACE/melonds-dldi/dream_radar.nds" melonds-restart-results
+            python3 tools/verify_melonds_clean_restart.py \
+              melonds-results melonds-restart-results \
+              melonds-dldi/saves/dream_radar.dreamradar.sav --verify-pixels \
+              > melonds-restart-results/clean-restart-report.txt
+            cat melonds-restart-results/clean-restart-report.txt
+          else
+            echo "INFO: no verified first-session Orb gain; clean-restart persistence unverified"
+          fi
       - name: Publish melonDS screenshot and logs
         if: always()
         uses: actions/upload-artifact@v4
@@ -117,5 +192,9 @@ jobs:
             melonds-results/*.log
             melonds-results/*.txt
             melonds-results/*.json
+            melonds-restart-results/*.png
+            melonds-restart-results/*.log
+            melonds-restart-results/*.json
+            melonds-restart-results/*.txt
           if-no-files-found: warn
           retention-days: 30

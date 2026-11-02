@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Launch the built DS ROM in the official melonDS Flatpak and capture its
+# Launch the built DS ROM in the official melonDS runtime and capture its
 # real application window. This is a boot/screenshot smoke test, not gameplay
 # parity or DSi camera verification.
 set -euo pipefail
@@ -22,26 +22,95 @@ if [[ -n "${MELONDS_BIN:-}" ]]; then
   launcher=("$MELONDS_BIN")
 else
   command -v flatpak >/dev/null || { echo "Missing flatpak or MELONDS_BIN" >&2; exit 1; }
-  launcher=(flatpak run net.kuribo64.melonDS)
+  launcher=(flatpak run --env=QT_QPA_PLATFORMTHEME=generic --env=GTK_USE_PORTAL=0 --env=GSETTINGS_BACKEND=memory --env=DCONF_PROFILE=/dev/null --env=QT_QPA_PLATFORM=xcb net.kuribo64.melonDS)
 fi
 "${launcher[@]}" "$rom" >"$out/melonds.log" 2>&1 &
 pid=$!
 printf 'Emulator launcher PID: %s\n' "$pid" >>"$out/runtime.log"
 cleanup(){
-  kill "$pid" 2>/dev/null || true
+  # SIGTERM allows melonDS to flush FAT/DLDI saves. AppImage runtimes can
+  # ignore it; waiting indefinitely previously exhausted the 30-minute job.
+  trap - EXIT
+  local state attempt
+  # Ask Qt to close its window first. SIGTERM alone required SIGKILL in a
+  # real AppImage run, which cannot establish that FAT/DLDI writes flushed.
+  if [[ -n "${window:-}" ]]; then
+    # Qt's File > Quit action (Ctrl+Q) allows the emulator to sync its
+    # folder-backed DLDI filesystem before exit. X11 windowclose alone
+    # did not stop the AppImage in actual CI and led to forced SIGKILL.
+    xdotool windowfocus "$window" 2>/dev/null || true
+    xdotool key --clearmodifiers ctrl+q 2>/dev/null || true
+    printf 'Emulator GUI Quit shortcut requested for XID %s\n' "$window" >>"$out/runtime.log"
+    for attempt in {1..25}; do
+      state="$(ps -o stat= -p "$pid" 2>/dev/null || true)"
+      [[ -z "$state" || "$state" == Z* ]] && break
+      sleep 0.1
+    done
+    state="$(ps -o stat= -p "$pid" 2>/dev/null || true)"
+    if [[ -n "$state" && "$state" != Z* ]]; then
+      xdotool windowclose "$window" 2>/dev/null || true
+      printf 'Emulator GUI close requested for XID %s\n' "$window" >>"$out/runtime.log"
+      for attempt in {1..25}; do
+        state="$(ps -o stat= -p "$pid" 2>/dev/null || true)"
+        [[ -z "$state" || "$state" == Z* ]] && break
+        sleep 0.1
+      done
+    fi
+  fi
+  state="$(ps -o stat= -p "$pid" 2>/dev/null || true)"
+  if [[ -n "$state" && "$state" != Z* ]]; then
+    kill -TERM "$pid" 2>/dev/null || true
+    for attempt in {1..40}; do
+      state="$(ps -o stat= -p "$pid" 2>/dev/null || true)"
+      [[ -z "$state" || "$state" == Z* ]] && break
+      sleep 0.1
+    done
+  fi
+  state="$(ps -o stat= -p "$pid" 2>/dev/null || true)"
+  if [[ -n "$state" && "$state" != Z* ]]; then
+    kill -KILL "$pid" 2>/dev/null || true
+    printf 'WARNING: Emulator launcher PID %s force-killed after SIGTERM timeout; save flush unverified\n' "$pid" >>"$out/runtime.log"
+  fi
   wait "$pid" 2>/dev/null || true
-  printf 'Emulator launcher PID %s terminated\n' "$pid" >>"$out/runtime.log"
+  if kill -0 "$pid" 2>/dev/null; then
+    printf 'Emulator launcher PID %s still running after cleanup\n' "$pid" >>"$out/runtime.log"
+  else
+    printf 'Emulator launcher PID %s terminated\n' "$pid" >>"$out/runtime.log"
+  fi
 }
 trap cleanup EXIT
 window=""
 for attempt in $(seq 1 60); do
-  window="$(xdotool search --onlyvisible --name 'melonDS' 2>/dev/null | head -n 1 || true)"
+  window=""
+  while IFS= read -r candidate; do
+    [[ -n "$candidate" ]] || continue
+    geometry="$(xwininfo -id "$candidate" 2>/dev/null || true)"
+    width="$(sed -n 's/^  Width: \([0-9][0-9]*\)$/\1/p' <<<"$geometry" | head -n1)"
+    height="$(sed -n 's/^  Height: \([0-9][0-9]*\)$/\1/p' <<<"$geometry" | head -n1)"
+    if [[ "${width:-0}" -ge 256 && "${height:-0}" -ge 400 ]]; then
+      window="$candidate"
+      break
+    fi
+  done < <(xdotool search --onlyvisible --name 'melonDS' 2>/dev/null || true)
   [[ -n "$window" ]] && break
-  kill -0 "$pid" 2>/dev/null || { cat "$out/melonds.log" >&2; exit 1; }
+  # Flatpak may return before its sandboxed GUI process has registered a window.
+  # Keep the full bounded window-discovery timeout instead of treating the
+  # short-lived launcher PID as proof that melonDS itself has exited.
+  if ! kill -0 "$pid" 2>/dev/null && [[ "$attempt" == 1 ]]; then
+    echo "Launcher PID exited; waiting for sandboxed melonDS window" >>"$out/runtime.log"
+  fi
   sleep 1
 done
 if [[ -z "$window" ]]; then
   xwininfo -root -tree >"$out/window-tree.txt" 2>&1 || true
+  # A native build can crash before opening X11. Preserve a bounded stack
+  # trace so a failing CI run identifies the fault instead of guessing.
+  if [[ -n "${MELONDS_BIN:-}" ]] && command -v gdb >/dev/null; then
+    timeout 25s gdb -batch -ex 'set pagination off' -ex run \
+      -ex 'thread apply all bt 8' --args "$MELONDS_BIN" "$rom" \
+      >"$out/native-backtrace.txt" 2>&1 || true
+    tail -n 100 "$out/native-backtrace.txt" >&2
+  fi
   cat "$out/melonds.log" >&2
   echo "melonDS window did not appear; no screenshot claimed" >&2
   exit 1
@@ -50,7 +119,7 @@ echo "Window XID: $window" >>"$out/runtime.log"
 xwininfo -id "$window" >>"$out/runtime.log" 2>&1 || true
 snapshot() {
   local name="$1"
-  kill -0 "$pid" 2>/dev/null || { echo "melonDS exited before $name" >&2; exit 1; }
+  xwininfo -id "$window" >/dev/null 2>&1 || { echo "melonDS display closed before $name" >&2; exit 1; }
   import -silent -window "$window" "$out/$name.png"
   identify "$out/$name.png" | tee -a "$out/runtime.log"
   test -s "$out/$name.png"
@@ -75,7 +144,31 @@ touch_ds() {
   sleep 2
 }
 sleep 10
+# This is a boot screenshot, not necessarily a title screenshot: the game
+# restores its last saved scene and can reopen the Development Lab shop.
 snapshot 01-title
+if [[ "${REQUIRE_PREEXISTING_ORB:-0}" == 1 ]]; then
+  # A previous search can save the shop as the resume scene. On a genuinely
+  # fresh second emulator launch, inspect its pixels BEFORE sending stylus
+  # or Start: those inputs would otherwise act on the resumed shop instead
+  # of the title screen and falsely fail restart acceptance.
+  if python3 tools/verify_melonds_navigation.py "$out" \
+      --observe-shop-orbs-screenshot "$out/01-title.png" \
+      >"$out/orb-balance-before.json" 2>"$out/restart-boot-shop.err"; then
+    cp "$out/01-title.png" "$out/03-shop-orbs-before.png"
+    if [[ -z "${EXPECTED_RESTORED_ORBS:-}" ]]; then
+      echo "Clean-restart acceptance failed: missing first-session Orb balance" >&2
+      exit 1
+    fi
+    python3 tools/check_restored_orbs.py "$out/orb-balance-before.json" \
+      --expected-balance "$EXPECTED_RESTORED_ORBS"
+    echo "PASS: fresh emulator resumed into saved Development Lab shop; exact Orb balance restored" | tee -a "$out/runtime.log"
+    # The EXIT trap records launcher termination for the provenance verifier.
+    exit 0
+  fi
+  rm -f "$out/orb-balance-before.json"
+  echo "INFO: restart boot is not the saved shop; testing title navigation" | tee -a "$out/runtime.log"
+fi
 # The captured client window is 256x403: its menu bar occupies y=0..19,
 # top DS screen y=20..211, and touchscreen y=211..402. Tap the center of
 # the highlighted Start button (x=128, y≈269), not the cloud-count label.
@@ -129,7 +222,17 @@ if [[ "${REQUIRE_PREEXISTING_ORB:-0}" == 1 ]]; then
     echo "Clean-restart acceptance failed: no readable pre-search Orb balance" >&2
     exit 1
   fi
-  python3 tools/check_restored_orbs.py "$out/orb-balance-before.json"
+  if [[ -z "${EXPECTED_RESTORED_ORBS:-}" ]]; then
+    echo "Clean-restart acceptance failed: missing independently observed first-session balance" >&2
+    exit 1
+  fi
+  python3 tools/check_restored_orbs.py "$out/orb-balance-before.json" \
+    --expected-balance "$EXPECTED_RESTORED_ORBS"
+  # The second process exists only to verify restored save state. Do not
+  # start a second randomized search or risk obscuring the acceptance result.
+  # The EXIT trap records emulator termination for provenance verification.
+  echo "PASS: independently decoded restored Orb balance; ending restart session" | tee -a "$out/runtime.log"
+  exit 0
 fi
 press_ds_key x 0.3
 # Returning to the lab resets selection to START SEARCH.
@@ -479,34 +582,51 @@ if [[ -f "$out/05-sphere-encounter.png" ]]; then
         --previous-screenshot "$previous_sphere" \
         >"$out/sphere-aim-$step.json" 2>"$out/sphere-aim-error-$step.txt"; then
       reacquire_attempts=$((reacquire_attempts + 1))
+      # Keep the beam OFF while the target is obscured. The sphere may cross
+      # the HUD or overlap a projectile for several consecutive frames.
+      # Three bounded, stationary screenshots are safer than blind firing or
+      # abandoning the entire encounter after one ambiguous sample.
       xdotool keyup z
-      sleep 0.12
-      snapshot "05-sphere-reacquire-$step"
-      reacquired="$out/05-sphere-reacquire-$step.png"
-      if python3 tools/verify_melonds_navigation.py "$out" \
-          --observe-reward-screenshot "$reacquired" \
-          >"$out/sphere-reward-attempt.json" 2>/dev/null; then
-        mv "$out/sphere-reward-attempt.json" "$out/sphere-reward.json"
-        cp "$reacquired" "$out/05-capture-reward.png"
-        capture_last="$reacquired"
-        echo "PASS: capture reward observed during sphere reacquisition $step" | tee -a "$out/runtime.log"
+      reacquire_state=ambiguous
+      for reacquire_sample in 1 2 3; do
+        sleep 0.12
+        snapshot "05-sphere-reacquire-$step-$reacquire_sample"
+        reacquired="$out/05-sphere-reacquire-$step-$reacquire_sample.png"
+        if python3 tools/verify_melonds_navigation.py "$out" \
+            --observe-reward-screenshot "$reacquired" \
+            >"$out/sphere-reward-attempt.json" 2>/dev/null; then
+          mv "$out/sphere-reward-attempt.json" "$out/sphere-reward.json"
+          cp "$reacquired" "$out/05-capture-reward.png"
+          capture_last="$reacquired"
+          reacquire_state=ended
+          echo "PASS: capture reward observed during sphere reacquisition $step/$reacquire_sample" | tee -a "$out/runtime.log"
+          break
+        fi
+        rm -f "$out/sphere-reward-attempt.json"
+        if ! python3 tools/verify_melonds_navigation.py "$out" \
+            --observe-capture-progress "$reacquired" \
+            >"$out/sphere-reacquire-progress-$step-$reacquire_sample.json" 2>/dev/null; then
+          echo "WARNING: reacquisition frame $step/$reacquire_sample is not a live sphere encounter" | tee -a "$out/runtime.log"
+          reacquire_state=ended
+          break
+        fi
+        if python3 tools/plan_melonds_aim.py "$reacquired" --target sphere \
+            --previous-screenshot "$previous_sphere" \
+            >"$out/sphere-aim-$step.json" \
+            2>"$out/sphere-reacquire-error-$step-$reacquire_sample.txt"; then
+          reacquire_state=found
+          echo "INFO: recovered sphere target on stationary sample $reacquire_sample at step $step" | tee -a "$out/runtime.log"
+          break
+        fi
+      done
+      if [[ "$reacquire_state" == ended ]]; then
         break
       fi
-      rm -f "$out/sphere-reward-attempt.json"
-      if ! python3 tools/verify_melonds_navigation.py "$out" \
-          --observe-capture-progress "$reacquired" \
-          >"$out/sphere-reacquire-progress-$step.json" 2>/dev/null; then
-        echo "WARNING: reacquisition frame $step is not a live sphere encounter" | tee -a "$out/runtime.log"
-        break
-      fi
-      if ! python3 tools/plan_melonds_aim.py "$reacquired" --target sphere \
-          --previous-screenshot "$previous_sphere" \
-          >"$out/sphere-aim-$step.json" 2>"$out/sphere-reacquire-error-$step.txt"; then
-        echo "WARNING: sphere target still ambiguous after one stationary retry at step $step" | tee -a "$out/runtime.log"
+      if [[ "$reacquire_state" != found ]]; then
+        echo "WARNING: sphere target ambiguous after three stationary samples at step $step" | tee -a "$out/runtime.log"
         break
       fi
       reacquire_successes=$((reacquire_successes + 1))
-      echo "INFO: recovered guided sphere tracking after fresh frame $step" | tee -a "$out/runtime.log"
       xdotool keydown --clearmodifiers z
     fi
     guided_sphere_steps=$((guided_sphere_steps + 1))
