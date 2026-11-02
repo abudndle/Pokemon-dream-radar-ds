@@ -196,7 +196,8 @@ previous = shifted_sphere_frame()
 current = shifted_sphere_frame(20, -10)
 predicted = plan_sphere_motion(previous, current, WIDTH, HEIGHT)
 assert predicted["observed_target_screen"] == {"x": 140, "y": 89}
-assert predicted["target_screen"] == {"x": 150, "y": 84}
+assert predicted["target_screen"] == {"x": 155, "y": 81}
+assert predicted["camera_only_lead_pixels"] == {"x": 15, "y": -8}
 assert predicted["observed_displacement"] == {"x": 20, "y": -10}
 assert predicted["motion_prediction"] == "bounded"
 assert predicted["horizontal_key"] == "Right"
@@ -206,6 +207,18 @@ assert predicted["candidate_spheres"] == 1
 stationary = plan_sphere_motion(previous, previous, WIDTH, HEIGHT)
 assert stationary["target_screen"] == stationary["observed_target_screen"]
 assert stationary["motion_prediction"] == "bounded"
+assert stationary["camera_only_lead_pixels"] == {"x": 0, "y": 0}
+# A temporal camera plan may be used for movement but must never be treated
+# as a fresh observed-only prefire plan, even when the predicted point is
+# precisely at the reticle.
+from sphere_prefire_gate import evaluate as evaluate_prefire
+try:
+    evaluate(predicted)
+except ValueError:
+    pass
+else:
+    raise AssertionError("Motion-predicted camera plan authorized a shot")
+
 
 unknown_previous = plan_sphere_motion(bytes(WIDTH * HEIGHT * 3),
                                       current, WIDTH, HEIGHT)
@@ -248,7 +261,8 @@ tracked = plan_sphere_motion(previous, with_distractor, WIDTH, HEIGHT)
 assert tracked["motion_match"] == "previous_unique_target"
 assert tracked["candidate_spheres"] == 2
 assert tracked["observed_target_screen"] == {"x": 130, "y": 109}
-assert tracked["target_screen"] == {"x": 135, "y": 114}
+assert tracked["target_screen"] == {"x": 138, "y": 117}
+assert tracked["camera_only_lead_pixels"] == {"x": 8, "y": 8}
 assert tracked["motion_prediction"] == "bounded"
 
 ambiguous = bytearray(sphere_frame(False))
