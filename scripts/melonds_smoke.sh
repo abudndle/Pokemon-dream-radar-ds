@@ -218,17 +218,34 @@ if [[ ! -f "$out/05-sphere-encounter.png" ]] && \
   done
   # A moving Orb can leave the reticle during correction. Do not fire at a
   # cloud just because an Orb was visible in an earlier screenshot.
-  snapshot 05-radar-orb-prefire
-  latest_radar="$out/05-radar-orb-prefire.png"
-  if python3 tools/plan_melonds_aim.py "$latest_radar" --target orb \
-      >"$out/orb-fire-check.json" &&
-     python3 -c 'import json,sys; sys.exit(not json.load(open(sys.argv[1]))["within_safe_fire_radius"])' \
-      "$out/orb-fire-check.json"; then
+  # Actual live evidence has shown a moving Orb 25px from the reticle
+  # after three correction passes. Give it a short stationary opportunity
+  # to cross the reticle rather than firing blindly or trusting stale aim.
+  # Every attempted shot still requires an independently observed, fresh
+  # within_safe_fire_radius result; the bounded window does not prove a hit.
+  orb_fire_ready=0
+  for sample in 0 1 2 3 4; do
+    if (( sample > 0 )); then
+      sleep 0.05
+    fi
+    snapshot "05-radar-orb-prefire-$sample"
+    latest_radar="$out/05-radar-orb-prefire-$sample.png"
+    if python3 tools/plan_melonds_aim.py "$latest_radar" --target orb \
+        >"$out/orb-fire-check-$sample.json" 2>"$out/orb-fire-error-$sample.txt" &&
+       python3 -c 'import json,sys; sys.exit(not json.load(open(sys.argv[1]))["within_safe_fire_radius"])' \
+        "$out/orb-fire-check-$sample.json"; then
+      cp "$out/orb-fire-check-$sample.json" "$out/orb-fire-check.json"
+      orb_fire_ready=1
+      echo "INFO: observed moving Orb aligned on prefire sample $sample" | tee -a "$out/runtime.log"
+      break
+    fi
+  done
+  if [[ "$orb_fire_ready" == 1 ]]; then
     press_ds_key z 0.12
     snapshot 05-radar-orb-postfire
     latest_radar="$out/05-radar-orb-postfire.png"
   else
-    echo "WARNING: moving Orb not aligned with reticle; skipped unsafe shot" | tee -a "$out/runtime.log"
+    echo "WARNING: moving Orb not aligned in five fresh frames; skipped unsafe shot" | tee -a "$out/runtime.log"
   fi
 else
   if [[ -f "$out/05-sphere-encounter.png" ]]; then
