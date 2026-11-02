@@ -10,7 +10,7 @@ workflow = (ROOT / ".github/workflows/melonds-smoke.yml").read_text()
 assert 'capture_steps="${CAPTURE_SWEEP_STEPS:-440}"' in script
 assert '(( capture_steps < 1 || capture_steps > 440 ))' in script
 assert 'CAPTURE_SWEEP_STEPS must be an integer from 1 to 440' in script
-assert "options: ['40', '80', '160', '440']" in workflow
+assert "options: ['40', '80', '160', '220', '440']" in workflow
 assert "default: '440'" in workflow
 assert "inputs.capture_sweep_steps || '440'" in workflow
 assert re.search(r"timeout-minutes:\s*30", workflow)
