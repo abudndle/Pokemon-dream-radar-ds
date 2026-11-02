@@ -44,7 +44,7 @@ with tempfile.TemporaryDirectory() as tmp:
     assert result['prefire_within_15_pixels'] == 1
     assert result['prefire_fire_authorized'] == 1
     assert result['prefire_distance_bands'] == {
-        'aligned_0_to_15': 2, 'old_correction_16_to_43': 1,
+        'aligned_0_to_15': 1, 'old_correction_16_to_43': 1,
         'expanded_correction_44_to_72': 0,
         'beyond_single_correction_over_72': 0}
     assert result['camera_plan_residual_bands'] == {
