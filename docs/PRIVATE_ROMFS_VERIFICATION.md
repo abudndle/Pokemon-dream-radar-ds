@@ -35,10 +35,30 @@ Run `make test-host` for the synthetic fixture/parity checks. The public CI
 the manifest and comparison utility work. It does not prove the original
 ROM was re-verified in this run.
 
+## Private-source verification evidence (2026-11-01)
+
+The previously supplied **24,944,640-byte decrypted NCCH** was recovered
+from the owner's file library into a private workspace and independently
+inspected without copying its contents into GitHub. The verified RomFS has
+**208 files / 15 directories** and matches all 208 paths and exact sizes in
+the metadata-only manifest (**0 missing, 0 unexpected, 0 changed sizes**).
+
+Two existing private extraction archives also passed ZIP integrity checks:
+
+- 177 DARC archives, all with valid `darc` signatures; all 177 virtual
+  archive names correspond exactly to original RomFS CARC names
+- 1,462 UI members: 875 BCLIM textures, 417 BCLAN animations, 135 BCLYT
+  layouts and 35 MSBT text resources
+
+This establishes **resource inventory and archive integrity**, not complete
+rendering or original game parity. Private NCCH bytes, extracted binaries,
+the full source SHA-256 and detailed private report were kept outside GitHub.
+CI uses synthetic test inputs and **does not read these private sources**.
+
 ## What is still needed before original 3DS parity
 
-- Access to the actual private decrypted NCCH to re-run the audit on the
-  specific game revision; **the manifest cannot reconstruct that image**.
+- Securely stage and convert the verified private NCCH and 1,462 UI assets
+  for the DS renderer; **the manifest cannot reconstruct source bytes**.
 - Recover authentic CARC/DARC textures, UI, layouts, BCLAN animation data,
   models where independently confirmed, audio, and related metadata into
   private asset-conversion workspaces.
