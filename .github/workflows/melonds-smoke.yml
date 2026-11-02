@@ -156,11 +156,15 @@ jobs:
           xvfb-run -a -s '-screen 0 1280x900x24' \
             env QT_QPA_PLATFORM=xcb QT_QPA_PLATFORMTHEME=generic QT_OPENGL=software QT_XCB_GL_INTEGRATION=none GSETTINGS_BACKEND=memory MESA_LOADER_DRIVER_OVERRIDE=softpipe \
             dbus-run-session -- bash scripts/melonds_smoke.sh "$GITHUB_WORKSPACE/melonds-dldi/dream_radar.nds" melonds-results
+          # Keep save-media diagnostics even when the randomized outing
+          # gained no Orbs; filenames and sizes reveal whether DLDI wrote.
+          echo "DLDI save inventory (relative paths and byte sizes):"
+          find melonds-dldi/saves -maxdepth 2 -type f -printf '%P %s bytes\\n' || true
           # Opportunistically verify a clean restart on ordinary CI runs that
           # actually gained Orbs. Strict manual mode still fails when no gain
           # exists; a no-gain smoke run is never reported as persistence proof.
           if [[ "${{ inputs.require_restart_persistence && '1' || '0' }}" == 1 ]] || \
-             python3 -c 'import json; from pathlib import Path; p=Path("melonds-results/orb-balance-change.json"); assert p.is_file(); r=json.loads(p.read_text()); assert r.get("balance_increased") is True'; then
+             python3 -c 'import json,sys; from pathlib import Path; p=Path("melonds-results/orb-balance-change.json"); r=json.loads(p.read_text()) if p.is_file() else {}; sys.exit(r.get("balance_increased") is not True)'; then
             test -s melonds-dldi/saves/dream_radar.dreamradar.sav
             expected_orbs="$(python3 -c 'import json; from pathlib import Path; p=json.loads(Path("melonds-results/orb-balance-change.json").read_text()); assert p.get("balance_increased") is True, "No first-session Orb gain"; n=p["after"]["saved_orbs"]; assert type(n) is int and 0 < n <= 0xffffffff; print(n)')"
             xvfb-run -a -s '-screen 0 1280x900x24' \
