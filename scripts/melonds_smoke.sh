@@ -162,6 +162,11 @@ if [[ "${REQUIRE_PREEXISTING_ORB:-0}" == 1 ]]; then
   fi
   python3 tools/check_restored_orbs.py "$out/orb-balance-before.json" \
     --expected-balance "$EXPECTED_RESTORED_ORBS"
+  # The second process exists only to verify restored save state. Do not
+  # start a second randomized search or risk obscuring the acceptance result.
+  # The EXIT trap records emulator termination for provenance verification.
+  echo "PASS: independently decoded restored Orb balance; ending restart session" | tee -a "$out/runtime.log"
+  exit 0
 fi
 press_ds_key x 0.3
 # Returning to the lab resets selection to START SEARCH.
