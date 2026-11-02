@@ -13,7 +13,7 @@ PNG = bytes((137, 80, 78, 71, 13, 10, 26, 10)) + b"synthetic-only"
 REWARD = {"reward_kind": "item", "reward_name": "Sun Stone"}
 
 
-def check(first, second, save, visible=(REWARD, REWARD)):
+def check(first, second, save, visible=(REWARD, REWARD, REWARD)):
     with patch("verify_melonds_reward_restart.decode_native_capture",
                return_value=(b"", 256, 403)), \
          patch("verify_melonds_reward_restart.font_rows", return_value=[]), \
@@ -22,7 +22,7 @@ def check(first, second, save, visible=(REWARD, REWARD)):
         return verify_reward_restart(first, second, save)
 
 
-def rejected(first, second, save, visible=(REWARD, REWARD)):
+def rejected(first, second, save, visible=(REWARD, REWARD, REWARD)):
     try:
         check(first, second, save, visible)
     except (ValueError, OSError, KeyError):
@@ -36,8 +36,10 @@ with tempfile.TemporaryDirectory() as tmp:
     first.mkdir()
     second.mkdir()
     (first / "05-capture-reward.png").write_bytes(PNG)
+    (first / "06-results-preserved.png").write_bytes(PNG)
     (second / "03-restored-capture-reward.png").write_bytes(PNG)
     (first / "sphere-reward.json").write_text(json.dumps(REWARD))
+    (first / "reward-preserved-before-exit.json").write_text(json.dumps(REWARD))
     (second / "restored-reward.json").write_text(json.dumps(REWARD))
     (first / "runtime.log").write_text(
         "Emulator launcher PID: 101\nEmulator launcher PID 101 terminated\n")
@@ -47,10 +49,24 @@ with tempfile.TemporaryDirectory() as tmp:
     save.write_bytes(b"synthetic-save")
     report = check(first, second, save)
     assert report["visible_reward_restored"] is True
+    assert report["visible_reward_preserved_before_shutdown"] is True
+    assert len(report["save_file_sha256"]) == 64
     assert report["reward"] == REWARD
     assert report["first_pid"] == 101 and report["restart_pid"] == 102
     rejected(first, first, save)
-    rejected(first, second, save, (REWARD, {"reward_kind": "pokemon", "reward_name": "Tornadus"}))
+    rejected(first, second, save, (REWARD, REWARD, {"reward_kind": "pokemon", "reward_name": "Tornadus"}))
+    rejected(first, second, save, (REWARD, {"reward_kind": "pokemon", "reward_name": "Tornadus"}, REWARD))
+    preserved = first / "reward-preserved-before-exit.json"
+    original_preserved = preserved.read_text()
+    preserved.write_text(json.dumps({"reward_kind": "item", "reward_name": "Moon Stone"}))
+    rejected(first, second, save)
+    preserved.write_text(original_preserved)
+    preserved_png = first / "06-results-preserved.png"
+    preserved_png.unlink()
+    rejected(first, second, save)
+    preserved_png.write_bytes(b"invalid PNG")
+    rejected(first, second, save)
+    preserved_png.write_bytes(PNG)
     old = (second / "restored-reward.json").read_text()
     (second / "restored-reward.json").write_text(json.dumps({
         "reward_kind": "pokemon", "reward_name": "Tornadus"}))
