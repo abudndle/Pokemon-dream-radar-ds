@@ -72,6 +72,50 @@ def pulse_if_aligned(status):
     return True
 
 
+
+def correct_if_unaligned(status, aim):
+    """Move the camera immediately from a unique fresh *unaligned* frame.
+
+    This is a bounded, no-fire correction. A second independent screenshot
+    must authorize any subsequent shot. Derive keys from validated observed
+    offsets, never from an earlier prediction or untrusted key strings.
+    """
+    if status != "unaligned":
+        return False
+    gate = evaluate(aim)
+    if gate["fire_authorized"]:
+        raise ValueError("Aligned gate cannot request camera correction")
+    dx, dy = aim["offset"]["x"], aim["offset"]["y"]
+    axes = []
+    for displacement, negative, positive in (
+            (dx, "Left", "Right"), (dy, "Up", "Down")):
+        if displacement:
+            axes.append((negative if displacement < 0 else positive,
+                         round(min(0.12, abs(displacement) / 360), 3)))
+    if not axes:
+        raise ValueError("Unaligned gate has no camera offset")
+    held = []
+    try:
+        # No stale held A is allowed during camera motion.
+        subprocess.run(["xdotool", "keyup", "z"], check=True, timeout=3)
+        for key, seconds in axes:
+            # Register before keydown: even a failing xdotool invocation
+            # might have delivered the key and must be cleaned up.
+            held.append(key)
+            subprocess.run(["xdotool", "keydown", "--clearmodifiers", key],
+                           check=True, timeout=3)
+        elapsed = 0.0
+        for key, seconds in sorted(axes, key=lambda axis: axis[1]):
+            time.sleep(max(0.0, seconds - elapsed))
+            elapsed = seconds
+            subprocess.run(["xdotool", "keyup", key], check=True, timeout=3)
+            held.remove(key)
+    finally:
+        for key in reversed(held):
+            subprocess.run(["xdotool", "keyup", key], check=True, timeout=3)
+    return True
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("screenshot", type=Path)
@@ -79,6 +123,8 @@ def main():
         parser.add_argument("--" + name, required=True, type=Path)
     parser.add_argument("--fire-aligned", action="store_true",
                         help="Pulse DS A immediately after a fresh aligned observation; never on other statuses")
+    parser.add_argument("--correct-unaligned", action="store_true",
+                        help="Move camera from fresh unaligned target; require another screenshot before firing")
     args = parser.parse_args()
     paths = {name: getattr(args, name) for name in ("reward", "progress", "aim", "gate")}
     # A failed decode must not leave stale gate JSON that looks authorized.
@@ -94,6 +140,7 @@ def main():
         # Evidence is written only after the bounded pulse has released A;
         # any pulse/write failure is still a hard error, never a claimed hit.
         fired = pulse_if_aligned(status) if args.fire_aligned else False
+        corrected = correct_if_unaligned(status, result[3]) if args.correct_unaligned else False
         write_evidence(paths, result)
     except (OSError, ValueError, subprocess.CalledProcessError,
             subprocess.TimeoutExpired) as exc:
@@ -101,7 +148,7 @@ def main():
         paths["gate"].unlink(missing_ok=True)
         parser.exit(13, f"Prefire frame inspection failed: {exc}\n")
     print(json.dumps({"status": status, "fire_authorized": status == "aligned",
-                      "fire_executed": fired,
+                      "fire_executed": fired, "camera_correction_executed": corrected,
                       "limitations": "Fresh fallback screenshot only; not proof of hit, capture, save or restart."}))
     return EXIT_CODES[status]
 
