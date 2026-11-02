@@ -271,6 +271,27 @@ assert pastel_motion["target_screen"] == {"x": 205, "y": 79}
 assert pastel_motion["motion_prediction"] == "bounded"
 assert pastel_motion["horizontal_key"] == "Right"
 assert pastel_motion["vertical_key"] == "Up"
+# Upper-edge sprites remain visible near y=30; the stationary dark
+# class-label HUD at x=5..115 must never become a false target.
+near_top = pastel_sphere_frame(0, -39)
+for y in range(22 + OFFSET, 37 + OFFSET):
+    for x in range(5, 116):
+        at = (y * WIDTH + x) * 3
+        near_top[at:at + 3] = bytes((8, 8, 8))
+top_target = plan_sphere(near_top, WIDTH, HEIGHT)
+assert top_target["target_screen"] == {"x": 190, "y": 31}
+hud_only = sphere_frame(False)
+for y in range(22 + OFFSET, 37 + OFFSET):
+    for x in range(5, 116):
+        at = (y * WIDTH + x) * 3
+        hud_only[at:at + 3] = bytes((8, 8, 8))
+try:
+    plan_sphere(hud_only, WIDTH, HEIGHT)
+except ValueError:
+    pass
+else:
+    raise AssertionError("Static capture HUD accepted as moving encounter art")
+
 print("PASS: pastel-pink real-encounter palette is trackable without accepting white clouds")
 
 print("PASS: temporal sphere association tracks only an unambiguous known target")
