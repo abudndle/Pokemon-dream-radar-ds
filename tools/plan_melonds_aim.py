@@ -164,10 +164,11 @@ def locate_orbs(pixels, width, height):
             w, h = max(xs) - min(xs), max(ys) - min(ys)
             if not 4 <= w <= 16 or not 4 <= h <= 16:
                 continue
-            # Nonpink colors are also used in HUD/reticle graphics. Require
-            # the >=8px filled silhouette of an actual 9x9 Orb, not a small
-            # colored label glyph. Keep the existing pink fallback tolerance.
-            if color != "pink" and (w < 7 or h < 7 or len(component) < 50):
+            # The 11x11 white border is TWO pixels thick, covering the
+            # outer edge of the 9x9 fill: real melonDS frames show a 7x7
+            # interior (49 pixels), not 9x9. Reject tiny colored HUD glyphs
+            # without discarding every real nonpink Orb.
+            if color != "pink" and (w < 5 or h < 5 or len(component) < 30):
                 continue
             found.append((round(sum(xs) / len(xs)),
                           round(sum(ys) / len(ys)) - offset, len(component)))
