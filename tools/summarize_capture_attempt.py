@@ -11,9 +11,12 @@ import subprocess
 
 from verify_melonds_navigation import (decode_native_capture, font_rows,
                                        read_capture_reward)
+from sphere_prefire_gate import evaluate as evaluate_prefire
 
 PATTERNS = ("sphere-before-progress-*.json", "sphere-progress-*.json",
-            "sphere-reacquire-progress-*.json", "sphere-edge-progress-*.json")
+            "sphere-reacquire-progress-*.json", "sphere-edge-progress-*.json",
+            "sphere-prefire-progress-*.json",
+            "sphere-prefire-corrected-progress-*.json")
 CLASSES = {"drifting", "swift", "erratic", "legendary", "item"}
 
 
@@ -34,6 +37,29 @@ def summarize(directory):
                 raise ValueError(f"Invalid capture meter evidence: {path}")
             observations.append({"file": path.name, "filled_pixels": value,
                                  "capture_class": encounter["capture_class"]})
+    # Prefire decisions are diagnostics, not evidence of a beam hit. Validate
+    # each saved decision against the same strict reticle contract as the
+    # firing gate so malformed sidecars cannot inflate alignment statistics.
+    prefire_decisions = []
+    for path in sorted(directory.glob("sphere-prefire-gate-*.json")):
+        data = json.loads(path.read_text())
+        if not isinstance(data, dict):
+            raise ValueError(f"Invalid prefire decision: {path}")
+        observed = data.get("observed_target_screen")
+        if not isinstance(observed, dict):
+            raise ValueError(f"Missing prefire coordinates: {path}")
+        try:
+            expected = evaluate_prefire({
+                "candidate_spheres": 1,
+                "target_screen": observed,
+                "offset": {"x": observed["x"] - 128,
+                           "y": observed["y"] - 96},
+            })
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ValueError(f"Invalid prefire coordinates: {path}") from exc
+        if data != expected:
+            raise ValueError(f"Prefire decision does not match observed target: {path}")
+        prefire_decisions.append(data)
     reward_path = directory / "sphere-reward.json"
     image_path = directory / "05-capture-reward.png"
     reward_observed = False
@@ -65,6 +91,9 @@ def summarize(directory):
             "samples": len(observations),
             "max_meter_pixels": peak["filled_pixels"] if peak else 0,
             "max_meter_observation": peak["file"] if peak else None,
+            "prefire_gate_evaluations": len(prefire_decisions),
+            "prefire_aligned_observations": sum(d["fire_authorized"] for d in prefire_decisions),
+            "prefire_unaligned_observations": sum(not d["fire_authorized"] for d in prefire_decisions),
             "meter_width_pixels": 177,
             "capture_classes_observed": sorted({o["capture_class"] for o in observations}),
             "reward_screen_observed": reward_observed,

@@ -22,6 +22,17 @@ assert aim < fire_at
 assert loop.index('    last_sphere_plan="$out/sphere-aim-$step.json"') < fire_at
 assert loop.index('    read -r horizontal horizontal_seconds vertical vertical_seconds') < fire_at
 
+# The old moving-target prediction may guide a no-fire camera correction,
+# but only a new post-movement frame can authorize the single beam pulse.
+assert loop.index('    snapshot "05-sphere-prefire-$step"') < fire_at
+assert loop.index('    snapshot "05-sphere-prefire-corrected-$step"') < fire_at
+assert loop.count('python3 tools/sphere_prefire_gate.py') == 2
+assert loop.index('    if ! python3 tools/sphere_prefire_gate.py') < fire_at
+assert 'sphere_fire_skipped=$((sphere_fire_skipped + 1))' in loop[:fire_at]
+assert '      continue' in loop[:fire_at]
+assert loop.index('    sphere_fire_authorized=$((sphere_fire_authorized + 1))') < fire_at
+assert loop.index('    aim_ds_key "$horizontal" "$horizontal_seconds" 0.06') < loop.index('    snapshot "05-sphere-prefire-$step"')
+
 # A fresh observation and all stationary/edge recovery must be no-fire.
 assert loop.index('  xdotool keyup z') < loop.index('  capture_last="$out/05-sphere-encounter.png"')
 assert loop.index('    xdotool keyup z\n    snapshot "05-sphere-before-$step"') < fire_at
@@ -38,4 +49,4 @@ assert post.index('    snapshot "05-sphere-sweep-$step"') < post.index('--observ
 assert loop.index('  xdotool keyup z\n  echo "INFO: guided sphere aim') > fire_at
 
 subprocess.run(["bash", "-n", str(ROOT / "scripts/melonds_smoke.sh")], check=True)
-print("PASS: sphere beam gated on screenshot plan, released during recovery and Results")
+print("PASS: sphere beam requires fresh post-movement alignment, with no-fire correction and Results guard")
