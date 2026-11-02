@@ -709,6 +709,10 @@ if [[ -f "$out/05-sphere-encounter.png" ]]; then
   echo "INFO: sphere reacquisition succeeded $reacquire_successes of $reacquire_attempts attempts" | tee -a "$out/runtime.log"
   echo "INFO: no-fire edge camera recovery succeeded $edge_recovery_successes of $edge_recovery_attempts attempts" | tee -a "$out/runtime.log"
 fi
+# Persist an explicit meter ceiling and reward-evidence boundary for CI.
+# An encounter and a partially filled bar are NOT a completed capture.
+python3 tools/summarize_capture_attempt.py "$out" \
+  --output "$out/sphere-attempt-report.json" | tee -a "$out/runtime.log"
 if [[ -f "$out/05-capture-reward.png" ]]; then
   cp "$out/05-capture-reward.png" "$out/06-results.png"
 elif [[ -f "$out/06-results.png" ]]; then
