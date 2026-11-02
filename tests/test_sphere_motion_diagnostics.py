@@ -179,4 +179,36 @@ with tempfile.TemporaryDirectory() as tmp:
     write(inspector_path, inspector)
     assert analyze(root)["meter_response_by_projectile_proximity"]["unknown"]["reported_pulses"] == 4
 
+# The third-frame screenshot has its own inspector variant; a real
+# melonDS attempt must not crash the postfire audit merely for reaching it.
+with tempfile.TemporaryDirectory() as tmp:
+    root = Path(tmp)
+    gate = evaluate({"candidate_spheres": 1,
+                     "target_screen": {"x": 128, "y": 96},
+                     "offset": {"x": 0, "y": 0}})
+    write(root / "sphere-prefire-gate-1.json", gate)
+    write(root / "sphere-prefire-recorrected-inspection-1.json",
+          {"status": "aligned", "fire_authorized": True,
+           "fire_executed": True})
+    write(root / "sphere-attempt-report.json",
+          {"kind": "melonDS-sphere-capture-progress",
+           "inspector_reported_fire_pulses": 1,
+           "postfire_meter_delta_samples": [
+               {"step": 1, "prefire_meter": 0,
+                "postfire_meter": None, "meter_delta": None}]})
+    result = analyze(root)
+    assert result["inspector_reported_pulses"] == 1
+    assert result["shots"][0]["prefire_variant"] == "recorrected-"
+    assert result["postfire_frames_missing"] == 1
+    assert result["prefire_projectile_frames_missing"] == 1
+    write(root / "sphere-prefire-stationary-inspection-1.json",
+          {"status": "aligned", "fire_authorized": True,
+           "fire_executed": True})
+    try:
+        analyze(root)
+    except ValueError as exc:
+        assert "unique inspector" in str(exc)
+    else:
+        raise AssertionError("Conflicting third-frame firing inspector accepted")
+
 print("PASS: postfire motion diagnostics separate target movement from actual hit evidence")

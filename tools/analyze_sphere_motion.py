@@ -15,7 +15,7 @@ from detect_projectile_interference import describe_projectiles
 from sphere_prefire_gate import evaluate
 from verify_melonds_navigation import decode_native_capture
 
-VARIANTS = ("", "corrected-", "stationary-")
+VARIANTS = ("", "corrected-", "recorrected-", "stationary-")
 
 
 def _read_object(path):
