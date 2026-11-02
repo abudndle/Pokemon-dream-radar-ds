@@ -231,8 +231,16 @@ def audit_emulator_evidence(root, evidence_dir):
     if not isinstance(captures, dict):
         return {**base, "status": "missing_captures"}
     fingerprints = set()
+    capture_paths = set()
     for stage in required:
         shot = captures.get(stage)
+        # A stage must have its own capture file; reusing a single image
+        # under multiple stage names is not independent emulator evidence.
+        if not isinstance(shot, dict) or not isinstance(shot.get("path"), str):
+            return {**base, "status": "invalid_capture", "failed_stage": stage}
+        if shot["path"] in capture_paths:
+            return {**base, "status": "reused_capture_paths", "failed_stage": stage}
+        capture_paths.add(shot["path"])
         data = _evidence_file(evidence, shot, ".png")
         fingerprint = _valid_png(data) if data else None
         if not fingerprint:
