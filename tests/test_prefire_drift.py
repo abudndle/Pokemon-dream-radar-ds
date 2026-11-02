@@ -6,7 +6,7 @@ import sys
 import tempfile
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
-from analyze_prefire_drift import analyze
+from analyze_prefire_drift import analyze, distance_bands
 from sphere_prefire_gate import evaluate
 
 
@@ -43,6 +43,29 @@ with tempfile.TemporaryDirectory() as tmp:
     assert result['median_prefire_reticle_distance_pixels'] == 16
     assert result['prefire_within_15_pixels'] == 1
     assert result['prefire_fire_authorized'] == 1
+    assert result['prefire_distance_bands'] == {
+        'aligned_0_to_15': 2, 'old_correction_16_to_43': 1,
+        'expanded_correction_44_to_72': 0,
+        'beyond_single_correction_over_72': 0}
+    assert result['camera_plan_residual_bands'] == {
+        'aligned_0_to_15': 1, 'old_correction_16_to_43': 1,
+        'expanded_correction_44_to_72': 0,
+        'beyond_single_correction_over_72': 0}
+    assert distance_bands([0, 15, 16, 43, 44, 72, 73, 200]) == {
+        'aligned_0_to_15': 2, 'old_correction_16_to_43': 2,
+        'expanded_correction_44_to_72': 2,
+        'beyond_single_correction_over_72': 2}
+    # Noncanonical zero-padded names could count the same screenshot step
+    # twice and inflate apparent tracking effectiveness. Fail closed.
+    duplicate = root / 'sphere-prefire-gate-01.json'
+    write(duplicate, json.loads((root / 'sphere-prefire-gate-1.json').read_text()))
+    try:
+        analyze(root)
+    except ValueError as exc:
+        assert 'filename' in str(exc)
+    else:
+        raise AssertionError('Noncanonical duplicate gate step accepted')
+    duplicate.unlink()
     assert result['rows'][1]['initial_to_prefire_displacement_pixels'] is None
     original = json.loads((root / 'sphere-prefire-gate-1.json').read_text())
     write(root / 'sphere-prefire-gate-1.json', {**original, 'fire_authorized': False})
