@@ -144,7 +144,31 @@ touch_ds() {
   sleep 2
 }
 sleep 10
+# This is a boot screenshot, not necessarily a title screenshot: the game
+# restores its last saved scene and can reopen the Development Lab shop.
 snapshot 01-title
+if [[ "${REQUIRE_PREEXISTING_ORB:-0}" == 1 ]]; then
+  # A previous search can save the shop as the resume scene. On a genuinely
+  # fresh second emulator launch, inspect its pixels BEFORE sending stylus
+  # or Start: those inputs would otherwise act on the resumed shop instead
+  # of the title screen and falsely fail restart acceptance.
+  if python3 tools/verify_melonds_navigation.py "$out" \
+      --observe-shop-orbs-screenshot "$out/01-title.png" \
+      >"$out/orb-balance-before.json" 2>"$out/restart-boot-shop.err"; then
+    cp "$out/01-title.png" "$out/03-shop-orbs-before.png"
+    if [[ -z "${EXPECTED_RESTORED_ORBS:-}" ]]; then
+      echo "Clean-restart acceptance failed: missing first-session Orb balance" >&2
+      exit 1
+    fi
+    python3 tools/check_restored_orbs.py "$out/orb-balance-before.json" \
+      --expected-balance "$EXPECTED_RESTORED_ORBS"
+    echo "PASS: fresh emulator resumed into saved Development Lab shop; exact Orb balance restored" | tee -a "$out/runtime.log"
+    # The EXIT trap records launcher termination for the provenance verifier.
+    exit 0
+  fi
+  rm -f "$out/orb-balance-before.json"
+  echo "INFO: restart boot is not the saved shop; testing title navigation" | tee -a "$out/runtime.log"
+fi
 # The captured client window is 256x403: its menu bar occupies y=0..19,
 # top DS screen y=20..211, and touchscreen y=211..402. Tap the center of
 # the highlighted Start button (x=128, y≈269), not the cloud-count label.
