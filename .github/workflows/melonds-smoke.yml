@@ -81,11 +81,10 @@ jobs:
       - name: Configure melonDS keyboard mappings
         run: |
           mkdir -p "$HOME/.var/app/net.kuribo64.melonDS/config/melonDS"
-          echo "XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-unset}"
-          if [[ -n "${XDG_RUNTIME_DIR:-}" ]]; then
-            mkdir -p "$XDG_RUNTIME_DIR/dconf"
-            chmod 700 "$XDG_RUNTIME_DIR" "$XDG_RUNTIME_DIR/dconf"
-          fi
+          export XDG_RUNTIME_DIR="$RUNNER_TEMP/melonds-xdg-runtime"
+          mkdir -p "$XDG_RUNTIME_DIR/dconf"
+          chmod 700 "$XDG_RUNTIME_DIR" "$XDG_RUNTIME_DIR/dconf"
+          echo "XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR"
           cat > "$HOME/.var/app/net.kuribo64.melonDS/config/melonDS/melonDS.toml" <<'EOF'
           [Instance0]
           [Instance0.Keyboard]
