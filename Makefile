@@ -199,6 +199,7 @@ test-host:
 	python3 tests/test_melonds_dual_axis.py
 	python3 tests/test_sphere_prefire_gate.py
 	python3 tests/test_prefire_frame.py
+	python3 tests/test_stationary_retry.py
 	python3 tests/test_prefire_workflow_coverage.py
 	python3 tests/test_capture_progress_summary.py
 	python3 tests/test_capture_sweep_budget.py
