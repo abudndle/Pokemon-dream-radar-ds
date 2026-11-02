@@ -49,6 +49,7 @@ for attempt in $(seq 1 60); do
   [[ -n "$window" ]] && break
   if ! kill -0 "$pid" 2>/dev/null && ! xdotool search --onlyvisible --name 'melonDS' >/dev/null 2>&1; then
     cat "$out/melonds.log" >&2
+    echo "melonDS launcher exited before a visible DS display; inspect melonds.log" >&2
     exit 1
   fi
   sleep 1
