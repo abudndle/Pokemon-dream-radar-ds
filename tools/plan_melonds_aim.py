@@ -171,6 +171,57 @@ def plan_orb(pixels, width, height):
 
 
 
+
+def plan_orb_motion(previous_pixels, pixels, width, height):
+    """Predict short-lived Orb motion from stationary consecutive DS frames.
+
+    Only a uniquely associated previous Orb may supply velocity. Camera
+    panning between frames invalidates this assumption, so callers must
+    sample both frames without moving the D-pad. A predicted position is
+    never sufficient to authorize firing: within_safe_fire_radius is always
+    computed from the CURRENT observed Orb, not its extrapolation.
+    """
+    current = plan_orb(pixels, width, height)
+    observed = current["target_screen"].copy()
+    current["observed_target_screen"] = observed
+    current["motion_prediction"] = "previous_frame_unrecognized"
+    previous = locate_orbs(previous_pixels, width, height)
+    if not previous:
+        return current
+    now = locate_orbs(pixels, width, height)[0]
+    candidates = []
+    for px, py, area in previous:
+        distance_sq = (observed["x"] - px) ** 2 + (observed["y"] - py) ** 2
+        if distance_sq <= 36 ** 2 and 0.6 * now[2] <= area <= 1.5 * now[2]:
+            candidates.append((distance_sq, px, py))
+    candidates.sort()
+    if not candidates:
+        current["motion_prediction"] = "discontinuity"
+        return current
+    from math import sqrt
+    if len(candidates) > 1 and sqrt(candidates[1][0]) - sqrt(candidates[0][0]) < 12:
+        current["motion_prediction"] = "ambiguous_previous_target"
+        return current
+    _, px, py = candidates[0]
+    dx, dy = observed["x"] - px, observed["y"] - py
+    lead_x = max(-12, min(12, round(dx * 0.5)))
+    lead_y = max(-12, min(12, round(dy * 0.5)))
+    x = max(12, min(243, observed["x"] + lead_x))
+    y = max(24, min(173, observed["y"] + lead_y))
+    offset_x, offset_y = x - 128, y - 96
+    current.update({
+        "target_screen": {"x": x, "y": y},
+        "offset": {"x": offset_x, "y": offset_y},
+        "horizontal_key": "Right" if offset_x > 0 else "Left" if offset_x < 0 else "none",
+        "vertical_key": "Down" if offset_y > 0 else "Up" if offset_y < 0 else "none",
+        "horizontal_seconds": round(min(0.5, abs(offset_x) / 360), 3),
+        "vertical_seconds": round(min(0.5, abs(offset_y) / 360), 3),
+        "motion_prediction": "bounded",
+        "observed_displacement": {"x": dx, "y": dy},
+    })
+    return current
+
+
 def locate_spheres(pixels, width, height):
     """Locate high-contrast DS fallback encounter art, NOT the white backdrop.
 
@@ -328,7 +379,7 @@ def main():
     parser.add_argument("screenshot", type=Path)
     parser.add_argument("--target", choices=("cloud", "orb", "sphere"), default="cloud")
     parser.add_argument("--previous-screenshot", type=Path,
-                        help="Earlier sphere frame for bounded motion lead")
+                        help="Earlier stationary Orb frame or sphere frame for bounded motion lead")
     args = parser.parse_args()
     size = subprocess.run(["identify", "-format", "%w %h", str(args.screenshot)],
                           capture_output=True, text=True, check=True, timeout=12)
@@ -337,17 +388,18 @@ def main():
                          capture_output=True, check=True, timeout=12)
     planner = {"cloud": plan, "orb": plan_orb, "sphere": plan_sphere}[args.target]
     if args.previous_screenshot:
-        if args.target != "sphere":
-            parser.error("--previous-screenshot is only valid with --target sphere")
+        if args.target not in ("orb", "sphere"):
+            parser.error("--previous-screenshot is only valid with --target orb or sphere")
         previous_size = subprocess.run(
             ["identify", "-format", "%w %h", str(args.previous_screenshot)],
             capture_output=True, text=True, check=True, timeout=12)
         if tuple(map(int, previous_size.stdout.split())) != (width, height):
-            raise ValueError("Sphere frames have different dimensions")
+            raise ValueError("Aim frames have different dimensions")
         previous_raw = subprocess.run(
             ["convert", str(args.previous_screenshot), "-depth", "8", "rgb:-"],
             capture_output=True, check=True, timeout=12)
-        result = plan_sphere_motion(previous_raw.stdout, raw.stdout, width, height)
+        result = (plan_orb_motion if args.target == "orb" else plan_sphere_motion)(
+            previous_raw.stdout, raw.stdout, width, height)
     else:
         result = planner(raw.stdout, width, height)
     print(json.dumps(result, indent=2))
