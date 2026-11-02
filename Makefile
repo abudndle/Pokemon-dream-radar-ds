@@ -156,6 +156,7 @@ test-host:
 	python3 tests/test_original_model_inventory.py
 	python3 tests/test_extracted_obj_converter.py
 	python3 tests/test_stage_pokemon_models.py
+	python3 tests/test_private_romfs_manifest.py
 	python3 tests/test_ncch_carc_headers.py
 	python3 tests/test_ncch_lz40_probe.py
 	python3 tests/test_ncch_lzh8.py
