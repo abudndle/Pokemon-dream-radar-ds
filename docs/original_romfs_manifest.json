@@ -1,0 +1,846 @@
+{
+  "schema_version": 1,
+  "description": "Metadata-only source RomFS inventory from the user's previously audited decrypted Dream Radar NCCH. Contains virtual paths and byte sizes only; no original asset payloads.",
+  "file_count": 208,
+  "directory_count": 15,
+  "types": {
+    "carc": 177,
+    "shbin": 10,
+    "bcstm": 20,
+    "bcsar": 1
+  },
+  "files": [
+    {
+      "path": "/LocalizeTex/Tex_Lds_En.carc",
+      "size": 9332
+    },
+    {
+      "path": "/LocalizeTex/Tex_Lds_Fr.carc",
+      "size": 16160
+    },
+    {
+      "path": "/LocalizeTex/Tex_Lds_Ge.carc",
+      "size": 10320
+    },
+    {
+      "path": "/LocalizeTex/Tex_Lds_It.carc",
+      "size": 11000
+    },
+    {
+      "path": "/LocalizeTex/Tex_Lds_Jp.carc",
+      "size": 10348
+    },
+    {
+      "path": "/LocalizeTex/Tex_Lds_Kr.carc",
+      "size": 9552
+    },
+    {
+      "path": "/LocalizeTex/Tex_Lds_Sp.carc",
+      "size": 15368
+    },
+    {
+      "path": "/LocalizeTex/Tex_Title_En.carc",
+      "size": 79220
+    },
+    {
+      "path": "/LocalizeTex/Tex_Title_Fr.carc",
+      "size": 80916
+    },
+    {
+      "path": "/LocalizeTex/Tex_Title_Ge.carc",
+      "size": 85080
+    },
+    {
+      "path": "/LocalizeTex/Tex_Title_It.carc",
+      "size": 80920
+    },
+    {
+      "path": "/LocalizeTex/Tex_Title_Jp.carc",
+      "size": 64796
+    },
+    {
+      "path": "/LocalizeTex/Tex_Title_Kr.carc",
+      "size": 67924
+    },
+    {
+      "path": "/LocalizeTex/Tex_Title_Sp.carc",
+      "size": 80920
+    },
+    {
+      "path": "/LocalizeTex/Tex_Tns_En.carc",
+      "size": 9372
+    },
+    {
+      "path": "/LocalizeTex/Tex_Tns_Fr.carc",
+      "size": 15120
+    },
+    {
+      "path": "/LocalizeTex/Tex_Tns_Ge.carc",
+      "size": 9372
+    },
+    {
+      "path": "/LocalizeTex/Tex_Tns_It.carc",
+      "size": 11044
+    },
+    {
+      "path": "/LocalizeTex/Tex_Tns_Jp.carc",
+      "size": 10248
+    },
+    {
+      "path": "/LocalizeTex/Tex_Tns_Kr.carc",
+      "size": 9580
+    },
+    {
+      "path": "/LocalizeTex/Tex_Tns_Sp.carc",
+      "size": 15416
+    },
+    {
+      "path": "/LocalizeTex/Tex_Vts_En.carc",
+      "size": 9576
+    },
+    {
+      "path": "/LocalizeTex/Tex_Vts_Fr.carc",
+      "size": 15436
+    },
+    {
+      "path": "/LocalizeTex/Tex_Vts_Ge.carc",
+      "size": 9944
+    },
+    {
+      "path": "/LocalizeTex/Tex_Vts_It.carc",
+      "size": 11244
+    },
+    {
+      "path": "/LocalizeTex/Tex_Vts_Jp.carc",
+      "size": 10372
+    },
+    {
+      "path": "/LocalizeTex/Tex_Vts_Kr.carc",
+      "size": 9216
+    },
+    {
+      "path": "/LocalizeTex/Tex_Vts_Sp.carc",
+      "size": 15620
+    },
+    {
+      "path": "/LocalizeTex/Tex_YesNo_En.carc",
+      "size": 1268
+    },
+    {
+      "path": "/LocalizeTex/Tex_YesNo_Fr.carc",
+      "size": 1372
+    },
+    {
+      "path": "/LocalizeTex/Tex_YesNo_Ge.carc",
+      "size": 1124
+    },
+    {
+      "path": "/LocalizeTex/Tex_YesNo_It.carc",
+      "size": 1108
+    },
+    {
+      "path": "/LocalizeTex/Tex_YesNo_Jp.carc",
+      "size": 1428
+    },
+    {
+      "path": "/LocalizeTex/Tex_YesNo_Kr.carc",
+      "size": 1200
+    },
+    {
+      "path": "/LocalizeTex/Tex_YesNo_Sp.carc",
+      "size": 1084
+    },
+    {
+      "path": "/Message/English/MsgData.carc",
+      "size": 21180
+    },
+    {
+      "path": "/Message/French/MsgData.carc",
+      "size": 22112
+    },
+    {
+      "path": "/Message/German/MsgData.carc",
+      "size": 24120
+    },
+    {
+      "path": "/Message/Italian/MsgData.carc",
+      "size": 22672
+    },
+    {
+      "path": "/Message/JP_Japanese/MsgData.carc",
+      "size": 15824
+    },
+    {
+      "path": "/Message/Korean/MsgData.carc",
+      "size": 19244
+    },
+    {
+      "path": "/Message/Spanish/MsgData.carc",
+      "size": 22300
+    },
+    {
+      "path": "/Obj/Dm_Itm_00.carc",
+      "size": 3428
+    },
+    {
+      "path": "/Obj/Dm_Itm_01.carc",
+      "size": 3516
+    },
+    {
+      "path": "/Obj/Dm_Itm_02.carc",
+      "size": 3704
+    },
+    {
+      "path": "/Obj/Dm_Itm_03.carc",
+      "size": 3528
+    },
+    {
+      "path": "/Obj/Dm_Itm_04.carc",
+      "size": 7296
+    },
+    {
+      "path": "/Obj/Dm_Itm_05.carc",
+      "size": 7232
+    },
+    {
+      "path": "/Obj/Dm_Itm_06.carc",
+      "size": 3900
+    },
+    {
+      "path": "/Obj/Dm_Itm_07.carc",
+      "size": 5400
+    },
+    {
+      "path": "/Obj/Dm_Itm_08.carc",
+      "size": 10884
+    },
+    {
+      "path": "/Obj/Dm_Itm_09.carc",
+      "size": 8296
+    },
+    {
+      "path": "/Obj/Dm_Itm_10.carc",
+      "size": 11616
+    },
+    {
+      "path": "/Obj/Dm_Itm_11.carc",
+      "size": 12008
+    },
+    {
+      "path": "/Obj/Dm_Itm_12.carc",
+      "size": 9548
+    },
+    {
+      "path": "/Obj/Dm_Itm_13.carc",
+      "size": 10924
+    },
+    {
+      "path": "/Obj/Dm_Itm_14.carc",
+      "size": 7600
+    },
+    {
+      "path": "/Obj/Dm_Itm_15.carc",
+      "size": 7376
+    },
+    {
+      "path": "/Obj/Dm_Itm_16.carc",
+      "size": 5696
+    },
+    {
+      "path": "/Obj/Dm_Itm_17.carc",
+      "size": 7808
+    },
+    {
+      "path": "/Obj/Dm_Itm_18.carc",
+      "size": 13168
+    },
+    {
+      "path": "/Obj/Dm_Itm_19.carc",
+      "size": 8336
+    },
+    {
+      "path": "/Obj/Dm_Itm_20.carc",
+      "size": 8332
+    },
+    {
+      "path": "/Obj/Dm_Itm_21.carc",
+      "size": 7880
+    },
+    {
+      "path": "/Obj/Dm_Itm_22.carc",
+      "size": 5504
+    },
+    {
+      "path": "/Obj/Dm_Pke_00.carc",
+      "size": 13132
+    },
+    {
+      "path": "/Obj/Dm_Pke_01.carc",
+      "size": 19192
+    },
+    {
+      "path": "/Obj/Dm_Pke_02.carc",
+      "size": 15536
+    },
+    {
+      "path": "/Obj/Dm_Pke_03.carc",
+      "size": 24484
+    },
+    {
+      "path": "/Obj/Dm_Pke_04.carc",
+      "size": 21536
+    },
+    {
+      "path": "/Obj/Dm_Pke_05.carc",
+      "size": 19344
+    },
+    {
+      "path": "/Obj/Dm_Pke_06.carc",
+      "size": 19376
+    },
+    {
+      "path": "/Obj/Dm_Pke_07.carc",
+      "size": 29348
+    },
+    {
+      "path": "/Obj/Dm_Pke_08.carc",
+      "size": 25628
+    },
+    {
+      "path": "/Obj/Dm_Pke_09.carc",
+      "size": 55896
+    },
+    {
+      "path": "/Obj/Dm_Pke_10.carc",
+      "size": 51840
+    },
+    {
+      "path": "/Obj/Dm_Pke_11.carc",
+      "size": 59324
+    },
+    {
+      "path": "/Obj/Dm_Pke_12.carc",
+      "size": 23436
+    },
+    {
+      "path": "/Obj/Dm_Pke_13.carc",
+      "size": 16412
+    },
+    {
+      "path": "/Obj/Dm_Pke_14.carc",
+      "size": 28836
+    },
+    {
+      "path": "/Obj/Dm_Pke_15.carc",
+      "size": 21436
+    },
+    {
+      "path": "/Obj/Dm_Pke_16.carc",
+      "size": 13140
+    },
+    {
+      "path": "/Obj/Dm_Pke_17.carc",
+      "size": 13012
+    },
+    {
+      "path": "/Obj/Dm_Pke_18.carc",
+      "size": 17108
+    },
+    {
+      "path": "/Obj/Dm_Pke_19.carc",
+      "size": 24788
+    },
+    {
+      "path": "/Obj/Dm_Pke_20.carc",
+      "size": 19164
+    },
+    {
+      "path": "/Obj/Dm_Pke_21.carc",
+      "size": 31148
+    },
+    {
+      "path": "/Obj/Dm_Pke_22.carc",
+      "size": 34692
+    },
+    {
+      "path": "/Obj/Dm_Pke_23.carc",
+      "size": 31668
+    },
+    {
+      "path": "/Obj/Dm_Pke_24.carc",
+      "size": 32404
+    },
+    {
+      "path": "/Obj/Dm_Pke_25.carc",
+      "size": 19344
+    },
+    {
+      "path": "/Obj/Ef_Bg_Col.carc",
+      "size": 644
+    },
+    {
+      "path": "/Obj/Ef_Bom_00.carc",
+      "size": 131332
+    },
+    {
+      "path": "/Obj/Ef_Bom_00_a.carc",
+      "size": 21120
+    },
+    {
+      "path": "/Obj/Ef_Bom_01.carc",
+      "size": 109516
+    },
+    {
+      "path": "/Obj/Ef_Bom_01_a.carc",
+      "size": 11036
+    },
+    {
+      "path": "/Obj/Ef_Bom_02.carc",
+      "size": 8104
+    },
+    {
+      "path": "/Obj/Ef_Bom_02_a.carc",
+      "size": 15132
+    },
+    {
+      "path": "/Obj/Ef_CpBm.carc",
+      "size": 11696
+    },
+    {
+      "path": "/Obj/Ef_CpFd.carc",
+      "size": 32536
+    },
+    {
+      "path": "/Obj/Ef_CpRg_00.carc",
+      "size": 5520
+    },
+    {
+      "path": "/Obj/Ef_DrBm_00.carc",
+      "size": 84276
+    },
+    {
+      "path": "/Obj/Ef_DrDp_00.carc",
+      "size": 10948
+    },
+    {
+      "path": "/Obj/Ef_DrDp_01.carc",
+      "size": 30632
+    },
+    {
+      "path": "/Obj/Ef_DrDp_02.carc",
+      "size": 28436
+    },
+    {
+      "path": "/Obj/Ef_Grd.carc",
+      "size": 24668
+    },
+    {
+      "path": "/Obj/Ef_Hit_00.carc",
+      "size": 25040
+    },
+    {
+      "path": "/Obj/Ef_Hkk_End_00.carc",
+      "size": 33984
+    },
+    {
+      "path": "/Obj/Ef_Htd_00.carc",
+      "size": 29004
+    },
+    {
+      "path": "/Obj/Ef_HtEf_00.carc",
+      "size": 4268
+    },
+    {
+      "path": "/Obj/Ef_Rds_00.carc",
+      "size": 39724
+    },
+    {
+      "path": "/Obj/Ef_Sht_00.carc",
+      "size": 7596
+    },
+    {
+      "path": "/Obj/Ef_Sht_01.carc",
+      "size": 6412
+    },
+    {
+      "path": "/Obj/Ef_Sht_02.carc",
+      "size": 6668
+    },
+    {
+      "path": "/Obj/Ef_Sht_03.carc",
+      "size": 6980
+    },
+    {
+      "path": "/Obj/Ef_Tam_00.carc",
+      "size": 6812
+    },
+    {
+      "path": "/Obj/Ef_Trn_00.carc",
+      "size": 50216
+    },
+    {
+      "path": "/Obj/Ef_U_BmCursor.carc",
+      "size": 2668
+    },
+    {
+      "path": "/Obj/Ef_Vts_00.carc",
+      "size": 14256
+    },
+    {
+      "path": "/Obj/Km_All_00.carc",
+      "size": 23816
+    },
+    {
+      "path": "/Obj/Km_All_01.carc",
+      "size": 21188
+    },
+    {
+      "path": "/Obj/Ln_Fly.carc",
+      "size": 488352
+    },
+    {
+      "path": "/Obj/Ln_MvDt.carc",
+      "size": 2428
+    },
+    {
+      "path": "/Obj/Ln_MvDtSp.carc",
+      "size": 2552
+    },
+    {
+      "path": "/Obj/Ln_Opdm_00.carc",
+      "size": 64772
+    },
+    {
+      "path": "/Obj/Normal_MvDt_00.carc",
+      "size": 1236
+    },
+    {
+      "path": "/Obj/Normal_MvDt_01.carc",
+      "size": 1256
+    },
+    {
+      "path": "/Obj/Normal_MvDt_02.carc",
+      "size": 1160
+    },
+    {
+      "path": "/Obj/Normal_MvDt_03.carc",
+      "size": 1192
+    },
+    {
+      "path": "/Obj/Normal_MvDt_04.carc",
+      "size": 1300
+    },
+    {
+      "path": "/Obj/Normal_MvDt_05.carc",
+      "size": 1240
+    },
+    {
+      "path": "/Obj/Normal_MvDt_06.carc",
+      "size": 1440
+    },
+    {
+      "path": "/Obj/Normal_MvDt_07.carc",
+      "size": 1456
+    },
+    {
+      "path": "/Obj/Tn_Fly.carc",
+      "size": 351752
+    },
+    {
+      "path": "/Obj/Tn_MvDt.carc",
+      "size": 2204
+    },
+    {
+      "path": "/Obj/Tn_MvDtSp.carc",
+      "size": 1940
+    },
+    {
+      "path": "/Obj/Tn_Opdm_00.carc",
+      "size": 88908
+    },
+    {
+      "path": "/Obj/Vl_Fly.carc",
+      "size": 454508
+    },
+    {
+      "path": "/Obj/Vl_MvDt.carc",
+      "size": 2236
+    },
+    {
+      "path": "/Obj/Vl_MvDtSp.carc",
+      "size": 2032
+    },
+    {
+      "path": "/Obj/Vl_Opdm_00.carc",
+      "size": 94780
+    },
+    {
+      "path": "/shaders/nnfont_RectDrawerShader.shbin",
+      "size": 964
+    },
+    {
+      "path": "/shaders/nnfont_TextWriterShader.shbin",
+      "size": 484
+    },
+    {
+      "path": "/shaders/nwdemo_Common.shbin",
+      "size": 388
+    },
+    {
+      "path": "/shaders/nwfont_RectDrawerShader.shbin",
+      "size": 964
+    },
+    {
+      "path": "/shaders/nwfont_TextWriterShader.shbin",
+      "size": 484
+    },
+    {
+      "path": "/shaders/nwgfx_DefaultShader.shbin",
+      "size": 9668
+    },
+    {
+      "path": "/shaders/nwlyt_ConstColorShader.shbin",
+      "size": 328
+    },
+    {
+      "path": "/shaders/nwlyt_PaneShader.shbin",
+      "size": 1060
+    },
+    {
+      "path": "/shaders/PrimitiveShader.shbin",
+      "size": 412
+    },
+    {
+      "path": "/shaders/shader.shbin",
+      "size": 2008
+    },
+    {
+      "path": "/sound/stream/BGM_DUMMY_02.bcstm",
+      "size": 640
+    },
+    {
+      "path": "/sound/stream/BGM_DUMMY_03.bcstm",
+      "size": 640
+    },
+    {
+      "path": "/sound/stream/BGM_DUMMY_04.bcstm",
+      "size": 640
+    },
+    {
+      "path": "/sound/stream/BGM_DUMMY_05.bcstm",
+      "size": 640
+    },
+    {
+      "path": "/sound/stream/BGM_DUMMY_06.bcstm",
+      "size": 640
+    },
+    {
+      "path": "/sound/stream/BGM_DUMMY_07.bcstm",
+      "size": 640
+    },
+    {
+      "path": "/sound/stream/BGM_DUMMY_08.bcstm",
+      "size": 640
+    },
+    {
+      "path": "/sound/stream/BGM_DUMMY_09.bcstm",
+      "size": 640
+    },
+    {
+      "path": "/sound/stream/BGM_ENDING.bcstm",
+      "size": 640
+    },
+    {
+      "path": "/sound/stream/BGM_FIELD_A.bcstm",
+      "size": 509760
+    },
+    {
+      "path": "/sound/stream/BGM_FIELD_B.bcstm",
+      "size": 640
+    },
+    {
+      "path": "/sound/stream/BGM_FIELD_C.bcstm",
+      "size": 640
+    },
+    {
+      "path": "/sound/stream/BGM_LEGEND_BATTLE.bcstm",
+      "size": 3153664
+    },
+    {
+      "path": "/sound/stream/BGM_MENU.bcstm",
+      "size": 239968
+    },
+    {
+      "path": "/sound/stream/BGM_POKEMON_BATTLE.bcstm",
+      "size": 2381440
+    },
+    {
+      "path": "/sound/stream/BGM_SEND.bcstm",
+      "size": 529344
+    },
+    {
+      "path": "/sound/stream/BGM_STAFFROLL.bcstm",
+      "size": 5320544
+    },
+    {
+      "path": "/sound/stream/BGM_TITLE.bcstm",
+      "size": 780928
+    },
+    {
+      "path": "/sound/stream/BGM_TOROS_A_BATTLE.bcstm",
+      "size": 2660160
+    },
+    {
+      "path": "/sound/stream/BGM_TUTORIAL.bcstm",
+      "size": 640
+    },
+    {
+      "path": "/sound/cygnus.bcsar",
+      "size": 2597296
+    },
+    {
+      "path": "/Ui/MnGm_S_Menu.carc",
+      "size": 52824
+    },
+    {
+      "path": "/Ui/MnGm_U_BmCursor.carc",
+      "size": 3756
+    },
+    {
+      "path": "/Ui/MnGm_U_CloudArrow.carc",
+      "size": 5408
+    },
+    {
+      "path": "/Ui/MnGm_U_Gauge.carc",
+      "size": 25180
+    },
+    {
+      "path": "/Ui/MnGm_U_TargetArrow.carc",
+      "size": 4144
+    },
+    {
+      "path": "/Ui/MnGm_U_Time.carc",
+      "size": 21300
+    },
+    {
+      "path": "/Ui/MnGm_U_Visor.carc",
+      "size": 47112
+    },
+    {
+      "path": "/Ui/MnIf_S_Bg.carc",
+      "size": 784
+    },
+    {
+      "path": "/Ui/MnIf_S_DdCount.carc",
+      "size": 6920
+    },
+    {
+      "path": "/Ui/MnIf_S_HomeNixSign.carc",
+      "size": 2564
+    },
+    {
+      "path": "/Ui/MnIf_S_MainMenuList.carc",
+      "size": 3860
+    },
+    {
+      "path": "/Ui/MnIf_S_PageName.carc",
+      "size": 2400
+    },
+    {
+      "path": "/Ui/MnIf_S_Record.carc",
+      "size": 9740
+    },
+    {
+      "path": "/Ui/MnIf_S_ScanList.carc",
+      "size": 9756
+    },
+    {
+      "path": "/Ui/MnIf_S_ShopList.carc",
+      "size": 15228
+    },
+    {
+      "path": "/Ui/MnIf_S_StaffList.carc",
+      "size": 464
+    },
+    {
+      "path": "/Ui/MnIf_S_TitleCloudCount.carc",
+      "size": 19988
+    },
+    {
+      "path": "/Ui/MnIf_S_TitleList.carc",
+      "size": 4300
+    },
+    {
+      "path": "/Ui/MnIf_S_TransList.carc",
+      "size": 40908
+    },
+    {
+      "path": "/Ui/MnIf_S_TransStart.carc",
+      "size": 16596
+    },
+    {
+      "path": "/Ui/MnIf_S_YesNoButton.carc",
+      "size": 6208
+    },
+    {
+      "path": "/Ui/MnIf_T_Item.carc",
+      "size": 28404
+    },
+    {
+      "path": "/Ui/MnIf_T_Pokemon.carc",
+      "size": 58128
+    },
+    {
+      "path": "/Ui/MnIf_U_Bg.carc",
+      "size": 1328
+    },
+    {
+      "path": "/Ui/MnIf_U_Chara.carc",
+      "size": 50432
+    },
+    {
+      "path": "/Ui/MnIf_U_MainMenu.carc",
+      "size": 118604
+    },
+    {
+      "path": "/Ui/MnIf_U_MessageWindow.carc",
+      "size": 53376
+    },
+    {
+      "path": "/Ui/MnIf_U_Pictures.carc",
+      "size": 65928
+    },
+    {
+      "path": "/Ui/MnIf_U_Pke_09.carc",
+      "size": 30460
+    },
+    {
+      "path": "/Ui/MnIf_U_Pke_10.carc",
+      "size": 26468
+    },
+    {
+      "path": "/Ui/MnIf_U_Pke_11.carc",
+      "size": 34020
+    },
+    {
+      "path": "/Ui/MnIf_U_Shop.carc",
+      "size": 54856
+    },
+    {
+      "path": "/Ui/MnIf_U_StaffList.carc",
+      "size": 464
+    },
+    {
+      "path": "/Ui/MnIf_U_StaffTitle.carc",
+      "size": 580
+    },
+    {
+      "path": "/Ui/MnIf_U_Title.carc",
+      "size": 73700
+    },
+    {
+      "path": "/Ui/MnIf_U_Trans.carc",
+      "size": 10464
+    }
+  ]
+}
