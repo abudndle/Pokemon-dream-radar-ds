@@ -64,7 +64,7 @@ jobs:
       - name: Install native melonDS dependencies and screenshot tools
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends curl unzip xvfb xauth xdotool imagemagick x11-utils dbus-daemon qt6-base-dev qt6-multimedia-dev libqt6svg6 libenet7 libsdl2-2.0-0 libslirp0
+          sudo apt-get install -y --no-install-recommends curl unzip xvfb xauth xdotool imagemagick x11-utils dbus-daemon qt6-base-dev qt6-multimedia-dev libqt6svg6 libenet7 libsdl2-2.0-0 libslirp0 libfaad2
       - name: Validate PNG-backed capture and reward CLI after ImageMagick install
         run: |
           python3 tests/test_melonds_navigation.py
