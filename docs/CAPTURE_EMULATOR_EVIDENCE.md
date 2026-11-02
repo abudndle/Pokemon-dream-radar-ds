@@ -33,6 +33,27 @@ contain the emulator name and window ID, as recorded by
 `scripts/melonds_smoke.sh`. The smoke script alone **does not** produce the
 full capture evidence: its navigation screenshots are insufficient.
 
+## Screenshot-guided cloud acquisition (DS fallback only)
+
+The smoke runner now distinguishes two visual signals from actual melonDS
+frames. A magenta-shadow cloud is a possible hittable target. An 11×11 gold
+direction marker at the edge of the radar viewport is **not** a cloud: it
+means a target is currently offscreen. The runner may move the D-pad toward
+that marker, but must reacquire visible cloud pixels and confirm the target
+is within 14 pixels of the reticle in a **fresh pre-fire screenshot** before
+pressing A. The 7×7 offscreen Dream Orb marker and gold HUD elements are
+not accepted as clouds. Eight bounded retry acquisitions handle clouds
+temporarily outside the viewport.
+
+The runner saves `05-radar-prefire.png`, `cloud-fire-check.json` and
+`05-radar-retry-*-prefire.png` with corresponding per-retry JSON checks.
+An absent cloud, marker-only frame, or unaligned target is a warning and
+**skips the shot**, never a successful hit. A visible cloud and an A-button
+input are still insufficient proof: compare independently decoded cloud
+counters or a recognized sphere transition in subsequent screenshots.
+The color/geometry heuristic is specific to the public DS fallback
+renderer; it does not recognize original 3DS sprites or establish parity.
+
 ## Optional live encounter instrumentation
 
 The Linux melonDS smoke workflow now tries screenshot-guided aiming on the
