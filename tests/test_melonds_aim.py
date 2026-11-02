@@ -12,9 +12,9 @@ WIDTH, HEIGHT = 256, 403
 OFFSET = HEIGHT - 384
 
 # The fallback renderer draws its reticle sprite at (112,80) on a 256x192
-# screen. Its authored 32x32 sight is centered at (128,96), which also
-# matches the world-to-screen transforms in source/main.c. Guard this
-# source/planner contract so a renderer change cannot silently stale aiming.
+# screen, while world-space targets map through the source-defined view origin
+# (128,96). The sprite's exact binary dimensions are not asserted here. Guard
+# this source/planner coordinate contract against accidental drift.
 source_main = (Path(__file__).resolve().parents[1] / "source" / "main.c").read_text()
 assert "draw_sprite(top,S_RETICLE,112,80);" in source_main
 assert "int sx=c->x-game.aim_x+128;" in source_main
