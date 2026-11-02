@@ -160,7 +160,7 @@ if [[ "${REQUIRE_PREEXISTING_ORB:-0}" == 1 ]]; then
     echo "Clean-restart acceptance failed: missing independently observed first-session balance" >&2
     exit 1
   fi
-  python3 tools/check_restored_orbs.py "$out/orb-balance-before.json" \\
+  python3 tools/check_restored_orbs.py "$out/orb-balance-before.json" \
     --expected-balance "$EXPECTED_RESTORED_ORBS"
 fi
 press_ds_key x 0.3
