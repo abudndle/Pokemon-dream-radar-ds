@@ -1,7 +1,7 @@
 name: Dream Radar capture host acceptance
 on:
   push:
-    branches: [milestone-next-parity-audit-20261101]
+    branches: [main, milestone-next-parity-audit-20261101]
   pull_request:
     paths:
       - 'source/**'
@@ -36,6 +36,8 @@ jobs:
         with:
           name: capture-host-evidence
           path: capture-evidence/
+      - name: Guard main-branch capture acceptance trigger
+        run: python3 tests/test_capture_host_main_push.py
       - name: Reject incomplete emulator capture evidence
         run: python3 tests/test_capture_emulator_evidence.py
       - name: Guard radar input parity
