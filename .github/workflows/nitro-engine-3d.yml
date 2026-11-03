@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'source_3d/**'
+      - 'tests/test_3d_touch_aim.c'
       - 'source/game.c'
       - 'source/game.h'
       - 'Makefile.3d'
@@ -33,6 +34,8 @@ jobs:
       - name: Confirm independent 3D build reuses unchanged gameplay
         run: |
           python3 tests/test_3d_library_integration.py
+          cc -std=c11 -Wall -Wextra -Werror -Isource tests/test_3d_touch_aim.c -o /tmp/test_3d_touch_aim
+          /tmp/test_3d_touch_aim
           make test-syntax
       - name: Build Nitro Engine/DSMA from verified upstream and link alternate ROM
         run: |
