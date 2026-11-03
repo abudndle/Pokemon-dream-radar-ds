@@ -19,10 +19,16 @@ assert 'raise SystemExit("Results reward changed before save/restart")' in scrip
 assert 'exit 0' in script[preserve:leave]
 assert 'REQUIRE_ORB_COLLECTION:-0' in script[preserve:leave]
 assert 'REQUIRE_TOUCH:-0' in script[preserve:leave]
-# Strict manual capture must run a second process, not accept Results alone.
-strict = workflow.index('if [[ "${{ inputs.require_capture && \'1\' || \'0\' }}" == 1 ]]; then')
+# Strict manual AND daily scheduled capture must run a second process,
+# not accept a Results screenshot alone.
+strict = workflow.index('if [[ "$REQUIRE_CAPTURE" == 1 ]]; then')
 optional = workflow.index('elif [[ "${{ inputs.require_restart_persistence && \'1\' || \'0\' }}" != 1', strict)
 strict_block = workflow[strict:optional]
+assert "cron: '17 3 * * *'" in workflow
+assert "REQUIRE_CAPTURE: ${{ (github.event_name == 'schedule' || inputs.require_capture) && '1' || '0' }}" in workflow
+assert "github.event_name != 'workflow_dispatch' && github.event_name != 'schedule'" in workflow
+assert "(github.event_name == 'workflow_dispatch' || github.event_name == 'schedule') && github.run_id" in workflow
+assert workflow.index("REQUIRE_CAPTURE: ${{") < workflow.index("Launch melonDS and capture actual emulator window")
 assert 'REQUIRE_PREEXISTING_REWARD=1' in strict_block
 assert 'tools/verify_melonds_reward_restart.py' in strict_block
 assert 'melonds-results/06-results-preserved.png' in strict_block
