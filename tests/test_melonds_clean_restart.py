@@ -72,6 +72,17 @@ with tempfile.TemporaryDirectory() as temporary:
         ):
             rejected(lambda marker=marker: log_path.write_text(original_log + marker))
             log_path.write_text(original_log)
+    # False clean exits and concatenated launchers must not prove persistence.
+    for directory, launcher_pid in ((first, 1001), (second, 1002)):
+        log_path = directory / "runtime.log"
+        original_log = log_path.read_text()
+        for bad_log in (
+            f"Emulator launcher PID: {launcher_pid}\nEmulator launcher PID {launcher_pid} terminated unexpectedly\n",
+            original_log + f"Emulator launcher PID {launcher_pid} terminated\n",
+            original_log + "Emulator launcher PID: 9999\n",
+        ):
+            rejected(lambda bad_log=bad_log: log_path.write_text(bad_log))
+            log_path.write_text(original_log)
     save.unlink()
     try:
         verify_restart(first, second, save)
