@@ -106,6 +106,7 @@ jobs:
       contents: write
       pull-requests: write
       actions: write
+      issues: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -166,9 +167,23 @@ jobs:
               'Review carefully; require full BlocksDS and emulator CI before merging. '
               'No proprietary Nintendo assets were used. **Never auto-merge this PR.**\n')
           PY
-          gh pr create --draft --base main --head "$branch" \
+          if ! gh pr create --draft --base main --head "$branch" \
             --title 'Agent proposal: source and regression fix' \
-            --body-file agent-output/pr-body.md
+            --body-file agent-output/pr-body.md; then
+            echo "::error title=Agent PR publishing blocked::Proposal branch $branch was pushed, but the GitHub Actions token cannot open a PR. Confirm repo Settings -> Actions -> General -> Workflow permissions -> Allow GitHub Actions to create and approve pull requests."
+            {
+              echo "### Coding agent: PR publishing blocked"
+              echo "- Branch: \`$branch\` (unmerged)"
+              echo "- Repository setting: https://github.com/$GITHUB_REPOSITORY/settings/actions"
+              echo "- Independent host/ROM checks were requested, but the branch is NOT accepted until CI passes and a PR is reviewed."
+            } >> "$GITHUB_STEP_SUMMARY"
+            # Keep a useful validation trail even while GitHub blocks bot PRs.
+              gh workflow run blocksds.yml --ref "$branch" || true
+              gh workflow run capture-host-acceptance.yml --ref "$branch" || true
+            gh issue comment 156 --repo "$GITHUB_REPOSITORY" \
+              --body "Coding agent produced branch \`$branch\` but PR publication failed (repository Actions create-PR permission). No source merged. Enable GitHub Actions PR creation in Settings > Actions > General; existing hourly developer can inspect and recover validated branch." || true
+            exit 1
+          fi
           # GitHub-token-generated PRs may not trigger other PR CI automatically.
           gh workflow run blocksds.yml --ref "$branch"
           gh workflow run capture-host-acceptance.yml --ref "$branch"
