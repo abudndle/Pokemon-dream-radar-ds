@@ -132,6 +132,38 @@ int main(void) {
     assert(g.save.orbs == uncollected_currency);
     assert(g.session_orbs == 0);
     assert(g.save.searches == 1);
+    /* A partially collected burst must preserve only the Orb that was
+       actually shot. The other Orbs expire without a second reward, and
+       repeated radar/results ticks cannot count this search twice. */
+    game_new(&g, 0x5A17u);
+    game_begin_search(&g, EXT_BASIC);
+    assert(g.screen == STATE_RADAR);
+    g.active_clouds = 1;
+    g.clouds[0].alive = 1;
+    g.clouds[0].kind = 0;
+    g.clouds[0].x = 128;
+    g.clouds[0].y = 96;
+    g.aim_x = 128;
+    g.aim_y = 96;
+    game_fire(&g);
+    int collected_index = -1;
+    for(int i = 0; i < MAX_DREAM_ORBS; ++i)
+        if(g.dream_orbs[i].alive) { collected_index = i; break; }
+    assert(collected_index >= 0);
+    g.aim_x = g.dream_orbs[collected_index].x;
+    g.aim_y = g.dream_orbs[collected_index].y;
+    game_fire(&g);
+    assert(g.screen == STATE_RADAR && g.session_orbs == 1);
+    assert(g.save.orbs == 1 && g.save.total_orbs == 1);
+    for(int i = 0; i < MAX_DREAM_ORBS; ++i)
+        if(g.dream_orbs[i].alive) g.dream_orbs[i].ttl = 1;
+    game_tick(&g);
+    assert(g.screen == STATE_RESULTS && game_active_dream_orbs(&g) == 0);
+    assert(g.session_orbs == 1 && g.save.orbs == 1);
+    assert(g.save.total_orbs == 1 && g.save.searches == 1);
+    for(int i = 0; i < 90; ++i) game_tick(&g);
+    assert(g.screen == STATE_RESULTS && g.save.searches == 1);
+    assert(g.session_orbs == 1 && g.save.orbs == 1);
     /* A spawned Dream Orb directly over an untouched cloud must be collected
        first. A single shot cannot both award currency and discover a cloud. */
     game_new(&g, 0x6A19u);
