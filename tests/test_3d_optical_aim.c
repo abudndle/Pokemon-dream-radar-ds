@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 #include "game.h"
 #include "../source_3d/optical_aim.h"
 
@@ -28,6 +29,25 @@ int main(void) {
     pattern(8);
     (void)dr3d_optical_step(&state,&g,frame,1);
     assert(g.aim_x>=6 && g.aim_x<=250 && g.aim_y>=6 && g.aim_y<=185);
+    /* A featureless scene must not move the reticle even though all
+     * candidate offsets have identical zero error. */
+    memset(frame,0,sizeof frame);
+    dr3d_optical_reset(&state);
+    assert(!dr3d_optical_step(&state,&g,frame,1));
+    x=g.aim_x;y=g.aim_y;
+    for(int i=0;i<10;i++) {
+        assert(!dr3d_optical_step(&state,&g,frame,1));
+        assert(g.aim_x==x && g.aim_y==y);
+    }
+    /* Stationary textured frames must likewise remain stationary. */
+    pattern(0);
+    dr3d_optical_reset(&state);
+    assert(!dr3d_optical_step(&state,&g,frame,1));
+    x=g.aim_x;y=g.aim_y;
+    for(int i=0;i<10;i++) {
+        assert(!dr3d_optical_step(&state,&g,frame,1));
+        assert(g.aim_x==x && g.aim_y==y);
+    }
     g.screen=STATE_RESULTS;
     assert(!dr3d_optical_step(&state,&g,frame,1));
     assert(!state.valid);
