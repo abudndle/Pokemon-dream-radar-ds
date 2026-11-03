@@ -59,4 +59,29 @@ with tempfile.TemporaryDirectory() as d:
             raise AssertionError("Unsafe proposal accepted: " + bad["summary"])
     assert "return 2;" in (root / paths[0]).read_text()
     assert "assert(2);" in (root / paths[1]).read_text()
+
+# Automatic runs cover every allowlisted module without expanding write permissions.
+if "module" in globals():
+    choose = module.select_focus
+else:
+    from local_agent_propose import select_focus as choose
+keys = tuple(TASKS)
+for index, key in enumerate(keys):
+    assert choose("auto", index) == key
+    assert choose("auto", index + len(keys)) == key
+    assert choose(key, 0) == key
+for invalid in ("not-a-module",):
+    try:
+        choose(invalid, 0)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("Unknown module accepted")
+try:
+    choose("auto", -1)
+except ValueError:
+    pass
+else:
+    raise AssertionError("Negative rotation slot accepted")
+
 print("PASS: local coding agent rejects untrusted, malformed and out-of-scope edits")
