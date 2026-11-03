@@ -190,6 +190,23 @@ int main(void) {
         assert(g.cloud_hit == 1 && !g.clouds[0].alive);
         assert(g.capture_timeout > 0 && g.save.caught_count == 0);
         assert(g.save.pending_count == 0 && g.save.orbs == 0);
+        /* Invalid camera/touch aim must not damage a capture target or
+           consume a projectile while the separate sphere screen is live. */
+        int hp_before_invalid = g.capture_hp;
+        int timeout_before_invalid = g.capture_timeout;
+        int sphere_x_before_invalid = g.sphere_x;
+        int sphere_y_before_invalid = g.sphere_y;
+        g.aim_x = -1;
+        g.aim_y = 96;
+        game_fire(&g);
+        g.aim_x = 128;
+        g.aim_y = 192;
+        game_fire(&g);
+        assert(g.screen == STATE_SPHERE);
+        assert(g.capture_hp == hp_before_invalid);
+        assert(g.capture_timeout == timeout_before_invalid);
+        assert(g.sphere_x == sphere_x_before_invalid);
+        assert(g.sphere_y == sphere_y_before_invalid);
         int found_movement = 0;
         g.projectile_enabled = 0; /* Isolate the target and capture meter. */
         for(int frame = 0; frame < 150 && g.screen == STATE_SPHERE; ++frame) {
