@@ -24,7 +24,7 @@ assert 'NE_CameraUse(camera)' in main
 assert 'game_begin_search(g, g->ext_selection)' in menu and 'game_tick(&game)' in main
 assert 'dr3d_menu_step(&game,input)' in main
 assert 'game_extension_unlocked(g, selected)' in menu
-assert 'game_fire(&game)' in main and 'game_resume_radar(&game)' in main
+assert 'game_fire(&game)' in main and 'game_resume_radar(g)' in menu
 assert 'nitro:/models/pokemon_%02d.dsm' in main
 assert 'nitro:/models/pokemon_%02d_walk.dsa' in main
 assert 'NE_ModelCreate(NE_Animated)' in main
