@@ -1,0 +1,16 @@
+# Alternative 3D runtime: original game simulation + Nitro Engine/DSMA renderer.
+# Does not touch the currently released software-rendered DS/DSi ROM.
+BLOCKSDS ?= /opt/wonderful/thirdparty/blocksds/core
+BLOCKSDSEXT ?= /opt/wonderful/thirdparty/blocksds/external
+NAME := dream_radar_3d
+GAME_TITLE := Dream Radar 3D
+GAME_SUBTITLE := Nitro Engine + DSMA model preview
+GAME_AUTHOR := Dream Radar DS demake
+GAME_ICON := icon.png
+SPECS := $(BLOCKSDS)/sys/crts/dsi_arm9.specs
+SOURCEDIRS := source_3d
+INCLUDEDIRS := source
+NITROFSDIR := nitrofs
+LIBDIRS := $(BLOCKSDSEXT)/nitro-engine
+LIBS := -lNE -lnds9 -lc
+include $(BLOCKSDS)/sys/default_makefiles/rom_arm9/Makefile

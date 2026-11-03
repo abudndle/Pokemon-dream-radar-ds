@@ -19,3 +19,7 @@ nitrofs/shoplist.drui
 private/
 private_assets/
 original_assets/
+
+# Authorized DSM/DSA private model output must never be committed.
+nitrofs/models/
+private-3d-assets/

@@ -1,0 +1,56 @@
+name: Nitro Engine + DSMA experimental 3D ROM
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'source_3d/**'
+      - 'source/game.c'
+      - 'source/game.h'
+      - 'Makefile.3d'
+      - 'tests/test_3d_library_integration.py'
+      - '.github/workflows/nitro-engine-3d.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'source_3d/**'
+      - 'Makefile.3d'
+      - 'tests/test_3d_library_integration.py'
+      - '.github/workflows/nitro-engine-3d.yml'
+concurrency:
+  group: nitro-3d-${{ github.event_name == 'workflow_dispatch' && github.run_id || github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}
+jobs:
+  native-3d-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: AntonioND/nitro-engine
+          ref: a89917d908e49ab6df1c6762101c240a536bd308
+          path: .nitro-engine-sdk
+          persist-credentials: false
+      - name: Confirm independent 3D build reuses unchanged gameplay
+        run: |
+          python3 tests/test_3d_library_integration.py
+          make test-syntax
+      - name: Build Nitro Engine/DSMA from verified upstream and link alternate ROM
+        run: |
+          docker run --rm -v "$PWD:/workspace" -w /workspace \
+            skylyrac/blocksds:slim-latest sh -ec '
+              export BLOCKSDS=/opt/wonderful/thirdparty/blocksds/core
+              export BLOCKSDSEXT=/workspace/.blocksds-extra
+              export WONDERFUL_TOOLCHAIN=/opt/wonderful
+              make -C .nitro-engine-sdk -f Makefile.blocksds -j2 install
+              mkdir -p nitrofs/models
+              make -f Makefile.3d -j2
+              test -s dream_radar_3d.nds
+            '
+      - name: Check experimental 3D ROM header
+        run: python3 scripts/check_nds.py dream_radar_3d.nds
+      - name: Upload experimental asset-free ROM for engineering tests
+        uses: actions/upload-artifact@v4
+        with:
+          name: experimental-dream-radar-dsma-3d-rom
+          path: dream_radar_3d.nds
+          if-no-files-found: error
