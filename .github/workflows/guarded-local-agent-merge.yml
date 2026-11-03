@@ -1,0 +1,142 @@
+name: Safely auto-merge bounded free coding-agent proposals
+
+# Privileged, metadata-only merge gate. Never checkout PR code or run proposed
+# commands in this job. GitHub Actions may delay or skip scheduled events.
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: guarded-local-agent-merge-${{ github.repository }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: read
+
+jobs:
+  merge-verified-bounded-proposal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Require author, exact two-file allowlist, completed independent CI and current commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+          import subprocess
+          import sys
+          from urllib.parse import quote
+
+          CONFIG = json.loads(r'''{"allowedPrefixes":["agent/local-","agent/free-"],"allowedPairs":[["source/platform_compat.c","tests/test_platform_compat.c"],["source/photo_album.c","tests/test_photo_album.c"],["source/cloud_animation.c","tests/test_cloud_animation.c"]],"requiredWorkflows":["blocksds.yml","capture-host-acceptance.yml"]}''')
+          repo = os.environ['GH_REPO']
+
+          def gh(*args):
+              return subprocess.run(['gh', *args], check=True,
+                                    capture_output=True, text=True).stdout
+
+          def api(path):
+              return json.loads(gh('api', path))
+
+          def successful_workflow(name, branch, sha):
+              path = ('repos/' + repo + '/actions/workflows/' + name +
+                      '/runs?branch=' + quote(branch, safe='') + '&per_page=100')
+              runs = [run for run in api(path).get('workflow_runs', [])
+                      if run.get('head_sha') == sha and
+                      run.get('event') in ('workflow_dispatch', 'pull_request')]
+              if not runs:
+                  print('WAIT: no matching independent run for', name)
+                  return False
+              latest = max(runs, key=lambda run: (run.get('run_number', 0),
+                                                 run.get('run_attempt', 0)))
+              if latest.get('status') != 'completed' or latest.get('conclusion') != 'success':
+                  print('WAIT:', name, latest.get('status'), latest.get('conclusion'))
+                  return False
+              jobs = api('repos/' + repo + '/actions/runs/' +
+                         str(latest['id']) + '/jobs?per_page=100').get('jobs', [])
+              if not jobs or any(job.get('conclusion') != 'success' for job in jobs):
+                  print('WAIT: incomplete or skipped required job in', name)
+                  return False
+              print('PASS:', name, latest.get('html_url'))
+              return True
+
+          pulls = api('repos/' + repo + '/pulls?state=open&per_page=100')
+          candidates = [p for p in pulls
+                        if p.get('head', {}).get('ref', '').startswith(
+                            tuple(CONFIG['allowedPrefixes']))]
+          for partial in candidates:
+              number = partial['number']
+              p = api('repos/' + repo + '/pulls/' + str(number))
+              branch = p.get('head', {}).get('ref', '')
+              sha = p.get('head', {}).get('sha', '')
+              if (not branch.startswith(tuple(CONFIG['allowedPrefixes'])) or
+                  p.get('base', {}).get('ref') != 'main' or
+                  p.get('head', {}).get('repo', {}).get('full_name') != repo or
+                  p.get('user', {}).get('login') not in ('github-actions[bot]', 'app/github-actions') or
+                  p.get('commits') != 1 or p.get('changed_files') != 2 or
+                  not (0 < p.get('additions', 0) <= 120) or
+                  p.get('deletions', 0) > 120 or
+                  not sha):
+                  print('SKIP:', number, 'untrusted PR identity or unbounded patch')
+                  continue
+
+              files = api('repos/' + repo + '/pulls/' + str(number) + '/files?per_page=100')
+              paths = {f.get('filename') for f in files}
+              pairs = [set(pair) for pair in CONFIG['allowedPairs']]
+              if (len(files) != 2 or paths not in pairs or
+                  any(f.get('status') != 'modified' or
+                      not isinstance(f.get('patch'), str) or
+                      len(f['patch']) >= 14000 or
+                      f.get('changes', 9999) > 150 for f in files)):
+                  print('SKIP:', number, 'diff does not match trusted source/test pair')
+                  continue
+              test_path = next((path for path in paths if path.startswith('tests/')), '')
+              test_patch = next((f['patch'] for f in files if f['filename'] == test_path), '')
+              if not any(line.startswith('+') and not line.startswith('+++') and
+                         'assert(' in line for line in test_patch.splitlines()):
+                  print('SKIP:', number, 'no new regression assertion')
+                  continue
+
+              if not all(successful_workflow(w, branch, sha)
+                         for w in CONFIG['requiredWorkflows']):
+                  continue
+
+              # Explicitly fail closed when other completed checks on the same
+              # head report failures. Branch protection remains in force.
+              checks = api('repos/' + repo + '/commits/' + sha +
+                           '/check-runs?per_page=100').get('check_runs', [])
+              if any(c.get('status') != 'completed' or c.get('conclusion') in
+                     ('failure', 'timed_out', 'action_required', 'cancelled')
+                     for c in checks):
+                  print('WAIT:', number, 'other checks pending/failed')
+                  continue
+
+              current = api('repos/' + repo + '/pulls/' + str(number))
+              if current.get('head', {}).get('sha') != sha or current.get('state') != 'open':
+                  print('WAIT:', number, 'head moved')
+                  continue
+              if current.get('draft'):
+                  print('Marking verified proposal ready:', number)
+                  gh('pr', 'ready', str(number), '--repo', repo)
+                  # Wait for GitHub to refresh mergeability/required checks.
+                  continue
+              if current.get('mergeable') is not True or current.get('mergeable_state') != 'clean':
+                  print('WAIT:', number, 'mergeability not clean:',
+                        current.get('mergeable_state'))
+                  continue
+              print('Merging reviewed-by-CI bounded proposal:', number, sha)
+              gh('pr', 'merge', str(number), '--repo', repo, '--squash',
+                 '--delete-branch', '--match-head-commit', sha)
+              print('MERGED:', number, sha)
+              # At most one per run; next agent iteration starts after merge.
+              break
+          else:
+              print('No auto-merge-eligible proposal; main unchanged.')
+          PY
