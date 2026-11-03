@@ -196,18 +196,35 @@ int main(void) {
         int timeout_before_invalid = g.capture_timeout;
         int sphere_x_before_invalid = g.sphere_x;
         int sphere_y_before_invalid = g.sphere_y;
-        g.aim_x = -1;
-        g.aim_y = 96;
-        game_fire(&g);
-        g.aim_x = 128;
-        g.aim_y = 192;
-        game_fire(&g);
+        /* Keep a live hostile projectile: invalid coordinates must not
+           accidentally shoot it down or steal a legitimate capture shot. */
+        g.projectile_enabled = 1;
+        g.projectile_active = 1;
+        g.projectile_x = 100;
+        g.projectile_y = 90;
+        g.projectile_vx = 1;
+        g.projectile_vy = 0;
+        g.projectile_lifetime = 60;
+        const int invalid_coords[][2] = {
+            {-1, 96}, {128, -1}, {256, 96}, {128, 192},
+            {-2147483647-1, 0}, {2147483647, 2147483647}
+        };
+        for(unsigned invalid = 0;
+            invalid < sizeof invalid_coords / sizeof invalid_coords[0];
+            ++invalid) {
+            g.aim_x = invalid_coords[invalid][0];
+            g.aim_y = invalid_coords[invalid][1];
+            game_fire(&g);
+            assert(g.projectile_active && g.projectile_lifetime == 60);
+            assert(g.projectile_x == 100 && g.projectile_y == 90);
+        }
         assert(g.screen == STATE_SPHERE);
         assert(g.capture_hp == hp_before_invalid);
         assert(g.capture_timeout == timeout_before_invalid);
         assert(g.sphere_x == sphere_x_before_invalid);
         assert(g.sphere_y == sphere_y_before_invalid);
         int found_movement = 0;
+        g.projectile_active = 0;
         g.projectile_enabled = 0; /* Isolate the target and capture meter. */
         for(int frame = 0; frame < 150 && g.screen == STATE_SPHERE; ++frame) {
             int old_x = g.sphere_x, old_y = g.sphere_y;
