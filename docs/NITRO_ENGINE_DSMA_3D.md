@@ -27,6 +27,27 @@ Use the upstream tutorials during incremental migration: [3D graphics](https://b
 
 **Makefile contract:** `LIBS := -lNE -lnds9 -lc` in `Makefile.3d` deliberately reuses the already-verified Nitro Engine + libnds linker integration. Additional core libraries will be added only with a demonstrated feature and corresponding ARM9/ARM7 linker dependencies, rather than linking every listed library preemptively. Keep external Nitro Engine under `BLOCKSDSEXT`, alongside its DSMA implementation.
 
+## Beyond 3D: practical whole-game library adoption
+
+The [additional BlocksDS library list](https://blocksds.skylyrac.net/docs/libs/additional_libs/) explicitly supports non-3D tasks. Prioritize improvements that preserve the source-derived 3DS look and the already-tested gameplay/save contracts:
+
+| Area of Dream Radar | Recommended library or tool | What it can actually implement | Decision |
+| --- | --- | --- | --- |
+| Sound effects and background music | **Maxmod** (core) + `mmutil` | Play private, lawfully extracted and appropriately converted original music/sound effects via ARM7; pair actions like shooting, Orb collection, capture and menu selection with real sound-event IDs | **Next candidate**. Existing game has no audio playback; don't ship invented replacement recordings |
+| Menus, lab, bottom-screen selection and touch feedback | **libnds** for touch/buttons + **Grit** for backgrounds/sprites + optionally **LibDSF** for original-compatible glyph metrics | Retain original menu rectangles, add 2D sprites and animations and avoid drawing generic text-overlays for content that has legitimate extracted artwork | **High priority**. The current 2D frontend already uses libnds and software buffers; profile VRAM before adding a second 2D engine |
+| Long scrolling menus, records, shop lists | **NightFox's Lib** or **Woopsi**, evaluated independently | Simplify 2D backgrounds/sprites or add high-level touch GUI widgets | **Evaluate**; not automatically suitable for faithful original 3DS UI; Woopsi also adds C++ and owns GUI layout |
+| 2D effects using the DS 3D GPU | **µLibrary** (`-lul -lpng -lz`) | Fast textured 2D draws on DS 3D hardware; potentially useful for overlays if it cooperates with the Nitro Engine display/VRAM owner | **Prototype only**. Don't initialize both engines into the same VRAM display at once |
+| Save/restart persistence and SD asset loading | Existing **libfat** / `fat:/` / `sd:/` and NitroFS | Preserve validated sidecar checksums, scene checkpoint, DSi photo storage and original private-resource loading | **Keep**. **libslim** supports a smaller libfat API, but isn't binary/API interchangeable in all use cases; replacing it requires fresh device-level tests |
+| DS/DSi connectivity and authorized transfer research | **DSWiFi** (core) | A tested DS network transport if the actual protocol is identified | **Transport candidate**, not a substitute for Black 2/White 2's Unova Link or a promise of 3DS communication |
+| Photo capture and optional image decoding | Existing **libnds DSi camera** and image tooling; consider **gbajpeg** only if JPEG decoding is necessary | DSi-only photos, import previews, independent camera resources | **Keep current gate**. gbajpeg doesn't provide facial recognition or AR by itself |
+| Debugging, build checks, profiling | BlocksDS toolchain, ARM9/ARM7 guides, emulator screenshots and host tests | Validate memory/VRAM limits, graphics, input, save integrity, playback performance, actual emulator behavior | **Required** for every feature, not a separate runtime dependency |
+
+The BlocksDS page lists the actual installation and linking contracts: `blocksds-nflib`/`-lnflib`, `blocksds-libdsf`/`-ldsf`, `blocksds-libwoopsi`/`-lwoopsi`, and `blocksds-ulibrary`/`-lul -lpng -lz`. Those external libraries live in `BLOCKSDSEXT`. Avoid adding them all at once; for each feature first build one isolated ARM-compatible proof, then verify the original touch, video and camera modes still work.
+
+**Audio integration sequence:** identify original sound cue names and licensed private assets; add a gameplay-to-audio event interface without changing reward logic; convert a short WAV for SFX and a suitable tracked music source using Maxmod's standard soundbank tools; add ARM9/ARM7 integration and test for missing assets; verify in melonDS. Do not manufacture replacement Pokémon music and present it as the original. **UI integration sequence:** measure extracted 3DS pane/texture geometry, convert with Grit, preserve the touch rectangles and ensure the Nitro Engine frontend and 2D UI cooperate before switching the default ROM.
+
+Reference: [BlocksDS music and sound effects tutorial](https://blocksds.skylyrac.net/tutorial/basic/audio/), [2D graphics](https://blocksds.skylyrac.net/tutorial/basic/2d_graphics/), [sprites](https://blocksds.skylyrac.net/tutorial/basic/sprites/), [FAT](https://blocksds.skylyrac.net/tutorial/intermediate/filesystems/), and [additional libraries](https://blocksds.skylyrac.net/docs/libs/additional_libs/).
+
 ## Asset fidelity and workflow
 
 The converter accepts an **authorized** source mesh exported to MD5 (`.md5mesh`) and original MD5 animation tracks (`.md5anim`) from a **private** workspace. The stock Nitro Engine tool `tools/md5_to_dsma/md5_to_dsma.py` emits `.dsm` and `.dsa`. It does **not** decode arbitrary 3DS BCH/CGFX/model archives or recreate missing 3DS animation data. Extracted assets must be matched to originals and geometry/textures/bones optimized for DS hardware; no invented replicas.
