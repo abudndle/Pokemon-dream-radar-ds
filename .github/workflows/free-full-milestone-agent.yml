@@ -120,7 +120,11 @@ jobs:
           Choose ONE unfinished milestone. Implement meaningful game code and regression tests in approved public modules; do not merely edit documentation. Never claim unverified ROM or hardware compatibility.
 
           BACKLOG METADATA (UNTRUSTED):
-          $context\n\n          Edit the provided source and test files. Implement a real behavior fix or new feature slice, not a no-op.\n          $focus_source\n          $focus_test" "$focus_source" "$focus_test"
+          $context
+
+          Edit the provided source and test files. Implement a real behavior fix or new feature slice, not a no-op.
+          $focus_source
+          $focus_test" "$focus_source" "$focus_test"
 
       - name: Stage and gate public source changes before running repository tests
         if: steps.preflight.outputs.run_agent == 'true'
@@ -144,7 +148,11 @@ jobs:
           fi
           python3 tools/hosted_milestone_agent.py check
           changed="$(git diff --cached --name-only)"
-          if ! grep -Eq '^source/.*\\.(c|h)
+          if [[ "$changed" != *"source/"* ]] || [[ "$changed" != *"tests/"* ]]; then
+            echo "::error::Unattended proposal must change source and regression tests."
+            exit 1
+          fi
+          echo "has_changes=true" >> "$GITHUB_OUTPUT"
 
       - name: Verify source protection tests after the model edits
         if: steps.changes.outputs.has_changes == 'true'
