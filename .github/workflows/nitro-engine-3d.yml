@@ -5,6 +5,7 @@ on:
     paths:
       - 'source_3d/**'
       - 'tests/test_3d_touch_aim.c'
+      - 'tests/test_3d_menu_navigation.c'
       - 'source/game.c'
       - 'source/game.h'
       - 'Makefile.3d'
@@ -36,6 +37,8 @@ jobs:
           python3 tests/test_3d_library_integration.py
           cc -std=c11 -Wall -Wextra -Werror -Isource tests/test_3d_touch_aim.c -o /tmp/test_3d_touch_aim
           /tmp/test_3d_touch_aim
+          cc -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c tests/test_3d_menu_navigation.c -o /tmp/test_3d_menu_navigation
+          /tmp/test_3d_menu_navigation
           make test-syntax
       - name: Build Nitro Engine/DSMA from verified upstream and link alternate ROM
         run: |
