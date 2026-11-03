@@ -82,11 +82,10 @@ int dr_storage_ready(const char *root){
     const char *separator=(root[root_len-1]=='/')?"":"/";
     int dir_len=snprintf(dir,sizeof dir,"%s%sDreamRadarDSi",root,separator);
     if(dir_len<0 || dir_len>=(int)sizeof dir)return 0;
-    if(mkdir(dir,0777)!=0) {
-        /* Only an existing directory is acceptable. Do not silently
-           proceed after permission, device, or other mkdir errors. */
-        if(errno!=EEXIST || stat(dir,&st)!=0 || !S_ISDIR(st.st_mode))return 0;
-    }
+    if(mkdir(dir,0777)!=0 && errno!=EEXIST)return 0;
+    /* An existing symlink, including a link to another writable directory,
+       is not owned game storage. Do not let the write probe escape root. */
+    if(lstat(dir,&st)!=0 || !S_ISDIR(st.st_mode))return 0;
     int probe_len=snprintf(probe,sizeof probe,"%s/.write_test.tmp",dir);
     if(probe_len<0 || probe_len>=(int)sizeof probe)return 0;
     /* Never overwrite a pre-existing file, even one with this internal name. */
