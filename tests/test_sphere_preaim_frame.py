@@ -39,10 +39,18 @@ with patch("verify_sphere_preaim_frame.read_capture_reward", side_effect=ValueEr
      patch("verify_sphere_preaim_frame.plan_sphere_motion", side_effect=ValueError):
     assert inspect_frame(pixels, previous, 256, 403, [])[0] == "ambiguous"
 
-# Missing or mismatched prior frames may still report Results, but must
-# never create a motion plan for a live encounter.
+# Missing prior frames can guide the camera from a unique CURRENT target,
+# but never infer motion or authorize a shot.
 with patch("verify_sphere_preaim_frame.read_capture_reward", side_effect=ValueError), \
      patch("verify_sphere_preaim_frame.read_capture_progress", return_value=progress), \
+     patch("verify_sphere_preaim_frame.plan_sphere", return_value=aim) as single, \
+     patch("verify_sphere_preaim_frame.plan_sphere_motion") as tracker:
+    assert inspect_frame(pixels, None, 256, 403, []) == ("target", None, progress, aim)
+    single.assert_called_once_with(pixels, 256, 403)
+    tracker.assert_not_called()
+with patch("verify_sphere_preaim_frame.read_capture_reward", side_effect=ValueError), \
+     patch("verify_sphere_preaim_frame.read_capture_progress", return_value=progress), \
+     patch("verify_sphere_preaim_frame.plan_sphere", side_effect=ValueError), \
      patch("verify_sphere_preaim_frame.plan_sphere_motion") as tracker:
     assert inspect_frame(pixels, None, 256, 403, [])[0] == "ambiguous"
     tracker.assert_not_called()
