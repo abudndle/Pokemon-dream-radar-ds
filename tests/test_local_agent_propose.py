@@ -15,7 +15,7 @@ with tempfile.TemporaryDirectory() as d:
     for path in paths:
         (root / path).parent.mkdir(parents=True, exist_ok=True)
     (root / paths[0]).write_text("int sample(void) { return 1; }\n")
-    (root / paths[1]).write_text("void verify(void) { assert(1); }\n")
+    (root / paths[1]).write_text("void verify(void) {\n    assert(1);\n}\n")
     proposal = {"summary": "Fix boundary error in the cloud frame sample", "changes": [
         change(paths[0], "return 1;", "return 2;"),
         change(paths[1], "assert(1);", "assert(2);"),
