@@ -15,6 +15,7 @@ permissions:
   contents: write
   pull-requests: write
   actions: read
+  issues: write
 
 jobs:
   merge-verified-bounded-proposal:
@@ -33,10 +34,12 @@ jobs:
           import os
           import subprocess
           import sys
+          from datetime import datetime, timezone
           from urllib.parse import quote
 
           CONFIG = json.loads(r'''{"allowedPrefixes":["agent/local-","agent/free-"],"allowedPairs":[["source/platform_compat.c","tests/test_platform_compat.c"],["source/photo_album.c","tests/test_photo_album.c"],["source/cloud_animation.c","tests/test_cloud_animation.c"]],"requiredWorkflows":["blocksds.yml","capture-host-acceptance.yml"]}''')
           repo = os.environ['GH_REPO']
+          tracking_issue = 66
 
           def gh(*args):
               return subprocess.run(['gh', *args], check=True,
@@ -44,6 +47,21 @@ jobs:
 
           def api(path):
               return json.loads(gh('api', path))
+
+          def stalled(pr, seconds=7200):
+              created = datetime.fromisoformat(pr['created_at'].replace('Z', '+00:00'))
+              age = (datetime.now(timezone.utc) - created).total_seconds()
+              return age > seconds
+
+          def close_stalled(pr, message, seconds=7200):
+              if not stalled(pr, seconds):
+                  return False
+              number = pr['number']
+              gh('pr', 'close', str(number), '--repo', repo, '--delete-branch',
+                 '--comment', 'Unattended free-agent recovery: ' + message +
+                 '. No source code was merged. A later agent run may retry.')
+              print('CLOSED stale/invalid bot proposal:', number, message)
+              return True
 
           def successful_workflow(name, branch, sha):
               path = ('repos/' + repo + '/actions/workflows/' + name +
@@ -96,16 +114,19 @@ jobs:
                       len(f['patch']) >= 14000 or
                       f.get('changes', 9999) > 150 for f in files)):
                   print('SKIP:', number, 'diff does not match trusted source/test pair')
+                  close_stalled(p, 'Rejected source/test allowlist or patch size', 0)
                   continue
               test_path = next((path for path in paths if path.startswith('tests/')), '')
               test_patch = next((f['patch'] for f in files if f['filename'] == test_path), '')
               if not any(line.startswith('+') and not line.startswith('+++') and
                          'assert(' in line for line in test_patch.splitlines()):
                   print('SKIP:', number, 'no new regression assertion')
+                  close_stalled(p, 'No additional regression assertion', 0)
                   continue
 
               if not all(successful_workflow(w, branch, sha)
                          for w in CONFIG['requiredWorkflows']):
+                  close_stalled(p, 'Independent host/ROM CI never fully passed')
                   continue
 
               # Explicitly fail closed when other completed checks on the same
@@ -116,6 +137,7 @@ jobs:
                      ('failure', 'timed_out', 'action_required', 'cancelled')
                      for c in checks):
                   print('WAIT:', number, 'other checks pending/failed')
+                  close_stalled(p, 'One or more additional checks did not pass')
                   continue
 
               current = api('repos/' + repo + '/pulls/' + str(number))
@@ -130,11 +152,22 @@ jobs:
               if current.get('mergeable') is not True or current.get('mergeable_state') != 'clean':
                   print('WAIT:', number, 'mergeability not clean:',
                         current.get('mergeable_state'))
+                  close_stalled(p, 'Pull request could not reach a clean merge state')
                   continue
               print('Merging reviewed-by-CI bounded proposal:', number, sha)
               gh('pr', 'merge', str(number), '--repo', repo, '--squash',
                  '--delete-branch', '--match-head-commit', sha)
               print('MERGED:', number, sha)
+              # Preserve a durable GitHub-only progress record without falsely
+              # marking game-wide parity milestones complete.
+              note = ('Guarded autonomous free-agent source/test fix merged: PR #' +
+                      str(number) + ' (head ' + sha + '). Allowed changes: ' +
+                      ', '.join(sorted(paths)) + '. Independently successful: ' +
+                      ', '.join(CONFIG['requiredWorkflows']) + '. This is one ' +
+                      'small verified code change, not completion of original-game ' +
+                      'assets, DSi camera, StreetPass, or full feature parity.')
+              gh('issue', 'comment', str(tracking_issue), '--repo', repo,
+                 '--body', note)
               # At most one per run; next agent iteration starts after merge.
               break
           else:
