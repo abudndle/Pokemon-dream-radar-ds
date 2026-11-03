@@ -55,8 +55,14 @@ def validate_and_apply(root: Path, focus: str, plan: dict) -> list[str]:
         updated[path] = before.replace(old, new, 1)
     if set(updated) != allowed:
         raise ValueError("Both the source and its regression test must change")
-    if not re.search(r"\bassert\s*\(", updated[TASKS[focus][1]]):
-        raise ValueError("Regression assertions must remain")
+    test_path = TASKS[focus][1]
+    # The model must add a genuinely new regression, not repeat an assertion
+    # already present in the original test (a past agent false positive).
+    pattern = r"\\bassert\\s*\\([^;\\n]*\\)\\s*;"
+    before_asserts = set(re.findall(pattern, (root / test_path).read_text(encoding="utf-8")))
+    after_asserts = set(re.findall(pattern, updated[test_path]))
+    if not after_asserts - before_asserts:
+        raise ValueError("No new distinct regression assertion")
     for path, value in updated.items():
         original = (root / path).read_text(encoding="utf-8")
         if len(value) > len(original) + 2800 or len(value) < len(original) - 1800:
