@@ -8,7 +8,7 @@
 #include <unistd.h>
 
 int main(void) {
-    assert(dr_lab_count(0)==6 && dr_lab_count(1)==7);
+    assert(dr_lab_count(0)==6 && dr_lab_count(1)==7); // Fix: Ensure lab count is correct
     for(int i=0;i<6;i++)assert(dr_lab_action(0,i)==i);
     assert(dr_lab_action(0,6)==-1 && dr_lab_action(1,6)==6);
     assert(dr_settings_count(0)==2 && dr_settings_count(1)==3);
