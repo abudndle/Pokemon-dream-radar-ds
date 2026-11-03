@@ -85,7 +85,7 @@ jobs:
             gh pr list --repo "$GITHUB_REPOSITORY" --state open --limit 50 --json number,title,url --jq '.[] | "PR #\(.number): \(.title) \(.url)"'
             gh issue list --repo "$GITHUB_REPOSITORY" --state open --limit 40 --json number,title,url --jq '.[] | "Issue #\(.number): \(.title) \(.url)"'
             printf '%s\n' 'MILESTONE SELECTION: Prefer the oldest open implementation issue labeled milestone, excluding umbrella acceptance contracts. If none is labeled, inspect the listed implementation issues and select one concrete feature.'
-            gh issue list --repo "$GITHUB_REPOSITORY" --state open --label milestone --limit 5 --json number,title,url --jq '.[] | "Priority milestone #\\(.number): \\(.title) \\(.url)"' || true
+            gh issue list --repo "$GITHUB_REPOSITORY" --state open --label milestone --limit 5 --json number,title,url --jq '.[] | "Priority milestone #\(.number): \(.title) \(.url)"' || true
           } > "$RUNNER_TEMP/public-backlog.txt"
 
       - name: Implement one bounded milestone with an isolated coding agent
