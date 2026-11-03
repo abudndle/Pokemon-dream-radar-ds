@@ -12,8 +12,16 @@ int dr_camera_quick_row_hit(int x,int y){
     if(y>=86 && y<114)return 1;
     return -1;
 }
+/* Hardware button chords consist of two distinct single-bit masks. Reject
+ * composite/negative masks as well as zero and overlapping masks. */
+static int distinct_button_masks(int first,int second){
+    return first>0 && second>0 &&
+           (first&(first-1))==0 && (second&(second-1))==0 &&
+           (first&second)==0;
+}
 int dr_camera_quick_open(int menu_allowed,int held,int down,
                          int select_mask,int x_mask){
+    if(!distinct_button_masks(select_mask,x_mask))return 0;
     const int combo=select_mask|x_mask;
     /* A hidden chord, never the X key or a tap alone. Trigger only on a
        newly pressed chord component to avoid toggling every held frame. */
@@ -63,6 +71,7 @@ int dr_sphere_fire_repeat(int a_held,int a_pressed,unsigned frames_played){
     return a_held && (a_pressed || frames_played%3u==0u);
 }
 int dr_photo_shortcut(int dsi_mode,int held,int down,int l_mask,int r_mask){
+    if(!distinct_button_masks(l_mask,r_mask))return 0;
     return dsi_mode && (held & (l_mask|r_mask))==(l_mask|r_mask) &&
            (down & (l_mask|r_mask))!=0;
 }

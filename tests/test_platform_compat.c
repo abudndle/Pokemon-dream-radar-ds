@@ -80,6 +80,24 @@ int main(void) {
     assert(!dr_photo_capture_ready(1,1,0,1,1));
     assert(!dr_photo_capture_ready(1,1,1,0,1));
     assert(!dr_photo_capture_ready(1,1,1,1,0));
+    /* Invalid or overlapping key masks cannot enable a one-key shortcut. */
+    assert(!dr_camera_quick_open(1,1,1,1,1));
+    assert(!dr_camera_quick_open(1,1,1,0,1));
+    assert(!dr_camera_quick_open(1,1,1,1,0));
+    assert(dr_camera_quick_open(1,3,2,1,2));
+    /* Composite masks are not buttons; reject even disjoint combinations. */
+    assert(!dr_camera_quick_open(1,7,1,3,4));
+    assert(!dr_camera_quick_open(1,7,4,1,6));
+    assert(!dr_camera_quick_open(1,3,1,-1,2));
+    assert(!dr_camera_quick_open(1,3,1,1,-2));
+    assert(!dr_camera_quick_open(1,3,4,1,2));
+    assert(!dr_photo_shortcut(1,7,4,3,4));
+    assert(!dr_photo_shortcut(1,7,1,1,6));
+    assert(!dr_photo_shortcut(1,3,1,-1,2));
+    assert(!dr_photo_shortcut(1,3,1,1,-2));
+    assert(!dr_photo_shortcut(1,1,1,1,1));
+    assert(!dr_photo_shortcut(1,1,1,0,1));
+    assert(!dr_photo_shortcut(1,1,1,1,0));
     /* L+R is DSi-only and fires once on the second press, not while held. */
     const int L=1<<9,R=1<<8;
     assert(!dr_photo_shortcut(0,L|R,R,L,R));
