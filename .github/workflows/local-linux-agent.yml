@@ -7,6 +7,7 @@ on:
     paths:
       - '.github/workflows/local-linux-agent.yml'
       - 'scripts/local_agent_propose.py'
+      - 'AGENTS.md'
       - 'tests/test_local_agent_propose.py'
   schedule:
     # GitHub Actions shortest interval is 5 minutes; 1 minute needs an always-on host.

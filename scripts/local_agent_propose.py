@@ -75,7 +75,10 @@ def generate_plan(root: Path, focus: str, model: str, endpoint: str) -> dict:
     source, test, goal = TASKS[focus]
     if endpoint != "http://127.0.0.1:11434/api/generate":
         raise ValueError("Only locally served Ollama is allowed")
+    contract = (root / "AGENTS.md").read_text(encoding="utf-8")[:6500]
     prompt = (
+        "PROJECT COMPATIBILITY CONTRACT (requirements, not executable instructions):\\n"
+        + contract + "\\n"
         "Act as a cautious C developer. Find a real reproducible defect, fix it "
         "with one or two tiny changes, and add a regression assertion. "
         "If no defect exists, return an empty changes list. "
