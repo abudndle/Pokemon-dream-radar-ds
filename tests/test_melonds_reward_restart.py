@@ -80,6 +80,14 @@ with tempfile.TemporaryDirectory() as tmp:
         "Emulator launcher PID: 102\nEmulator launcher PID 102 force-killed\n"
         "Emulator launcher PID 102 terminated\n")
     rejected(first, second, save)
+    # A cleanup warning may include a prefix and extra details, even if a
+    # later trap prints a misleading exact "terminated" record.
+    for warning in (
+        "WARNING: Emulator launcher PID 102 force-killed after SIGTERM timeout; save flush unverified\n",
+        "Emulator launcher PID 102 still running after cleanup\n",
+    ):
+        (second / "runtime.log").write_text(log + warning)
+        rejected(first, second, save)
     (second / "runtime.log").write_text("Emulator launcher PID: 102\n")
     rejected(first, second, save)
     (second / "runtime.log").write_text(
