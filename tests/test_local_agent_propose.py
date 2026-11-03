@@ -67,6 +67,7 @@ else:
     from local_agent_propose import select_focus as choose
 keys = tuple(TASKS)
 for index, key in enumerate(keys):
+    # Each consecutive five-minute run must select the next supported module.
     assert choose("auto", index) == key
     assert choose("auto", index + len(keys)) == key
     assert choose(key, 0) == key
