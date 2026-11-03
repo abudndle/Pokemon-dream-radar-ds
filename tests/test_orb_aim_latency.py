@@ -20,7 +20,7 @@ assert result.stdout.splitlines() == ["aim Right 0.150 0.06", "aim Up 0.100 0.06
 verbose = subprocess.run(["bash", "-c", "ORB_VERBOSE_CALIBRATION=1\n" + shell],
                          text=True, capture_output=True, check=True)
 assert verbose.stdout.count("snapshot ") == 4, verbose.stdout
-assert verbose.stdout.count("decode ") == 4, verbose.stdout
+assert function.count("python3 tools/plan_melonds_aim.py") == 2
 assert verbose.stdout.count("aim ") == 2, verbose.stdout
 
 # The caller MUST still acquire a fresh Orb screenshot after movement and a
