@@ -29,6 +29,20 @@ int main(void) {
     assert(g.save.pending_count==0 && game_legendary_at(&g,0)==15);
     assert(g.save.pending_items[0]==1);
     assert(game_item_slot_kind(&g,0)==7);
+    /* Ordinary non-legendary Pokemon must persist in the six-slot research
+       queue as well as legendary archive entries and item stacks. */
+    g.screen=STATE_SPHERE;
+    g.capture_timeout=100;
+    g.session_type=0;
+    g.session_species=4; /* Riolu */
+    g.session_item=-1;
+    g.ext_selection=EXT_BASIC;
+    game_capture(&g);
+    assert(g.screen==STATE_RESULTS);
+    assert(g.session_caught==4);
+    assert(g.save.pending_count==1 && g.save.pending[0]==4);
+    assert(g.save.caught_count==2);
+
     /* A real radar shot, not an expired Orb entity, must credit persistent
        currency. Verify the exact saved balance after disk round-trip. */
     uint32_t old_orbs=g.save.orbs, old_total=g.save.total_orbs;
@@ -46,8 +60,9 @@ int main(void) {
     game_new(&loaded,98765);
     assert(game_load(&loaded,path));
     assert(loaded.save.story_phase==1);
-    assert(loaded.save.caught_count==1);
-    assert(loaded.save.pending_count==0 && game_legendary_at(&loaded,0)==15);
+    assert(loaded.save.caught_count==2);
+    assert(loaded.save.pending_count==1 && loaded.save.pending[0]==4);
+    assert(game_legendary_at(&loaded,0)==15);
     assert(loaded.save.pending_items[0]==1);
     assert(game_item_slot_kind(&loaded,0)==7);
     assert(loaded.save.searches==searches);
@@ -79,7 +94,8 @@ int main(void) {
     }
     game_new(&loaded,98765);
     assert(game_load(&loaded,path));
-    assert(loaded.save.pending_count==0 && game_legendary_at(&loaded,0)==15);
+    assert(loaded.save.pending_count==1 && loaded.save.pending[0]==4);
+    assert(game_legendary_at(&loaded,0)==15);
     assert(game_item_slot_kind(&loaded,0)==7);
     /* An interrupted save can leave a stale staging file behind. Do not
        destroy the previously committed reward state or reuse that file. */
