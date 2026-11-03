@@ -276,6 +276,16 @@ int main(void) {
         assert(g.capture_timeout == timeout_before_invalid);
         assert(g.sphere_x == sphere_x_before_invalid);
         assert(g.sphere_y == sphere_y_before_invalid);
+        /* The capture timer is authoritative even between simulation ticks:
+           shots must not destroy a hostile projectile after time runs out. */
+        g.capture_timeout = 0;
+        g.aim_x = g.projectile_x;
+        g.aim_y = g.projectile_y;
+        game_fire(&g);
+        assert(g.projectile_active && g.projectile_lifetime == 60);
+        assert(g.capture_hp == hp_before_invalid);
+        assert(g.screen == STATE_SPHERE);
+        g.capture_timeout = timeout_before_invalid;
         int found_movement = 0;
         g.projectile_active = 0;
         g.projectile_enabled = 0; /* Isolate the target and capture meter. */
