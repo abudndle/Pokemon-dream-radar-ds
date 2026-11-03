@@ -14,6 +14,8 @@ int dr_camera_quick_row_hit(int x,int y){
 }
 int dr_camera_quick_open(int menu_allowed,int held,int down,
                          int select_mask,int x_mask){
+    /* A two-button chord must not degrade into a single-button shortcut. */
+    if(!select_mask || !x_mask || (select_mask & x_mask))return 0;
     const int combo=select_mask|x_mask;
     /* A hidden chord, never the X key or a tap alone. Trigger only on a
        newly pressed chord component to avoid toggling every held frame. */
@@ -63,6 +65,7 @@ int dr_sphere_fire_repeat(int a_held,int a_pressed,unsigned frames_played){
     return a_held && (a_pressed || frames_played%3u==0u);
 }
 int dr_photo_shortcut(int dsi_mode,int held,int down,int l_mask,int r_mask){
+    if(!l_mask || !r_mask || (l_mask & r_mask))return 0;
     return dsi_mode && (held & (l_mask|r_mask))==(l_mask|r_mask) &&
            (down & (l_mask|r_mask))!=0;
 }
