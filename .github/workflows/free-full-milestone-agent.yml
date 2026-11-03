@@ -96,11 +96,13 @@ jobs:
         run: |
           set -euo pipefail
           # No GH_TOKEN, API key or private Nintendo assets in this subprocess.
+          export PYTHONDONTWRITEBYTECODE=1
           task="$(cat .github/agent/AGENT_TASK.md)"
           context="$(cat "$RUNNER_TEMP/public-backlog.txt")"
           timeout --signal=TERM --kill-after=30s 1500s \
             "$HOME/.local/bin/aider" --model ollama_chat/qwen2.5-coder:3b \
               --yes-always --no-auto-commits --no-gitignore --no-show-model-warnings \
+              --no-check-update --no-restore-chat-history --no-chat-history \
               --message "$task
 
           Choose ONE unfinished milestone. Implement meaningful game code and regression tests in approved public modules; do not merely edit documentation. Never claim unverified ROM or hardware compatibility.
@@ -114,7 +116,16 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git add -A
+          # Only stage the public paths permitted by the unchanged safety gate.
+          # Aider history and interpreter cache files are never candidate source edits.
+          # Stage each existing or previously tracked candidate path independently.
+          # Missing optional roots must not prevent staging valid edits; deleted
+          # tracked files must still be staged for the safety gate to reject.
+          for candidate in source tests tools docs scripts companion public-demo include src Makefile makefile GNUmakefile README.md; do
+            if [[ -e "$candidate" ]] || [[ -n "$(git ls-files -- "$candidate")" ]]; then
+              git add -A -- "$candidate"
+            fi
+          done
           if git diff --cached --quiet; then
             echo "No material code changes; no branch/PR will be published."
             echo "has_changes=false" >> "$GITHUB_OUTPUT"
@@ -144,7 +155,14 @@ jobs:
           set -euo pipefail
           # After all tests, check again so no asset or workflow file can slip
           # into the commit via a test-generated change.
-          git add -A
+          # Stage each existing or previously tracked candidate path independently.
+          # Missing optional roots must not prevent staging valid edits; deleted
+          # tracked files must still be staged for the safety gate to reject.
+          for candidate in source tests tools docs scripts companion public-demo include src Makefile makefile GNUmakefile README.md; do
+            if [[ -e "$candidate" ]] || [[ -n "$(git ls-files -- "$candidate")" ]]; then
+              git add -A -- "$candidate"
+            fi
+          done
           python3 tools/hosted_milestone_agent.py check
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
