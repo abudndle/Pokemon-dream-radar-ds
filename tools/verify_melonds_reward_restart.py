@@ -60,8 +60,8 @@ def verify_reward_restart(first_dir, restart_dir, save_file):
         # Require an exact, standalone clean-exit record. A substring such as
         # "terminated unexpectedly" must not count as a clean shutdown.
         termination = rf"^Emulator launcher PID {pid} terminated$"
-        if (re.search(rf"^Emulator launcher PID {pid} (?:force-killed|still running)$",
-                      log, re.M)
+        if (re.search(rf"Emulator launcher PID {pid} (?:force-killed|still running)",
+                      log)
                 or len(re.findall(termination, log, re.M)) != 1):
             raise ValueError(f"{label} emulator did not terminate cleanly")
     first_sidecar = _json(first_dir / "sphere-reward.json")
