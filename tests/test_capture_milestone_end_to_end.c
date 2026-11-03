@@ -61,6 +61,13 @@ int main(void) {
     g.sphere_y=85;
     g.sphere_vx=2;
     g.sphere_vy=-1;
+    /* A deliberately off-target shot must not damage or capture the sphere. */
+    g.aim_x=0;
+    g.aim_y=0;
+    int hp_before_miss=g.capture_hp;
+    game_fire(&g);
+    assert(g.screen==STATE_SPHERE);
+    assert(g.capture_hp==hp_before_miss);
     int observed_movement=0;
     for(int frame=0;frame<100 && g.screen==STATE_SPHERE;frame++) {
         int before_x=g.sphere_x;
