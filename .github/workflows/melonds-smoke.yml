@@ -1,5 +1,10 @@
 name: Linux melonDS boot and screenshots
+run-name: ${{ github.event_name == 'schedule' && 'STRICT daily capture and clean emulator reward restart' || 'melonDS boot and screenshots' }}
 on:
+  # Strict daily run: unlike an ordinary green boot, capture/restart failure
+  # must fail CI and retain screenshots showing the exact unmet condition.
+  schedule:
+    - cron: '17 3 * * *'
   workflow_dispatch:
     inputs:
       require_touch:
@@ -82,11 +87,15 @@ on:
 # Manual strict restart runs retain their own run-id group and are never
 # canceled by a new push, preserving acceptance evidence.
 concurrency:
-  group: melonds-${{ github.workflow }}-${{ github.event_name == 'workflow_dispatch' && github.run_id || github.event.pull_request.number || github.ref }}
-  cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}
+  group: melonds-${{ github.workflow }}-${{ (github.event_name == 'workflow_dispatch' || github.event_name == 'schedule') && github.run_id || github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' && github.event_name != 'schedule' }}
 jobs:
   melonds-boot:
     runs-on: ubuntu-24.04
+    env:
+      # The same variable controls first-session enforcement and the second
+      # independently launched emulator's reward persistence verification.
+      REQUIRE_CAPTURE: ${{ (github.event_name == 'schedule' || inputs.require_capture) && '1' || '0' }}
     timeout-minutes: 30
     permissions:
       contents: read
@@ -195,7 +204,6 @@ jobs:
       - name: Launch melonDS and capture actual emulator window
         env:
           REQUIRE_TOUCH: ${{ inputs.require_touch && '1' || '0' }}
-          REQUIRE_CAPTURE: ${{ inputs.require_capture && '1' || '0' }}
           REQUIRE_ORB_COLLECTION: ${{ inputs.require_orb_collection && '1' || '0' }}
           CAPTURE_SWEEP_STEPS: ${{ inputs.capture_sweep_steps || '440' }}
         run: |
@@ -216,7 +224,7 @@ jobs:
           # A real catalog-backed capture, if one occurred, takes priority
           # over an optional Orb-only restart: the fresh process must show
           # the exact Results reward without replaying the encounter.
-          if [[ "${{ inputs.require_capture && '1' || '0' }}" == 1 ]]; then
+          if [[ "$REQUIRE_CAPTURE" == 1 ]]; then
             test -s melonds-results/05-capture-reward.png
             test -s melonds-results/sphere-reward.json
             test -s melonds-results/06-results-preserved.png
