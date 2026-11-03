@@ -219,7 +219,7 @@ with patch('verify_sphere_prefire_frame.subprocess.run') as run, \
         ['xdotool', 'keyup', 'z'],
         ['xdotool', 'keydown', '--clearmodifiers', 'Right'],
         ['xdotool', 'keyup', 'Right']]
-    sleep.assert_called_once_with(0.053)
+    sleep.assert_called_once_with(round(27 * 0.70 / 360, 3))
 
 with patch('verify_sphere_prefire_frame.subprocess.run') as run:
     for invalid_threshold in (-1, 257, True, 26.0):
