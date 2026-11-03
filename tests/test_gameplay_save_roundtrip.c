@@ -60,8 +60,9 @@ int main(void) {
     game_new(&loaded,98765);
     assert(game_load(&loaded,path));
     assert(loaded.save.story_phase==1);
-    assert(loaded.save.caught_count==1);
-    assert(loaded.save.pending_count==0 && game_legendary_at(&loaded,0)==15);
+    assert(loaded.save.caught_count==2);
+    assert(loaded.save.pending_count==1 && loaded.save.pending[0]==4);
+    assert(game_legendary_at(&loaded,0)==15);
     assert(loaded.save.pending_items[0]==1);
     assert(game_item_slot_kind(&loaded,0)==7);
     assert(loaded.save.searches==searches);
@@ -93,7 +94,8 @@ int main(void) {
     }
     game_new(&loaded,98765);
     assert(game_load(&loaded,path));
-    assert(loaded.save.pending_count==0 && game_legendary_at(&loaded,0)==15);
+    assert(loaded.save.pending_count==1 && loaded.save.pending[0]==4);
+    assert(game_legendary_at(&loaded,0)==15);
     assert(game_item_slot_kind(&loaded,0)==7);
     /* An interrupted save can leave a stale staging file behind. Do not
        destroy the previously committed reward state or reuse that file. */
