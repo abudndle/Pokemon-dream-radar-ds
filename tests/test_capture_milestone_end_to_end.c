@@ -102,7 +102,7 @@ int main(void) {
     for(int i=0;i<MAX_DREAM_ORBS;i++)
         if(g.dream_orbs[i].alive){resume_orb=i;break;}
     assert(resume_orb>=0);
-    int before_resume_orbs=g.save.orbs;
+    uint32_t before_resume_orbs=g.save.orbs;
     int before_resume_session=g.session_orbs;
     g.aim_x=g.dream_orbs[resume_orb].x;
     g.aim_y=g.dream_orbs[resume_orb].y;
