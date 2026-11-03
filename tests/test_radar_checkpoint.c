@@ -71,16 +71,24 @@ int main(void) {
     game_fire(&loaded);
     assert(loaded.screen==STATE_SPHERE && loaded.radar_resume_pending);
     loaded.capture_hp=77;
+    /* Persist the actual in-flight movement and hit progress rather than
+     * replacing the resumed sphere with a synthetic moving fixture. */
+    int checkpoint_x=loaded.sphere_x, checkpoint_y=loaded.sphere_y;
+    int checkpoint_vx=loaded.sphere_vx, checkpoint_vy=loaded.sphere_vy;
+    int checkpoint_timeout=loaded.capture_timeout;
+    assert(checkpoint_vx!=0 || checkpoint_vy!=0);
     assert(save_backend_write(&backend,&loaded));
     reload(&backend,&g);
     assert(g.screen==STATE_SPHERE && g.capture_hp==77);
+    assert(g.sphere_x==checkpoint_x && g.sphere_y==checkpoint_y);
+    assert(g.sphere_vx==checkpoint_vx && g.sphere_vy==checkpoint_vy);
+    assert(g.capture_timeout==checkpoint_timeout);
     assert(g.radar_resume_pending && g.clouds[1].alive);
     /* Complete the restored encounter through real moving-target frames and
      * beam hits. Direct game_capture() would bypass the gameplay path this
      * backend/restart acceptance is meant to protect. */
-    g.capture_timeout=600;
-    g.sphere_x=120;g.sphere_y=85;
-    g.sphere_vx=2;g.sphere_vy=-1;
+    /* Continue from the exact restored position/velocity and timer.
+     * Clear projectile interference only to isolate beam/capture testing. */
     g.projectile_active=0;
     for(int i=0;i<MAX_EXTRA_PROJECTILES;i++)g.projectile_extra[i].active=0;
     g.projectile_cooldown=160;
