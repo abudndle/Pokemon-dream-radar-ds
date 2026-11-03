@@ -11,6 +11,7 @@
 #include <string.h>
 #include "game.h"
 #include "aim_input.h"
+#include "menu_input.h"
 
 static Game game;
 static NE_Camera *camera;
@@ -66,9 +67,7 @@ static void draw_3d(void *arg) {
     }
 }
 static void update_game(unsigned down,unsigned held) {
-    if(game.screen==STATE_TITLE) {
-        if(down & KEY_A) game_begin_search(&game,EXT_BASIC);
-    } else if(game.screen==STATE_RADAR || game.screen==STATE_SPHERE) {
+    if(game.screen==STATE_RADAR || game.screen==STATE_SPHERE) {
         if(held & KEY_LEFT) game.aim_x-=2;
         if(held & KEY_RIGHT) game.aim_x+=2;
         if(held & KEY_UP) game.aim_y-=2;
@@ -79,10 +78,14 @@ static void update_game(unsigned down,unsigned held) {
         if(game.aim_y>191)game.aim_y=191;
         if(down & KEY_A)game_fire(&game);
         if(down & KEY_B)game_leave_search(&game);
-    } else if(game.screen==STATE_RESULTS) {
-        if(down & KEY_A) {
-            if(!game_resume_radar(&game))game.screen=STATE_TITLE;
-        }
+    } else {
+        const Dr3dMenuInput input = {
+            (down & KEY_A) != 0,
+            (down & KEY_B) != 0,
+            (down & KEY_UP) != 0,
+            (down & KEY_DOWN) != 0
+        };
+        dr3d_menu_step(&game,input);
     }
     game_tick(&game);
     select_encounter_model(game.screen==STATE_SPHERE &&
@@ -107,7 +110,9 @@ int main(int argc,char **argv) {
     printf("Dream Radar / 3D adapter\\n");
     printf("Nitro Engine + DSMA\\n");
     printf("3D assets: %s\\n",asset_mount?"NitroFS":"unavailable");
-    printf("A: search/fire  D-pad/touch: aim\\nB: leave search\\n");
+    printf("A: select/fire B: back\\n");
+    printf("Lab -> extension -> radar\\n");
+    printf("D-pad/touch: aim\\n");
     printf("Only private DSM/DSA renders.\\n");
     for(;;) {
         NE_WaitForVBL(NE_UPDATE_ANIMATIONS);
