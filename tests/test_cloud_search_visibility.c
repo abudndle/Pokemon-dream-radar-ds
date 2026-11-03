@@ -109,6 +109,42 @@ int main(void) {
     assert(game_active_dream_orbs(&g) == orb_count_before - 1);
     assert(g.session_orbs == 1 && g.save.orbs == currency_before + 1);
     assert(g.save.caught_count == 0 && g.session_species == -1);
+    /* A spawned Dream Orb directly over an untouched cloud must be collected
+       first. A single shot cannot both award currency and discover a cloud. */
+    game_new(&g, 0x6A19u);
+    game_begin_search(&g, EXT_BASIC);
+    assert(g.screen == STATE_RADAR && g.active_clouds >= 2);
+    g.active_clouds = 2;
+    g.clouds[0].alive = 1;
+    g.clouds[0].kind = 0;
+    g.clouds[0].x = 128;
+    g.clouds[0].y = 96;
+    g.clouds[1].alive = 1;
+    g.clouds[1].kind = 0;
+    g.clouds[1].x = 180;
+    g.clouds[1].y = 96;
+    g.aim_x = 128;
+    g.aim_y = 96;
+    game_fire(&g);
+    assert(!g.clouds[0].alive && g.clouds[1].alive);
+    assert(game_active_dream_orbs(&g) > 0);
+    int overlap_orb = -1;
+    for(int i = 0; i < MAX_DREAM_ORBS; ++i)
+        if(g.dream_orbs[i].alive) { overlap_orb = i; break; }
+    assert(overlap_orb >= 0);
+    /* Move the remaining live cloud under the collectible orb. */
+    g.clouds[1].x = g.dream_orbs[overlap_orb].x;
+    g.clouds[1].y = g.dream_orbs[overlap_orb].y;
+    g.aim_x = g.clouds[1].x;
+    g.aim_y = g.clouds[1].y;
+    int remaining_orbs = game_active_dream_orbs(&g);
+    int previous_hits = g.cloud_hit;
+    int previous_rewards = g.session_orbs;
+    game_fire(&g);
+    assert(g.clouds[1].alive && g.cloud_hit == previous_hits);
+    assert(game_active_dream_orbs(&g) == remaining_orbs - 1);
+    assert(g.session_orbs == previous_rewards + 1);
+    assert(g.screen == STATE_RADAR && g.session_species == -1);
     /* End-to-end host gameplay acceptance: find a storm-cloud seed whose
        ordinary Basic search opens a real encounter, then follow the moving
        target using game_tick/game_fire until capture is awarded. This must
