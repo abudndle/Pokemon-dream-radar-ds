@@ -203,11 +203,23 @@ assert predicted["motion_prediction"] == "bounded"
 assert predicted["horizontal_key"] == "Right"
 assert predicted["vertical_key"] == "Up"
 assert predicted["candidate_spheres"] == 1
+# The observed real ERRATIC encounter repeatedly crossed the horizontal
+# reticle after full-strength camera corrections. A bounded motion plan now
+# damps only horizontal movement; it does not relax the fresh-frame fire gate.
+assert predicted["camera_horizontal_gain"] == 0.70
+assert predicted["camera_axis_deadzone_pixels"] == 15
+assert predicted["horizontal_seconds"] == round(27 * 0.70 / 360, 3)
+assert predicted["vertical_key"] == "none"
+assert predicted["vertical_seconds"] == 0
 
 stationary = plan_sphere_motion(previous, previous, WIDTH, HEIGHT)
 assert stationary["target_screen"] == stationary["observed_target_screen"]
 assert stationary["motion_prediction"] == "bounded"
 assert stationary["camera_only_lead_pixels"] == {"x": 0, "y": 0}
+assert stationary["horizontal_key"] == "none"
+assert stationary["vertical_key"] == "none"
+assert stationary["horizontal_seconds"] == 0
+assert stationary["vertical_seconds"] == 0
 # A temporal camera plan may be used for movement but must never be treated
 # as a fresh observed-only prefire plan, even when the predicted point is
 # precisely at the reticle.
@@ -264,6 +276,8 @@ assert tracked["observed_target_screen"] == {"x": 130, "y": 109}
 assert tracked["target_screen"] == {"x": 138, "y": 117}
 assert tracked["camera_only_lead_pixels"] == {"x": 8, "y": 8}
 assert tracked["motion_prediction"] == "bounded"
+assert tracked["horizontal_key"] == "none" and tracked["horizontal_seconds"] == 0
+assert tracked["vertical_key"] == "Down" and tracked["vertical_seconds"] > 0
 
 ambiguous = bytearray(sphere_frame(False))
 paint_encounter(ambiguous, 95, 99)
