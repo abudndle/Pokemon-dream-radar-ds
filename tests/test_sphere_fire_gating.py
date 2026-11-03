@@ -43,7 +43,9 @@ assert loop.index('--correct-unaligned') < loop.index('snapshot_fast "05-sphere-
 assert loop.count('--correct-unaligned') == 2
 assert '--correct-min-distance 26' in loop
 assert 'recorrection_decision=' in loop
-assert 'camera_correction_executed' in loop
+assert loop.count('tools/check_prefire_correction.py') == 2
+assert '--require-corrected' in loop
+assert 'camera_correction_executed' in (ROOT / 'tools/check_prefire_correction.py').read_text()
 assert 'sphere_inline_corrections=$((sphere_inline_corrections + 1))' in loop
 assert loop.index('sphere_fire_authorized=$((sphere_fire_authorized + 1))') > fourth
 assert loop.index('snapshot "05-sphere-sweep-$step"') > fourth
