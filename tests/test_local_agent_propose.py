@@ -24,6 +24,12 @@ with tempfile.TemporaryDirectory() as d:
     assert "return 2;" in (root / paths[0]).read_text()
     assert "assert(2);" in (root / paths[1]).read_text()
     invalid = [
+        {"summary": "Comment-only source edit is not implementation", "changes": [
+            change(paths[0], "return 2;", "return 2; /* claimed fix */"),
+            change(paths[1], "assert(2);", "assert(2);\\n    assert(3);")]},
+        {"summary": "Whitespace-only source edit is not implementation", "changes": [
+            change(paths[0], "return 2;", "return   2;"),
+            change(paths[1], "assert(2);", "assert(2);\\n    assert(3);")]},
         {"summary": "Duplicate regression assertion", "changes": [
             change(paths[0], "return 2;", "return 3;"),
             change(paths[1], "assert(2);", "assert(2); assert(2);")]},
