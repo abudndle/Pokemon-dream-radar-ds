@@ -75,12 +75,34 @@ int main(void) {
     reload(&backend,&g);
     assert(g.screen==STATE_SPHERE && g.capture_hp==77);
     assert(g.radar_resume_pending && g.clouds[1].alive);
-    g.capture_timeout=120;
-    game_capture(&g);
+    /* Complete the restored encounter through real moving-target frames and
+     * beam hits. Direct game_capture() would bypass the gameplay path this
+     * backend/restart acceptance is meant to protect. */
+    g.capture_timeout=600;
+    g.sphere_x=120;g.sphere_y=85;
+    g.sphere_vx=2;g.sphere_vy=-1;
+    g.projectile_active=0;
+    for(int i=0;i<MAX_EXTRA_PROJECTILES;i++)g.projectile_extra[i].active=0;
+    g.projectile_cooldown=160;
+    int moved_after_reload=0;
+    for(int frame=0;frame<100 && g.screen==STATE_SPHERE;frame++) {
+        int previous_x=g.sphere_x,previous_y=g.sphere_y;
+        game_tick(&g);
+        if(g.sphere_x!=previous_x || g.sphere_y!=previous_y)
+            moved_after_reload=1;
+        if(g.screen!=STATE_SPHERE)break;
+        g.aim_x=g.sphere_x;g.aim_y=g.sphere_y;
+        game_fire(&g);
+    }
+    assert(moved_after_reload);
     assert(g.screen==STATE_RESULTS && g.save.searches==1);
+    assert(g.session_caught>=0 || g.session_item>=0);
+    int captured_species=g.session_caught;
+    int captured_item=g.session_item;
     assert(save_backend_write(&backend,&g));
     reload(&backend,&loaded);
     assert(loaded.screen==STATE_RESULTS && loaded.radar_resume_pending);
+    assert(loaded.session_caught==captured_species && loaded.session_item==captured_item);
     assert(loaded.save.orbs==900 && loaded.save.searches==1);
     assert(game_resume_radar(&loaded));
     assert(loaded.screen==STATE_RADAR && loaded.clouds[1].alive);
