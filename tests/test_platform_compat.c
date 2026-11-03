@@ -38,6 +38,27 @@ int main(void) {
     assert(!dr_camera_allowed(0,1) && !dr_camera_allowed(0,0));
     assert(!dr_camera_allowed(1,0) && dr_camera_allowed(1,1));
     assert(dr_camera_retry_latch(1,1)==0);
+    /* Sphere beam: immediate press, bounded hold pulses, silence on release. */
+    assert(dr_sphere_fire_repeat(1,1,1));
+    assert(dr_sphere_fire_repeat(1,1,2));
+    assert(dr_sphere_fire_repeat(1,1,3));
+    assert(!dr_sphere_fire_repeat(1,0,1));
+    assert(!dr_sphere_fire_repeat(1,0,2));
+    assert(dr_sphere_fire_repeat(1,0,3));
+    assert(dr_sphere_fire_repeat(1,0,6));
+    assert(!dr_sphere_fire_repeat(1,0,7));
+    assert(!dr_sphere_fire_repeat(0,0,3));
+    assert(!dr_sphere_fire_repeat(0,0,6));
+    int held_shots=0;
+    for(unsigned frame=1;frame<=60;frame++)
+        held_shots+=dr_sphere_fire_repeat(1,frame==1,frame);
+    assert(held_shots==21);
+    /* Radar remains protected from the A held to select an Extension. */
+    int search_armed=0;
+    assert(!dr_search_fire_gate(1,&search_armed));
+    assert(!dr_search_fire_gate(1,&search_armed));
+    assert(!dr_search_fire_gate(0,&search_armed));
+    assert(dr_search_fire_gate(1,&search_armed));
     assert(dr_camera_retry_latch(0,1)==1);
     assert(dr_camera_retry_latch(1,0)==0);
     assert(dr_camera_next_frame_count(0)==1);
