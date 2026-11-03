@@ -59,6 +59,8 @@ test-host:
 	./build/test_scene_checkpoint
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c source/twilight_saves.c source/save_backend.c tests/test_radar_checkpoint.c -o build/test_radar_checkpoint
 	./build/test_radar_checkpoint
+	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c source/twilight_saves.c source/save_backend.c tests/test_pokemon_capture_reward_restart.c -o build/test_pokemon_capture_reward_restart
+	./build/test_pokemon_capture_reward_restart
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c source/twilight_saves.c source/save_backend.c tests/test_orb_reward_clean_restart.c -o build/test_orb_reward_clean_restart
 	./build/test_orb_reward_clean_restart
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c tests/test_capture_expiry.c -o build/test_capture_expiry
