@@ -7,6 +7,7 @@ on:
       - 'tests/test_3d_touch_aim.c'
       - 'tests/test_3d_menu_navigation.c'
       - 'tests/test_3d_camera_gate.c'
+      - 'tests/test_3d_optical_aim.c'
       - 'source/game.c'
       - 'source/game.h'
       - 'Makefile.3d'
@@ -42,6 +43,8 @@ jobs:
           /tmp/test_3d_menu_navigation
           cc -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c tests/test_3d_camera_gate.c -o /tmp/test_3d_camera_gate
           /tmp/test_3d_camera_gate
+          cc -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c tests/test_3d_optical_aim.c -o /tmp/test_3d_optical_aim
+          /tmp/test_3d_optical_aim
           make test-syntax
       - name: Build Nitro Engine/DSMA from verified upstream and link alternate ROM
         run: |

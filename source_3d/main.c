@@ -14,6 +14,7 @@
 #include "aim_input.h"
 #include "menu_input.h"
 #include "camera_gate.h"
+#include "optical_aim.h"
 
 static Game game;
 static NE_Camera *camera;
@@ -28,6 +29,7 @@ static int loaded;
 static u16 dsi_frame[256*192] __attribute__((aligned(32)));
 static int dsi_camera_active, dsi_camera_busy, dsi_camera_failed;
 static unsigned dsi_camera_frames;
+static Dr3dOpticalAim optical_state;
 static int running_dsi;
 
 static void stop_dsi_camera(void) {
@@ -41,6 +43,7 @@ static void stop_dsi_camera(void) {
     }
     dsi_camera_active=0;
     dsi_camera_busy=0;
+    dr3d_optical_reset(&optical_state);
     game.camera_active=0;
     game.camera_ok=0;
 }
@@ -72,6 +75,7 @@ static void update_dsi_camera(void) {
         dsi_camera_busy=0;
         DC_InvalidateRange(dsi_frame,sizeof dsi_frame);
         if(dsi_camera_frames<0xffffffffu)++dsi_camera_frames;
+        dr3d_optical_step(&optical_state,&game,dsi_frame,running_dsi);
     }
     if(!dsi_camera_busy && (game.save.frames_played%3u)==0) {
         dsi_camera_busy=cameraStartTransfer(dsi_frame,
@@ -187,6 +191,7 @@ int main(int argc,char **argv) {
     printf("Lab -> extension -> radar\\n");
     printf("D-pad/touch: aim\\n");
     printf("Camera: DSi sphere only\\n");
+    printf("DSi sphere X: optical aim\\n");
     printf("Only private DSM/DSA renders.\\n");
     for(;;) {
         NE_WaitForVBL(NE_UPDATE_ANIMATIONS);
@@ -194,6 +199,10 @@ int main(int argc,char **argv) {
         if(keysDown() & KEY_START)break;
         const unsigned down=keysDown();
         const unsigned held=keysHeld();
+        if(running_dsi && game.screen==STATE_SPHERE && (down & KEY_X)) {
+            game.save.optical_aim=!game.save.optical_aim;
+            dr3d_optical_reset(&optical_state);
+        }
         if(held & KEY_TOUCH) {
             touchPosition touch;
             touchRead(&touch);
