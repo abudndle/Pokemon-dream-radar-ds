@@ -57,7 +57,7 @@ def verify_restart(first_dir, second_dir, save_file, *, verify_pixels=False):
         ("first", first_log, first_pid), ("second", second_log, second_pid)
     ):
         if (re.search(
-                rf"^Emulator launcher PID {launcher_pid} (?:force-killed|still running)(?:$|\\s)",
+                rf"Emulator launcher PID {launcher_pid} (?:force-killed|still running)",
                 runtime, re.M)
                 or len(re.findall(
                     rf"^Emulator launcher PID {launcher_pid} terminated$",
