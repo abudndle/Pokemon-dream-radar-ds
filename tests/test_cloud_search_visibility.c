@@ -50,6 +50,15 @@ int main(void) {
     for (int i = 0; i < g.active_clouds; ++i)
         if (g.clouds[i].alive) { target = i; break; }
     assert(target >= 0);
+    /* Off-screen shots cannot discover clouds, reveal an encounter or
+       create currency. The actual target must be fired upon separately. */
+    g.aim_x = -1;
+    g.aim_y = -1;
+    game_fire(&g);
+    assert(g.screen == STATE_RADAR && g.clouds[target].alive);
+    assert(g.save.orbs == 0 && g.save.caught_count == 0);
+    assert(g.session_species == -1 && g.session_item == -1);
+    assert(game_active_dream_orbs(&g) == 0);
     g.aim_x = g.clouds[target].x;
     g.aim_y = g.clouds[target].y;
     int clouds_before = 0;
@@ -70,6 +79,36 @@ int main(void) {
         assert(game_active_dream_orbs(&g) > 0);
         assert(g.session_species == -1);
     }
-    puts("PASS: encounters and orbs remain hidden until radar cloud discovery");
+    /* A pink cloud shot reveals loose Orbs but does not award currency.
+       Collecting one of the actual Orbs is a second independent shot. */
+    game_new(&g, 0x5A17u);
+    game_begin_search(&g, EXT_BASIC);
+    assert(g.screen == STATE_RADAR);
+    g.active_clouds = 1;
+    g.clouds[0].alive = 1;
+    g.clouds[0].kind = 0;
+    g.clouds[0].x = 128;
+    g.clouds[0].y = 96;
+    g.aim_x = 128;
+    g.aim_y = 96;
+    unsigned int currency_before = g.save.orbs;
+    game_fire(&g);
+    assert(g.screen == STATE_RADAR);
+    assert(!g.clouds[0].alive && g.cloud_hit == 1);
+    assert(game_active_dream_orbs(&g) >= 3);
+    assert(g.save.orbs == currency_before && g.session_orbs == 0);
+    assert(g.session_species == -1 && g.session_item == -1);
+    int orb = -1;
+    for(int i = 0; i < MAX_DREAM_ORBS; ++i)
+        if(g.dream_orbs[i].alive) { orb = i; break; }
+    assert(orb >= 0);
+    g.aim_x = g.dream_orbs[orb].x;
+    g.aim_y = g.dream_orbs[orb].y;
+    int orb_count_before = game_active_dream_orbs(&g);
+    game_fire(&g);
+    assert(game_active_dream_orbs(&g) == orb_count_before - 1);
+    assert(g.session_orbs == 1 && g.save.orbs == currency_before + 1);
+    assert(g.save.caught_count == 0 && g.session_species == -1);
+    puts("PASS: cloud discovery gates encounters; distinct Orb shot earns currency");
     return 0;
 }
