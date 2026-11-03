@@ -1,6 +1,11 @@
 name: Unattended Linux coding agent (draft PR only)
 
 on:
+  # Run this workflow once when its own configuration is changed.
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/local-linux-agent.yml'
   schedule:
     # GitHub Actions shortest interval is 5 minutes; 1 minute needs an always-on host.
     - cron: '*/5 * * * *'
