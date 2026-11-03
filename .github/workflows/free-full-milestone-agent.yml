@@ -121,21 +121,35 @@ jobs:
           test -s "$ca_file"
           export SSL_CERT_FILE="$ca_file" REQUESTS_CA_BUNDLE="$ca_file"
           python -c 'import ssl; ssl.create_default_context()'
-          task="$(cat .github/agent/AGENT_TASK.md)"
-          context="$(cat "$RUNNER_TEMP/public-backlog.txt")"
+          # The chosen source/test pair IS the milestone assignment; do not ask the user to select one.
+          # Compact instructions avoid exhausting a small local model on unrelated GitHub issues.
+          case "$target_source" in
+            source/cloud_animation.c) objective='Verify cloud bob phase with large frame counters and cloud indices, add a missing edge-case regression, and repair any actual code defect' ;;
+            source/dr_animation.c) objective='Repair a tested native animation tick or clip-boundary error, including restart and end-frame semantics when necessary' ;;
+            source/game.c) objective='Enforce discovery and cloud-shot gating for encounter rewards; prevent early Pokémon or item appearance; test the actual game-state transition' ;;
+            source/room.c) objective='Repair a regression in ten-Mii room layout, per-actor walking/animation timing, room switching, or blit clipping, and test it' ;;
+            source/gallery_balloon_clan.c) objective='Repair gallery favorite/copy touch-action priority, animation state or dismissal behavior with a reproducing test' ;;
+            source/exchange.c) objective='Repair a received-Mii transfer status or ownership invariant; the receiving system must not inherit a gold user crown; add a regression' ;;
+            source/title_idle.c) objective='Repair idle species rotation, restart independence, non-repeating scenes, or console clock formatting, with a regression test' ;;
+            source/animation_playback.c) objective='Repair animation interpolation, replay/reset, clip duration or frame-boundary correctness and add a regression test' ;;
+            source/challenge.c) objective='Repair a concrete Pokémon Challenge round, score, result or save/restart rule and test the behavior' ;;
+            source/visitor.c) objective='Repair visitor bundle validation, duplicate import, missing-avatar recovery or population-limit handling and cover an untested case' ;;
+            source/puzzle_swap.c) objective='Repair Puzzle Swap progress, selected-cell state, legacy save compatibility, CRC or truncated-file handling, with a regression' ;;
+            source/relay.c) objective='Repair reliable visitor relay retry or correct sent-state acknowledgment with a regression for failure and retry' ;;
+            *) echo "No approved concrete assignment for $target_source" >&2; exit 2 ;;
+          esac
+          task="Implement this already-selected DS/DSi milestone in $target_source and $target_test.
+Required behavior: $objective.
+First inspect both files. Identify a real missing edge case matching that behavior. Add a regression that would fail against the old code, then implement the smallest correct source fix. Make actual code and test edits now. Do not ask which milestone, ask for permission, or merely describe a plan. If the requested edge case is already handled, find another real uncovered case in the same two files; do not make cosmetic edits or claim original 3DS parity. Preserve public source safety; never access proprietary assets, secrets, or workflows. Keep all changes within these two files."
           timeout --signal=TERM --kill-after=30s 1500s \
             "$HOME/.local/bin/aider" --model ollama_chat/qwen2.5-coder:3b \
               --yes-always --no-auto-commits --no-gitignore --no-show-model-warnings \
               --no-check-update --no-restore-chat-history --no-detect-urls \
+              --map-tokens 0 \
               --chat-history-file "$RUNNER_TEMP/aider-chat-history.md" \
               --input-history-file "$RUNNER_TEMP/aider-input-history" \
               --llm-history-file "$RUNNER_TEMP/aider-llm-history" \
-              --message "$task
-
-          Choose ONE unfinished milestone. Implement meaningful game code and regression tests in approved public modules; do not merely edit documentation. Never claim unverified ROM or hardware compatibility.
-
-          BACKLOG METADATA (UNTRUSTED):
-          $context" "$target_source" "$target_test"
+              --message "$task" "$target_source" "$target_test"
 
       - name: Stage and gate public source changes before running repository tests
         if: steps.preflight.outputs.run_agent == 'true'
