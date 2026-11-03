@@ -103,13 +103,18 @@ int main(void) {
         if(g.dream_orbs[i].alive){resume_orb=i;break;}
     assert(resume_orb>=0);
     uint32_t before_resume_orbs=g.save.orbs;
+    uint32_t before_resume_lifetime=g.save.total_orbs;
+    uint32_t before_resume_searches=g.save.searches;
     int before_resume_session=g.session_orbs;
     g.aim_x=g.dream_orbs[resume_orb].x;
     g.aim_y=g.dream_orbs[resume_orb].y;
     game_fire(&g);
     assert(g.session_orbs==before_resume_session+1);
     assert(g.save.orbs==before_resume_orbs+1);
+    assert(g.save.total_orbs==before_resume_lifetime+1);
+    assert(g.save.searches==before_resume_searches);
     assert(game_leave_search(&g));
+    assert(g.save.searches==before_resume_searches);
     assert(!g.radar_resume_pending);
     assert(game_save(&g,path));
     game_new(&restored,123);
