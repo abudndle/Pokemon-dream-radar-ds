@@ -92,6 +92,17 @@ with tempfile.TemporaryDirectory() as temporary:
         raise AssertionError("Missing save media accepted")
     save.write_bytes(b"synthetic-save-media")
     assert verify_restart(first, second, save)["persistence_verified"]
+    # The command-line acceptance path must not silently trust JSON-only evidence.
+    # Unit fixtures can still opt out of PNG decoding through verify_restart().
+    from unittest.mock import patch
+    from verify_melonds_clean_restart import main as restart_cli
+    import unittest
+    with patch("sys.argv", ["verify_melonds_clean_restart.py", str(first),
+                            str(second), str(save)]), \\
+         patch("verify_melonds_clean_restart.verify_restart",
+               return_value={"persistence_verified": True}) as verifier:
+        restart_cli()
+        assert verifier.call_args.kwargs["verify_pixels"] is True
     # Strict CI mode must independently decode all three PNG balances.
     from unittest.mock import patch
     with patch("verify_melonds_clean_restart.decode_native_capture",
