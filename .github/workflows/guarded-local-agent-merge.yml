@@ -3,6 +3,11 @@ name: Safely auto-merge bounded free coding-agent proposals
 # Privileged, metadata-only merge gate. Never checkout PR code or run proposed
 # commands in this job. GitHub Actions may delay or skip scheduled events.
 on:
+  # Run this workflow once when its own configuration is changed.
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/guarded-local-agent-merge.yml'
   schedule:
     - cron: '*/5 * * * *'
   workflow_dispatch:
