@@ -96,7 +96,6 @@ with tempfile.TemporaryDirectory() as temporary:
     # Unit fixtures can still opt out of PNG decoding through verify_restart().
     from unittest.mock import patch
     from verify_melonds_clean_restart import main as restart_cli
-    import unittest
     with patch("sys.argv", ["verify_melonds_clean_restart.py", str(first),
                             str(second), str(save)]), \\
          patch("verify_melonds_clean_restart.verify_restart",
