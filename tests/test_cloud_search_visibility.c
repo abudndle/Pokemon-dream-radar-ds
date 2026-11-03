@@ -109,6 +109,53 @@ int main(void) {
     assert(game_active_dream_orbs(&g) == orb_count_before - 1);
     assert(g.session_orbs == 1 && g.save.orbs == currency_before + 1);
     assert(g.save.caught_count == 0 && g.session_species == -1);
-    puts("PASS: cloud discovery gates encounters; distinct Orb shot earns currency");
+    /* End-to-end host gameplay acceptance: find a storm-cloud seed whose
+       ordinary Basic search opens a real encounter, then follow the moving
+       target using game_tick/game_fire until capture is awarded. This must
+       never shortcut by directly calling game_capture(). */
+    int found_sphere = 0;
+    for(unsigned seed = 1; seed <= 256 && !found_sphere; ++seed) {
+        game_new(&g, seed);
+        game_begin_search(&g, EXT_BASIC);
+        assert(g.screen == STATE_RADAR);
+        g.active_clouds = 1;
+        g.clouds[0].alive = 1;
+        g.clouds[0].kind = 1;
+        g.clouds[0].x = 128;
+        g.clouds[0].y = 96;
+        g.aim_x = 128;
+        g.aim_y = 96;
+        assert(g.session_species == -1 && g.session_item == -1);
+        game_fire(&g);
+        if(g.screen != STATE_SPHERE)continue;
+        found_sphere = 1;
+        assert(g.cloud_hit == 1 && !g.clouds[0].alive);
+        assert(g.capture_timeout > 0 && g.save.caught_count == 0);
+        assert(g.save.pending_count == 0 && g.save.orbs == 0);
+        int found_movement = 0;
+        g.projectile_enabled = 0; /* Isolate the target and capture meter. */
+        for(int frame = 0; frame < 150 && g.screen == STATE_SPHERE; ++frame) {
+            int old_x = g.sphere_x, old_y = g.sphere_y;
+            game_tick(&g);
+            if(g.screen != STATE_SPHERE)break;
+            if(g.sphere_x != old_x || g.sphere_y != old_y)found_movement = 1;
+            g.aim_x = g.sphere_x;
+            g.aim_y = g.sphere_y;
+            game_fire(&g);
+        }
+        assert(found_movement);
+        assert(g.screen == STATE_RESULTS);
+        assert(g.save.searches == 1);
+        if(g.session_caught >= 0) {
+            assert(g.save.pending_count == 1);
+            assert(g.save.pending[0] == g.session_caught);
+            assert(g.save.caught_count == 1);
+        } else {
+            assert(g.session_item >= 0);
+            assert(g.save.pending_items[g.session_item] > 0);
+        }
+    }
+    assert(found_sphere); /* A storm can open the dedicated shooting scene. */
+    puts("PASS: cloud discovery, real moving-sphere capture and separate Orb currency");
     return 0;
 }
