@@ -1248,17 +1248,19 @@ void game_tick(Game *g) {
             if(!o->alive)continue;
             if(o->ttl<=1){o->alive=0;g->orb_chain_valid=0;continue;}
             o->ttl--;
-            o->x+=o->vx;o->y+=o->vy;
-            if(o->x<=16 || o->x>=239) {
-                if(o->x<16)o->x=16;
-                if(o->x>239)o->x=239;
-                o->vx=-o->vx;
-            }
-            if(o->y<=16 || o->y>=175) {
-                if(o->y<16)o->y=16;
-                if(o->y>175)o->y=175;
-                o->vy=-o->vy;
-            }
+            /* Runtime Orb velocities may have been restored from a damaged
+               checkpoint. Compute in 64 bits before clamping, and reflect
+               only when actually moving beyond the playfield boundary. */
+            int64_t nx=(int64_t)o->x+o->vx;
+            int64_t ny=(int64_t)o->y+o->vy;
+            o->x=nx<16?16:nx>239?239:(int)nx;
+            o->y=ny<16?16:ny>175?175:(int)ny;
+            if(nx<16 && o->vx<0)
+                o->vx=o->vx==INT_MIN?INT_MAX:-o->vx;
+            if(nx>239 && o->vx>0)o->vx=-o->vx;
+            if(ny<16 && o->vy<0)
+                o->vy=o->vy==INT_MIN?INT_MAX:-o->vy;
+            if(ny>175 && o->vy>0)o->vy=-o->vy;
         }
         complete_radar_if_empty(g);
     }
