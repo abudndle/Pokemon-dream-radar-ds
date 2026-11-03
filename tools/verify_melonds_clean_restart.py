@@ -96,8 +96,8 @@ def main():
     parser.add_argument("first_dir", type=Path)
     parser.add_argument("restart_dir", type=Path)
     parser.add_argument("save_file", type=Path)
-    parser.add_argument("--verify-pixels", action="store_true",
-                        help="Decode each actual emulator PNG and cross-check the ORBS digits")
+    parser.add_argument("--verify-pixels", action="store_true", default=True,
+                        help="Decode each emulator PNG and cross-check ORBS digits (always enabled)")
     args = parser.parse_args()
     try:
         result = verify_restart(args.first_dir, args.restart_dir, args.save_file,
