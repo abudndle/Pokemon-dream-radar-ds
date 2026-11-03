@@ -28,6 +28,37 @@ int main(void) {
     assert(g.screen==STATE_SPHERE && g.save.pending_items[0]==0);
     assert(g.save.caught_count==0);
     assert(g.save.caught_count==count);
+    /* A captured-target timeout also forbids defensive shots. Check the
+       primary and both side balls while the expired sphere is still shown;
+       this does not call game_tick or directly end the encounter. */
+    g.projectile_enabled=1;
+    g.projectile_active=1;
+    g.projectile_x=g.aim_x;g.projectile_y=g.aim_y;
+    g.projectile_lifetime=60;
+    g.projectile_cooldown=8;
+    g.projectile_hits=0;
+    g.projectile_extra[0].active=1;
+    g.projectile_extra[0].x=90;g.projectile_extra[0].y=80;
+    g.projectile_extra[0].ttl=60;
+    g.projectile_extra[1].active=1;
+    g.projectile_extra[1].x=160;g.projectile_extra[1].y=110;
+    g.projectile_extra[1].ttl=60;
+    for(int shot=0;shot<3;shot++) {
+        if(shot==1){g.aim_x=90;g.aim_y=80;}
+        if(shot==2){g.aim_x=160;g.aim_y=110;}
+        game_fire(&g);
+        assert(g.projectile_active && g.projectile_lifetime==60);
+        assert(g.projectile_extra[0].active && g.projectile_extra[1].active);
+        assert(g.projectile_cooldown==8 && g.projectile_hits==0);
+        assert(g.capture_hp==239 && g.capture_timeout==0);
+        assert(g.screen==STATE_SPHERE && g.save.pending_count==0);
+    }
+    /* A negative timer is also an already-expired capture. */
+    g.capture_timeout=-1;
+    g.aim_x=g.projectile_x;g.aim_y=g.projectile_y;
+    game_fire(&g);
+    assert(g.projectile_active && g.projectile_extra[0].active);
+    g.capture_timeout=0;
     game_tick(&g);
     assert(g.screen==STATE_RESULTS && g.session_caught==-1);
     game_fire(&g);
