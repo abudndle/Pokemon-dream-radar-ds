@@ -109,6 +109,29 @@ int main(void) {
     assert(game_active_dream_orbs(&g) == orb_count_before - 1);
     assert(g.session_orbs == 1 && g.save.orbs == currency_before + 1);
     assert(g.save.caught_count == 0 && g.session_species == -1);
+    /* Uncollected Dream Orbs expire on the radar clock. With no remaining
+       clouds, expiry ends the search without awarding uncollected currency. */
+    game_new(&g, 0x5A17u);
+    game_begin_search(&g, EXT_BASIC);
+    assert(g.screen == STATE_RADAR);
+    g.active_clouds = 1;
+    g.clouds[0].alive = 1;
+    g.clouds[0].kind = 0;
+    g.clouds[0].x = 128;
+    g.clouds[0].y = 96;
+    g.aim_x = 128;
+    g.aim_y = 96;
+    game_fire(&g);
+    assert(g.screen == STATE_RADAR && game_active_dream_orbs(&g) > 0);
+    unsigned int uncollected_currency = g.save.orbs;
+    for(int i = 0; i < MAX_DREAM_ORBS; ++i)
+        if(g.dream_orbs[i].alive) g.dream_orbs[i].ttl = 1;
+    game_tick(&g);
+    assert(game_active_dream_orbs(&g) == 0);
+    assert(g.screen == STATE_RESULTS);
+    assert(g.save.orbs == uncollected_currency);
+    assert(g.session_orbs == 0);
+    assert(g.save.searches == 1);
     /* A spawned Dream Orb directly over an untouched cloud must be collected
        first. A single shot cannot both award currency and discover a cloud. */
     game_new(&g, 0x6A19u);
