@@ -61,8 +61,20 @@ int main(void) {
     g.sphere_y=85;
     g.sphere_vx=2;
     g.sphere_vy=-1;
+    /* A deliberately off-target shot must not damage or capture the sphere. */
+    g.aim_x=0;
+    g.aim_y=0;
+    int hp_before_miss=g.capture_hp;
+    game_fire(&g);
+    assert(g.screen==STATE_SPHERE);
+    assert(g.capture_hp==hp_before_miss);
+    int observed_movement=0;
     for(int frame=0;frame<100 && g.screen==STATE_SPHERE;frame++) {
+        int before_x=g.sphere_x;
+        int before_y=g.sphere_y;
         game_tick(&g);
+        if(g.sphere_x!=before_x || g.sphere_y!=before_y)
+            observed_movement=1;
         if(g.screen!=STATE_SPHERE)break;
         assert(g.sphere_x>=20 && g.sphere_x<=236);
         assert(g.sphere_y>=30 && g.sphere_y<=164);
@@ -70,6 +82,7 @@ int main(void) {
         g.aim_y=g.sphere_y;
         game_fire(&g);
     }
+    assert(observed_movement); /* Prove the moving-target path actually ran. */
     assert(g.screen==STATE_RESULTS);
     /* A results screen alone is not proof of a successful capture. */
     assert(g.session_caught>=0 || g.session_item>=0);
