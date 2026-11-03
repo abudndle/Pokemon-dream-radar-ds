@@ -3,6 +3,7 @@
  * Nitro Engine links DSMA internally for .dsm skeletal models/.dsa animations.
  * Original game.c remains the authoritative gameplay implementation. */
 #include <nds.h>
+#include <nds/arm9/camera.h>
 #include <filesystem.h>
 #include <fat.h>
 #include <NEMain.h>
@@ -12,6 +13,7 @@
 #include "game.h"
 #include "aim_input.h"
 #include "menu_input.h"
+#include "camera_gate.h"
 
 static Game game;
 static NE_Camera *camera;
@@ -20,6 +22,75 @@ static NE_Animation *animation;
 static NE_Material *material;
 static int active_species = -2;
 static int loaded;
+/* Camera-only DSi capture. The Nitro Engine GPU retains exclusive VRAM
+ * ownership; frames remain in regular aligned ARM9 memory for later input. */
+#define DR3D_CAM_DMA 1
+static u16 dsi_frame[256*192] __attribute__((aligned(32)));
+static int dsi_camera_active, dsi_camera_busy, dsi_camera_failed;
+static unsigned dsi_camera_frames;
+static int running_dsi;
+
+static void stop_dsi_camera(void) {
+    if(dsi_camera_active) {
+        if(dsi_camera_busy) {
+            while(ndmaBusy(DR3D_CAM_DMA) || cameraTransferActive())
+                swiWaitForVBlank();
+            cameraStopTransfer();
+        }
+        cameraDeinit();
+    }
+    dsi_camera_active=0;
+    dsi_camera_busy=0;
+    game.camera_active=0;
+    game.camera_ok=0;
+}
+static void update_dsi_camera(void) {
+    if(!dr3d_camera_should_run(&game,running_dsi)) {
+        stop_dsi_camera();
+        return;
+    }
+    if(dr3d_camera_can_start(&game,running_dsi,dsi_camera_failed,
+                             dsi_camera_active)) {
+        if(!cameraInit()) goto failed;
+        if(!cameraSelect(CAMERA_OUTER)) {
+            cameraDeinit();
+            goto failed;
+        }
+        dsi_camera_busy=cameraStartTransfer(dsi_frame,
+                                            MCUREG_APT_SEQ_CMD_PREVIEW,
+                                            DR3D_CAM_DMA);
+        if(!dsi_camera_busy) { cameraDeinit(); goto failed; }
+        dsi_camera_active=1;
+        game.camera_active=1;
+        game.camera_ok=1;
+        game.camera_error=0;
+    }
+    if(!dsi_camera_active)return;
+    if(dsi_camera_busy && !ndmaBusy(DR3D_CAM_DMA) &&
+       !cameraTransferActive()) {
+        cameraStopTransfer();
+        dsi_camera_busy=0;
+        DC_InvalidateRange(dsi_frame,sizeof dsi_frame);
+        if(dsi_camera_frames<0xffffffffu)++dsi_camera_frames;
+    }
+    if(!dsi_camera_busy && (game.save.frames_played%3u)==0) {
+        dsi_camera_busy=cameraStartTransfer(dsi_frame,
+                                            MCUREG_APT_SEQ_CMD_PREVIEW,
+                                            DR3D_CAM_DMA);
+        if(!dsi_camera_busy) {
+            stop_dsi_camera();
+            goto failed;
+        }
+    }
+    return;
+failed:
+    dsi_camera_failed=1;
+    game.camera_error=1;
+    game.camera_ok=0;
+    game.camera_active=0;
+    /* The existing stylus/D-pad fallback remains usable on any failure. */
+}
+
 
 static void release_model(void) {
     if(model) { NE_ModelDelete(model); model=NULL; }
@@ -107,12 +178,15 @@ int main(int argc,char **argv) {
     NE_LightSet(0,NE_White,0,-1,-1);
     NE_ClearColorSet(NE_Black,31,63);
     game_new(&game,0x44525344u);
+    running_dsi=isDSiMode();
+    if(!running_dsi)game.save.camera_enabled=0;
     printf("Dream Radar / 3D adapter\\n");
     printf("Nitro Engine + DSMA\\n");
     printf("3D assets: %s\\n",asset_mount?"NitroFS":"unavailable");
     printf("A: select/fire B: back\\n");
     printf("Lab -> extension -> radar\\n");
     printf("D-pad/touch: aim\\n");
+    printf("Camera: DSi sphere only\\n");
     printf("Only private DSM/DSA renders.\\n");
     for(;;) {
         NE_WaitForVBL(NE_UPDATE_ANIMATIONS);
@@ -128,6 +202,7 @@ int main(int argc,char **argv) {
         const GameScreen previous_screen = game.screen;
         const int previous_extension = game.ext_selection;
         update_game(down,held);
+        update_dsi_camera();
         if(game.screen != previous_screen ||
            (game.screen == STATE_EXTENSIONS && game.ext_selection != previous_extension)) {
             printf("Scene %d\\n",(int)game.screen);
@@ -140,6 +215,7 @@ int main(int argc,char **argv) {
         }
         NE_ProcessArg(draw_3d,NULL);
     }
+    stop_dsi_camera();
     release_model();
     NE_End();
     return 0;
