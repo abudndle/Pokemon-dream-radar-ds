@@ -805,8 +805,7 @@ if [[ -f "$out/05-sphere-encounter.png" ]]; then
       # observed-only gate, BEFORE serializing JSON or returning to Bash.
       # It never fired on an unaligned frame. This is NOT authorization:
       # only the independent corrected screenshot may fire A.
-      python3 -c 'import json,sys; p=json.load(open(sys.argv[1])); assert p["status"]=="unaligned" and p["camera_correction_executed"] is True and p["fire_executed"] is False' \
-        "$out/sphere-prefire-inspection-$step.json"
+      python3 tools/check_prefire_correction.py "$out/sphere-prefire-inspection-$step.json" --require-corrected
       sphere_inline_corrections=$((sphere_inline_corrections + 1))
       snapshot_fast "05-sphere-prefire-corrected-$step"
       prefire_frame="$out/05-sphere-prefire-corrected-$step.png"
@@ -840,8 +839,7 @@ if [[ -f "$out/05-sphere-encounter.png" ]]; then
           # this correction, must authorize any eventual A pulse.
           # Corrupt or contradictory inspector evidence is a HARD error,
           # never a reason to silently fall back to the stationary path.
-          recorrection_decision="$(python3 -c 'import json,sys; p=json.load(open(sys.argv[1])); assert p["status"]=="unaligned" and type(p["camera_correction_executed"]) is bool and p["fire_executed"] is False; print("yes" if p["camera_correction_executed"] else "no")' \
-              "$out/sphere-prefire-corrected-inspection-$step.json")" || exit 1
+          recorrection_decision="$(python3 tools/check_prefire_correction.py "$out/sphere-prefire-corrected-inspection-$step.json")" || exit 1
           if [[ "$recorrection_decision" == yes ]]; then
             sphere_inline_corrections=$((sphere_inline_corrections + 1))
             snapshot_fast "05-sphere-prefire-recorrected-$step"
