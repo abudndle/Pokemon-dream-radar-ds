@@ -42,8 +42,11 @@ int main(void) {
     game_new(&g,115);
     game_begin_search(&g,EXT_BASIC);
     assert(g.screen==STATE_RADAR);
-    /* Isolate a real cloud hit, not an invented Orb or direct reward. */
+    /* Restrict the cloud fixture without leaving hidden live targets
+       outside active_clouds: the checkpoint validator correctly rejects
+       those impossible sessions on a clean restart. */
     g.active_clouds=1;
+    for(int i=1;i<MAX_CLOUDS;i++)g.clouds[i].alive=0;
     g.clouds[0].alive=1;
     g.clouds[0].kind=0;
     g.clouds[0].x=128;g.clouds[0].y=96;
