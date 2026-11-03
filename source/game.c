@@ -801,10 +801,15 @@ static int tick_extra_balls(Game *g) {
         if(!p->active)continue;
         if(p->ttl<=1 || p->x<0 || p->x>255 ||
            p->y<0 || p->y>191) {p->active=0;continue;}
-        p->x+=p->vx;p->y+=p->vy;p->ttl--;
-        if(p->x<0 || p->x>255 || p->y<0 || p->y>191) {
+        /* In-flight projectiles can be restored from a damaged checkpoint.
+           Never add untrusted velocities in a signed 32-bit coordinate. */
+        int64_t nx=(int64_t)p->x+p->vx;
+        int64_t ny=(int64_t)p->y+p->vy;
+        p->ttl--;
+        if(nx<0 || nx>255 || ny<0 || ny>191) {
             p->active=0;continue;
         }
+        p->x=(int)nx;p->y=(int)ny;
         if(g->aim_x<0 || g->aim_x>255 ||
            g->aim_y<0 || g->aim_y>191)continue;
         int64_t dx=(int64_t)p->x-g->aim_x;
@@ -825,14 +830,14 @@ static void tick_primary_ball(Game *g, int impact_registered) {
            g->projectile_lifetime<=0) {
             finish_projectile(g);return;
         }
-        g->projectile_x+=g->projectile_vx;
-        g->projectile_y+=g->projectile_vy;
+        int64_t nx=(int64_t)g->projectile_x+g->projectile_vx;
+        int64_t ny=(int64_t)g->projectile_y+g->projectile_vy;
         g->projectile_lifetime--;
-        if(g->projectile_x<0 || g->projectile_x>255 ||
-           g->projectile_y<0 || g->projectile_y>191 ||
+        if(nx<0 || nx>255 || ny<0 || ny>191 ||
            g->projectile_lifetime<=0) {
             finish_projectile(g);return;
         }
+        g->projectile_x=(int)nx;g->projectile_y=(int)ny;
         int64_t dx=(int64_t)g->projectile_x-g->aim_x;
         int64_t dy=(int64_t)g->projectile_y-g->aim_y;
         if(!impact_registered && g->aim_x>=0 && g->aim_x<=255 &&
