@@ -201,7 +201,7 @@ assert predicted["camera_only_lead_pixels"] == {"x": 15, "y": -8}
 assert predicted["observed_displacement"] == {"x": 20, "y": -10}
 assert predicted["motion_prediction"] == "bounded"
 assert predicted["horizontal_key"] == "Right"
-assert predicted["vertical_key"] == "Up"
+assert predicted["vertical_key"] == "none"  # planned y residual is already within 15px
 assert predicted["candidate_spheres"] == 1
 # The observed real ERRATIC encounter repeatedly crossed the horizontal
 # reticle after full-strength camera corrections. A bounded motion plan now
