@@ -58,7 +58,7 @@ def validate_and_apply(root: Path, focus: str, plan: dict) -> list[str]:
     test_path = TASKS[focus][1]
     # The model must add a genuinely new regression, not repeat an assertion
     # already present in the original test (a past agent false positive).
-    pattern = r"\\bassert\\s*\\([^;\\n]*\\)\\s*;"
+    pattern = r"\bassert\s*\([^;\n]*\)\s*;"
     before_asserts = set(re.findall(pattern, (root / test_path).read_text(encoding="utf-8")))
     after_asserts = set(re.findall(pattern, updated[test_path]))
     if not after_asserts - before_asserts:
