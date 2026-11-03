@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "game.h"
+#include "aim_input.h"
 
 static Game game;
 static NE_Camera *camera;
@@ -106,13 +107,20 @@ int main(int argc,char **argv) {
     printf("Dream Radar / 3D adapter\\n");
     printf("Nitro Engine + DSMA\\n");
     printf("3D assets: %s\\n",asset_mount?"NitroFS":"unavailable");
-    printf("A: search/fire  D-pad: aim\\nB: leave search\\n");
+    printf("A: search/fire  D-pad/touch: aim\\nB: leave search\\n");
     printf("Only private DSM/DSA renders.\\n");
     for(;;) {
         NE_WaitForVBL(NE_UPDATE_ANIMATIONS);
         scanKeys();
         if(keysDown() & KEY_START)break;
-        update_game(keysDown(),keysHeld());
+        const unsigned down=keysDown();
+        const unsigned held=keysHeld();
+        if(held & KEY_TOUCH) {
+            touchPosition touch;
+            touchRead(&touch);
+            dr3d_apply_touch_aim(&game,1,touch.px,touch.py);
+        }
+        update_game(down,held);
         NE_ProcessArg(draw_3d,NULL);
     }
     release_model();
