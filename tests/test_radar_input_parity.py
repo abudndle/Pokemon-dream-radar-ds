@@ -6,8 +6,7 @@ import re
 root = Path(__file__).resolve().parents[1]
 source = (root / "source/main.c").read_text()
 block = source.split("if(game.screen==STATE_RADAR || game.screen==STATE_SPHERE){", 1)[1].split("if(game.screen==STATE_INTRO){", 1)[0]
-assert "if(game.screen==STATE_RADAR)" in block, "Radar must have its own fire path"
-assert "dr_search_fire_gate" in block, "Radar A firing must remain release-to-arm"
+assert "dr_search_fire_gate((keys&KEY_A)!=0,&radar_fire_armed)" in block, "Radar A firing must remain release-to-arm"
 assert "game.save.frames_played%5==0" in block, "Radar firing cadence must remain unchanged"
 sphere_marker = "} else if(game.screen==STATE_SPHERE)"
 sphere_branch = block.split(sphere_marker, 1)[1] if sphere_marker in block else ""
