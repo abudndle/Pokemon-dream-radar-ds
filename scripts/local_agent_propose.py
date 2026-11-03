@@ -105,23 +105,37 @@ def run(root: Path, output_dir: Path, focus: str, model: str, endpoint: str,
     output_dir.mkdir(parents=True, exist_ok=True)
     if focus not in TASKS:
         raise ValueError("Invalid focus")
-    plan = json.loads(plan_file.read_text(encoding="utf-8")) if plan_file else (
-        generate_plan(root, focus, model, endpoint))
-    paths = validate_and_apply(root, focus, plan)
-    if validate:
-        subprocess.run(["make", "test-host", "test-syntax"], cwd=root,
-                       check=True, timeout=420)
-        subprocess.run(["git", "diff", "--check"], cwd=root, check=True, timeout=20)
-    patch = subprocess.run(["git", "diff", "--", *paths], cwd=root, check=True,
-                           capture_output=True, text=True, timeout=20).stdout
-    if not patch or len(patch) > 14000:
-        raise ValueError("No bounded code patch produced")
-    (output_dir / "proposal.patch").write_text(patch, encoding="utf-8")
-    (output_dir / "proposal.json").write_text(json.dumps({
-        "summary": plan["summary"], "focus": focus, "paths": paths,
-        "model": model, "validated": bool(validate)}, indent=2) + "\n",
-        encoding="utf-8")
-    return True
+    original = {path: (root / path).read_bytes() for path in TASKS[focus][:2]}
+    last_error = None
+    # Keep retries independent: restore both files after each rejected candidate.
+    for attempt in range(2 if plan_file is None else 1):
+        try:
+            plan = (json.loads(plan_file.read_text(encoding="utf-8"))
+                    if plan_file else generate_plan(root, focus, model, endpoint))
+            paths = validate_and_apply(root, focus, plan)
+            if validate:
+                subprocess.run(["make", "test-host", "test-syntax"], cwd=root,
+                               check=True, timeout=420)
+                subprocess.run(["git", "diff", "--check"], cwd=root,
+                               check=True, timeout=20)
+            patch = subprocess.run(["git", "diff", "--", *paths], cwd=root,
+                                   check=True, capture_output=True, text=True,
+                                   timeout=20).stdout
+            if not patch or len(patch) > 14000:
+                raise ValueError("No bounded code patch produced")
+            (output_dir / "proposal.patch").write_text(patch, encoding="utf-8")
+            (output_dir / "proposal.json").write_text(json.dumps({
+                "summary": plan["summary"], "focus": focus, "paths": paths,
+                "model": model, "validated": bool(validate)}, indent=2) + "\n",
+                encoding="utf-8")
+            return True
+        except (ValueError, OSError, TimeoutError, json.JSONDecodeError,
+                subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
+            last_error = exc
+            for path, data in original.items():
+                (root / path).write_bytes(data)
+            print(f"Rejected candidate {attempt + 1}: {exc}", file=sys.stderr)
+    raise ValueError("No passing proposal: " + str(last_error))
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
