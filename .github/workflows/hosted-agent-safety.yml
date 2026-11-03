@@ -1,0 +1,36 @@
+name: Hosted agent safety checks
+
+on:
+  push:
+    paths:
+      - tools/hosted_milestone_agent.py
+      - tests/test_hosted_milestone_agent.py
+      - .github/workflows/hosted-milestone-agent.yml
+      - .github/workflows/hosted-agent-safety.yml
+  pull_request:
+    paths:
+      - tools/hosted_milestone_agent.py
+      - tests/test_hosted_milestone_agent.py
+      - .github/workflows/hosted-milestone-agent.yml
+      - .github/workflows/hosted-agent-safety.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hosted-agent-safety-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  safety-regressions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Run asset-free safety and source allowlist regressions
+        run: python3 tests/test_hosted_milestone_agent.py
+      - name: Compile agent controller syntax
+        run: python3 -m py_compile tools/hosted_milestone_agent.py
