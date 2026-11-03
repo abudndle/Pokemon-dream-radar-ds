@@ -10,7 +10,7 @@ import argparse
 import json
 from pathlib import Path
 
-from plan_melonds_aim import plan_sphere_motion
+from plan_melonds_aim import plan_sphere, plan_sphere_motion
 from verify_melonds_navigation import (decode_native_capture, font_rows,
                                        read_capture_progress, read_capture_reward)
 
@@ -29,10 +29,11 @@ def inspect_frame(pixels, previous_pixels, width, height, font):
         progress = read_capture_progress(pixels, width, height, font)
     except ValueError:
         return "not_encounter", None, None, None
-    if previous_pixels is None:
-        return "ambiguous", None, progress, None
     try:
-        aim = plan_sphere_motion(previous_pixels, pixels, width, height)
+        # A unique current target can guide camera movement even when the
+        # previous screenshot is missing or ambiguous. No firing is allowed.
+        aim = (plan_sphere(pixels, width, height) if previous_pixels is None
+               else plan_sphere_motion(previous_pixels, pixels, width, height))
     except ValueError:
         return "ambiguous", None, progress, None
     return "target", None, progress, aim
