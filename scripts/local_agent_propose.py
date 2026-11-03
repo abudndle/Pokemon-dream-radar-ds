@@ -151,12 +151,19 @@ def run(root: Path, output_dir: Path, focus: str, model: str, endpoint: str,
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--focus", choices=TASKS, default="platform")
+    parser.add_argument("--focus", choices=[*TASKS, "auto"], default="platform")
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[1])
     parser.add_argument("--output-dir", type=Path, default=Path("agent-output"))
     parser.add_argument("--model", default=os.getenv("LOCAL_AGENT_MODEL", "qwen2.5-coder:1.5b"))
     parser.add_argument("--endpoint", default="http://127.0.0.1:11434/api/generate")
     args = parser.parse_args()
+    if args.focus == "auto":
+        # Rotate supported, allowlisted modules across unattended invocations.
+        # Explicit --focus remains deterministic for reproducible debugging.
+        from datetime import datetime, timezone
+        keys = tuple(TASKS)
+        args.focus = keys[int(datetime.now(timezone.utc).timestamp() // 3600) % len(keys)]
+        print(f"Autonomous module focus: {args.focus}")
     try:
         run(args.root, args.output_dir, args.focus, args.model, args.endpoint)
     except (ValueError, OSError, TimeoutError, json.JSONDecodeError,
