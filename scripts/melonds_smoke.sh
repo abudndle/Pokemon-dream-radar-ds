@@ -318,14 +318,24 @@ aim_ds_pair() {
 orb_aim_pulse() {
   local label="$1" key="$2" seconds="$3" settle="${4:-0.06}"
   [[ "$key" == none || "$seconds" == 0 ]] && return 0
-  snapshot "orb-calibration-$label-before"
-  python3 tools/plan_melonds_aim.py "$out/orb-calibration-$label-before.png" --target orb \
-    >"$out/orb-calibration-$label-before.json" 2>"$out/orb-calibration-$label-before.err" || true
-  printf 'pulse=%s key=%s hold_seconds=%s\\n' "$label" "$key" "$seconds" | tee -a "$out/orb-calibration.csv"
+  # Dream Orbs time out after ~210 DS frames. The previous unconditional
+  # screenshot+PNG decode before AND after each axis pulse repeatedly spent
+  # the collection window on diagnostics rather than moving the reticle.
+  # Normal acceptance still observes fresh post-pulse, motion and prefire
+  # screenshots outside this helper; ONLY the final fresh alignment gate may
+  # authorize an A-button shot. Preserve verbose samples for opt-in debugging.
+  printf 'pulse=%s key=%s hold_seconds=%s\\n' "$label" "$key" "$seconds" >>"$out/orb-calibration.csv"
+  if [[ "${ORB_VERBOSE_CALIBRATION:-0}" == 1 ]]; then
+    snapshot "orb-calibration-$label-before"
+    python3 tools/plan_melonds_aim.py "$out/orb-calibration-$label-before.png" --target orb \
+      >"$out/orb-calibration-$label-before.json" 2>"$out/orb-calibration-$label-before.err" || true
+  fi
   aim_ds_key "$key" "$seconds" "$settle"
-  snapshot "orb-calibration-$label-after"
-  python3 tools/plan_melonds_aim.py "$out/orb-calibration-$label-after.png" --target orb \
-    >"$out/orb-calibration-$label-after.json" 2>"$out/orb-calibration-$label-after.err" || true
+  if [[ "${ORB_VERBOSE_CALIBRATION:-0}" == 1 ]]; then
+    snapshot "orb-calibration-$label-after"
+    python3 tools/plan_melonds_aim.py "$out/orb-calibration-$label-after.png" --target orb \
+      >"$out/orb-calibration-$label-after.json" 2>"$out/orb-calibration-$label-after.err" || true
+  fi
 }
 if python3 tools/plan_melonds_aim.py "$out/05-radar.png" >"$out/aim-plan.json"; then
   read -r horizontal horizontal_seconds vertical vertical_seconds < <(

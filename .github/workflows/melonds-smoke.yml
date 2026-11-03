@@ -79,6 +79,7 @@ on:
       - 'tests/test_sphere_edge_recovery.py'
       - 'tests/test_melonds_navigation.py'
       - 'tests/test_melonds_aim.py'
+      - 'tests/test_orb_aim_latency.py'
       - 'tests/test_melonds_cleanup.py'
       - 'tests/test_restored_orbs_gate.py'
       - 'tools/check_restored_orbs.py'
@@ -108,6 +109,7 @@ jobs:
           python3 tests/test_navigation_evidence.py
           python3 tests/test_melonds_navigation.py
           python3 tests/test_melonds_aim.py
+          python3 tests/test_orb_aim_latency.py
           python3 tests/test_sphere_edge_recovery.py
           python3 tests/test_sphere_prefire_gate.py
           python3 tests/test_prefire_frame.py
