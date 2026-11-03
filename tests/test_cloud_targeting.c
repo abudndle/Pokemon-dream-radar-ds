@@ -81,6 +81,29 @@ int main(void) {
     assert(g.screen==STATE_SPHERE);
     assert(g.session_species>=0 || g.session_item>=0);
 
+    /* Exercise the complete production search setup, not a hand-built cloud.
+       Find a deterministic seed whose first cloud is encounter-capable and
+       whose next production RNG draw passes Basic's unchanged 1-in-3 roll. */
+    int found_full_search=0;
+    for(uint32_t seed=1;seed<10000 && !found_full_search;seed++) {
+        game_new(&g,seed);
+        g.save.cloud_count=5;
+        game_begin_search(&g,EXT_BASIC);
+        assert(g.screen==STATE_RADAR && g.active_clouds==5);
+        assert(g.clouds[0].alive && g.clouds[0].kind==1);
+        uint32_t next=g.save.random_seed;
+        next^=next<<13; next^=next>>17; next^=next<<5;
+        if(next%3u!=0u)continue;
+        g.aim_x=g.clouds[0].x;
+        g.aim_y=g.clouds[0].y;
+        game_fire(&g);
+        assert(g.cloud_hit==1 && !g.clouds[0].alive);
+        assert(g.screen==STATE_SPHERE);
+        assert(g.session_species>=0 || g.session_item>=0);
+        found_full_search=1;
+    }
+    assert(found_full_search);
+
     /* Initial cloud placement should avoid visually stacked targets in
        ordinary searches while keeping all positions inside the play area. */
     game_new(&g,123);
