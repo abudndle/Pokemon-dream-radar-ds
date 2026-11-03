@@ -6,6 +6,7 @@ root = Path(__file__).resolve().parents[1]
 make = (root / "Makefile.3d").read_text()
 main = (root / "source_3d/main.c").read_text()
 reuse = (root / "source_3d/game_reuse.c").read_text()
+menu = (root / "source_3d/menu_input.h").read_text()
 ci = (root / ".github/workflows/nitro-engine-3d.yml").read_text()
 ignore = (root / ".gitignore").read_text()
 
@@ -20,7 +21,9 @@ assert 'NE_ModelLoadDSMFAT' in main and 'NE_ModelDraw(model)' in main
 assert 'NE_ModelSetAnimation' in main and 'NE_ModelAnimStart' in main
 assert 'NE_AnimationLoadFAT' in main
 assert 'NE_CameraUse(camera)' in main
-assert 'game_begin_search' in main and 'game_tick(&game)' in main
+assert 'game_begin_search(g, g->ext_selection)' in menu and 'game_tick(&game)' in main
+assert 'dr3d_menu_step(&game,input)' in main
+assert 'game_extension_unlocked(g, selected)' in menu
 assert 'game_fire(&game)' in main and 'game_resume_radar(&game)' in main
 assert 'nitro:/models/pokemon_%02d.dsm' in main
 assert 'nitro:/models/pokemon_%02d_walk.dsa' in main
