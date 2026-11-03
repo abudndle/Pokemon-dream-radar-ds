@@ -1,10 +1,9 @@
 name: Opt-in hosted milestone coding agent
 
-# GitHub runners are temporary; jobs are bounded. Minimum scheduled period
-# is 5 minutes, NOT a guaranteed 1-minute always-on coding process.
+# Legacy metered API fallback is manual-only to prevent automatic charges.
+# Scheduled unattended coding uses an on-runner open-source local model.
 on:
-  schedule:
-    - cron: '*/5 * * * *'
+  # Metered API coding is never scheduled. Free local-linux-agent.yml is scheduled instead.
   workflow_dispatch:
     inputs:
       run_agent:
@@ -22,7 +21,6 @@ concurrency:
 jobs:
   coding:
     if: >-
-      (github.event_name == 'schedule' && vars.ENABLE_HOSTED_CODING_AGENT == 'true') ||
       (github.event_name == 'workflow_dispatch' && inputs.run_agent == true)
     runs-on: ubuntu-latest
     timeout-minutes: 35
