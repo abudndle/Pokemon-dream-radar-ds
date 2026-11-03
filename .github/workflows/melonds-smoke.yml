@@ -8,7 +8,7 @@ on:
         required: false
         default: false
       require_capture:
-        description: 'Require verified live capture reward (fails if none observed)'
+        description: 'Require live capture and exact reward restoration after a fresh melonDS launch'
         type: boolean
         required: false
         default: false
@@ -213,7 +213,20 @@ jobs:
           # A real catalog-backed capture, if one occurred, takes priority
           # over an optional Orb-only restart: the fresh process must show
           # the exact Results reward without replaying the encounter.
-          if [[ "${{ inputs.require_restart_persistence && '1' || '0' }}" != 1 &&
+          if [[ "${{ inputs.require_capture && '1' || '0' }}" == 1 ]]; then
+            test -s melonds-results/05-capture-reward.png
+            test -s melonds-results/sphere-reward.json
+            test -s melonds-results/06-results-preserved.png
+            test -s melonds-dldi/saves/dream_radar.dreamradar.sav
+            xvfb-run -a -s '-screen 0 1280x900x24' \\
+              env QT_QPA_PLATFORM=xcb QT_QPA_PLATFORMTHEME=generic QT_OPENGL=software QT_XCB_GL_INTEGRATION=none GSETTINGS_BACKEND=memory MESA_LOADER_DRIVER_OVERRIDE=softpipe REQUIRE_PREEXISTING_REWARD=1 \\
+              dbus-run-session -- bash scripts/melonds_smoke.sh "$GITHUB_WORKSPACE/melonds-dldi/dream_radar.nds" melonds-restart-results
+            python3 tools/verify_melonds_reward_restart.py \\
+              melonds-results melonds-restart-results \\
+              melonds-dldi/saves/dream_radar.dreamradar.sav \\
+              > melonds-restart-results/reward-restart-report.txt
+            cat melonds-restart-results/reward-restart-report.txt
+          elif [[ "${{ inputs.require_restart_persistence && '1' || '0' }}" != 1 &&
                 -s melonds-results/05-capture-reward.png &&
                 -s melonds-results/sphere-reward.json ]]; then
             test -s melonds-dldi/saves/dream_radar.dreamradar.sav
