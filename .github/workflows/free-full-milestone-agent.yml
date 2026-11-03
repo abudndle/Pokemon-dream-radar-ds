@@ -104,7 +104,7 @@ jobs:
           # Aider requires editable files; rotate genuine gameplay source and tests.
           case "$GITHUB_REPOSITORY" in
             abudndle/Pokemon-dream-radar-ds)
-              pairs=('source/cloud_animation.c tests/test_cloud_animation.c' 'source/dr_animation.c tests/test_dr_animation.c' 'source/game.c tests/test_gameplay_integration.c') ;;
+              pairs=('source/cloud_animation.c tests/test_cloud_animation.c' 'source/dr_animation.c tests/test_dr_animation.c' 'source/platform_compat.c tests/test_platform_compat.c') ;;
             abudndle/mii-maker-ds)
               pairs=('source/room.c tests/room.c' 'source/gallery_balloon_clan.c tests/gallery_balloon_clan.c' 'source/exchange.c tests/exchange.c') ;;
             abudndle/Pokedex-3D-Pro-DS-Demake)
@@ -126,7 +126,7 @@ jobs:
           case "$target_source" in
             source/cloud_animation.c) objective='Verify cloud bob phase with large frame counters and cloud indices, add a missing edge-case regression, and repair any actual code defect' ;;
             source/dr_animation.c) objective='Repair a tested native animation tick or clip-boundary error, including restart and end-frame semantics when necessary' ;;
-            source/game.c) objective='Enforce discovery and cloud-shot gating for encounter rewards; prevent early Pokémon or item appearance; test the actual game-state transition' ;;
+            source/platform_compat.c) objective='Repair a real DS/DSi input or storage boundary bug (release-to-arm, sustained beam, camera gating or safe storage), and add a regression that fails on the old code' ;;
             source/room.c) objective='Repair a regression in ten-Mii room layout, per-actor walking/animation timing, room switching, or blit clipping, and test it' ;;
             source/gallery_balloon_clan.c) objective='Repair gallery favorite/copy touch-action priority, animation state or dismissal behavior with a reproducing test' ;;
             source/exchange.c) objective='Repair a received-Mii transfer status or ownership invariant; the receiving system must not inherit a gold user crown; add a regression' ;;
