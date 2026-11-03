@@ -118,7 +118,14 @@ jobs:
           set -euo pipefail
           # Only stage the public paths permitted by the unchanged safety gate.
           # Aider history and interpreter cache files are never candidate source edits.
-          git add -A -- source tests tools docs scripts companion public-demo include src Makefile makefile GNUmakefile README.md 2>/dev/null || true
+          # Stage each existing or previously tracked candidate path independently.
+          # Missing optional roots must not prevent staging valid edits; deleted
+          # tracked files must still be staged for the safety gate to reject.
+          for candidate in source tests tools docs scripts companion public-demo include src Makefile makefile GNUmakefile README.md; do
+            if [[ -e "$candidate" ]] || [[ -n "$(git ls-files -- "$candidate")" ]]; then
+              git add -A -- "$candidate"
+            fi
+          done
           if git diff --cached --quiet; then
             echo "No material code changes; no branch/PR will be published."
             echo "has_changes=false" >> "$GITHUB_OUTPUT"
@@ -148,7 +155,14 @@ jobs:
           set -euo pipefail
           # After all tests, check again so no asset or workflow file can slip
           # into the commit via a test-generated change.
-          git add -A -- source tests tools docs scripts companion public-demo include src Makefile makefile GNUmakefile README.md 2>/dev/null || true
+          # Stage each existing or previously tracked candidate path independently.
+          # Missing optional roots must not prevent staging valid edits; deleted
+          # tracked files must still be staged for the safety gate to reject.
+          for candidate in source tests tools docs scripts companion public-demo include src Makefile makefile GNUmakefile README.md; do
+            if [[ -e "$candidate" ]] || [[ -n "$(git ls-files -- "$candidate")" ]]; then
+              git add -A -- "$candidate"
+            fi
+          done
           python3 tools/hosted_milestone_agent.py check
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
