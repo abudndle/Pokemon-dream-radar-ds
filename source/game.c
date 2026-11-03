@@ -999,6 +999,10 @@ void game_fire(Game *g) {
         /* Expired encounters cannot defend hostile projectiles or damage
            their target between timer expiry and the next simulation tick. */
         if(g->capture_timeout<=0)return;
+        /* Reject off-screen / corrupt aim BEFORE computing distance to ANY
+           energy ball. Two squared INT_MIN offsets can overflow int64_t. */
+        if(g->aim_x<0 || g->aim_x>255 ||
+           g->aim_y<0 || g->aim_y>191)return;
         /* One shot defends the nearest ball in the reticle, regardless of slot.
          * Ties prioritize the primary energy ball. */
         int defended=-2; /* -2 none, -1 primary, 0.. side projectile */
