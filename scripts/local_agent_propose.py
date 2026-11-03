@@ -25,6 +25,12 @@ TASKS = {
         "Preserve public API and add a regression assertion."),
 }
 
+def c_tokens_without_comments(value: str) -> list[str]:
+    """Ignore comments and whitespace when comparing C implementation."""
+    value = re.sub(r"/\\*[\\s\\S]*?\\*/|//[^\\n]*", "", value)
+    return re.findall(r"[A-Za-z_][A-Za-z_0-9]*|[0-9]+|[^\\s]", value)
+
+
 def validate_and_apply(root: Path, focus: str, plan: dict) -> list[str]:
     """Permit only short exact-snippet edits to an existing source/test pair."""
     if focus not in TASKS or not isinstance(plan, dict):
@@ -55,7 +61,10 @@ def validate_and_apply(root: Path, focus: str, plan: dict) -> list[str]:
         updated[path] = before.replace(old, new, 1)
     if set(updated) != allowed:
         raise ValueError("Both the source and its regression test must change")
-    test_path = TASKS[focus][1]
+    source_path, test_path = TASKS[focus][:2]
+    if c_tokens_without_comments((root / source_path).read_text(encoding="utf-8")) == c_tokens_without_comments(updated[source_path]):
+        raise ValueError("No semantic source change (comments/whitespace only)")
+
     # The model must add a genuinely new regression, not repeat an assertion
     # already present in the original test (a past agent false positive).
     pattern = r"(?m)^[ \t]*assert\s*\([^;\n]*\)\s*;[ \t]*(?://[^\n]*)?$"
