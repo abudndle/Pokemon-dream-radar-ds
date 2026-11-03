@@ -1582,10 +1582,11 @@ static void handle_key(int keys,int down,touchPosition *touch) {
             if(dr_search_fire_gate((keys&KEY_A)!=0,&radar_fire_armed) &&
                (game.save.frames_played%5==0))game_fire(&game);
         } else if(game.screen==STATE_SPHERE) {
-            /* A sphere moves during the five-frame radar cadence. Register
-               each discrete A press on its first input frame so the target
-               is tested against game_fire()'s real hit radius immediately. */
-            if(down&KEY_A)game_fire(&game);
+            /* Hold A to sustain the capture Beam (as on 3DS), with an
+               immediate press-edge hit and bounded repeat cadence. Cloud
+               searches retain their separate release-to-arm protection. */
+            if(dr_sphere_fire_repeat((keys&KEY_A)!=0,(down&KEY_A)!=0,
+                                     game.save.frames_played))game_fire(&game);
         }
         if((down&KEY_TOUCH) && game.screen==STATE_SPHERE && touch->py>=58 && !back_touch) {
             int best=dr_support_at(touch->px,touch->py);
