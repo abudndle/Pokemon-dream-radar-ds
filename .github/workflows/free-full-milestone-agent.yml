@@ -102,7 +102,10 @@ jobs:
           timeout --signal=TERM --kill-after=30s 1500s \
             "$HOME/.local/bin/aider" --model ollama_chat/qwen2.5-coder:3b \
               --yes-always --no-auto-commits --no-gitignore --no-show-model-warnings \
-              --no-check-update --no-restore-chat-history --no-chat-history \
+              --no-check-update --no-restore-chat-history \
+              --chat-history-file "$RUNNER_TEMP/aider-chat-history.md" \
+              --input-history-file "$RUNNER_TEMP/aider-input-history" \
+              --llm-history-file "$RUNNER_TEMP/aider-llm-history" \
               --message "$task
 
           Choose ONE unfinished milestone. Implement meaningful game code and regression tests in approved public modules; do not merely edit documentation. Never claim unverified ROM or hardware compatibility.
