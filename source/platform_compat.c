@@ -59,7 +59,8 @@ int dr_search_fire_gate(int a_held,int *armed){
 /* The retail sphere beam is continuous while A is held. The port uses a
  * bounded three-frame damage cadence without delaying the initial press. */
 int dr_sphere_fire_repeat(int a_held,int a_pressed,unsigned frames_played){
-    return a_pressed || (a_held && frames_played%3u==0u);
+    /* A stale edge flag must never fire after release. */
+    return a_held && (a_pressed || frames_played%3u==0u);
 }
 int dr_photo_shortcut(int dsi_mode,int held,int down,int l_mask,int r_mask){
     return dsi_mode && (held & (l_mask|r_mask))==(l_mask|r_mask) &&
