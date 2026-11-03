@@ -18,6 +18,9 @@ jobs:
   coding:
     runs-on: ubuntu-latest
     timeout-minutes: 55
+    # Applies to controller tests as well as Aider; never generate pyc under staged public roots.
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
     permissions:
       contents: write
       pull-requests: write
