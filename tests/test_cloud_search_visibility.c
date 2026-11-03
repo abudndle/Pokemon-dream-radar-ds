@@ -63,7 +63,9 @@ int main(void) {
     assert(g.screen == STATE_RADAR || g.screen == STATE_SPHERE);
     if (g.screen == STATE_SPHERE) {
         assert(g.capture_timeout > 0);
-        assert(g.session_species >= 0);
+        assert(g.session_type == 0 || g.session_type == 1);
+        if (g.session_type == 0) assert(g.session_species >= 0);
+        else assert(g.session_species == -1 && g.session_item >= 0);
     } else {
         assert(game_active_dream_orbs(&g) > 0);
         assert(g.session_species == -1);
