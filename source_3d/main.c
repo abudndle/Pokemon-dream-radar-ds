@@ -125,7 +125,19 @@ int main(int argc,char **argv) {
             touchRead(&touch);
             dr3d_apply_touch_aim(&game,1,touch.px,touch.py);
         }
+        const GameScreen previous_screen = game.screen;
+        const int previous_extension = game.ext_selection;
         update_game(down,held);
+        if(game.screen != previous_screen ||
+           (game.screen == STATE_EXTENSIONS && game.ext_selection != previous_extension)) {
+            printf("Scene %d\\n",(int)game.screen);
+            if(game.screen == STATE_EXTENSIONS)
+                printf("Extension: %s\\n",game_extension_name(game.ext_selection));
+            else if(game.screen == STATE_LAB)
+                printf("Lab: A extensions, B title\\n");
+            else if(game.screen == STATE_INTRO)
+                printf("Intro: A continue, B skip\\n");
+        }
         NE_ProcessArg(draw_3d,NULL);
     }
     release_model();
