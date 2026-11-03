@@ -145,6 +145,28 @@ int main(void) {
     assert(game_active_dream_orbs(&g) == remaining_orbs - 1);
     assert(g.session_orbs == previous_rewards + 1);
     assert(g.screen == STATE_RADAR && g.session_species == -1);
+    /* Overlapping cloud hitboxes must resolve to the nearest live cloud,
+       rather than whichever happens to occupy the first array slot. */
+    game_new(&g, 0x7B23u);
+    game_begin_search(&g, EXT_BASIC);
+    assert(g.screen == STATE_RADAR && g.active_clouds >= 2);
+    g.active_clouds = 2;
+    g.clouds[0].alive = 1;
+    g.clouds[0].kind = 0;
+    g.clouds[0].x = 110;
+    g.clouds[0].y = 96;
+    g.clouds[1].alive = 1;
+    g.clouds[1].kind = 0;
+    g.clouds[1].x = 120;
+    g.clouds[1].y = 96;
+    g.aim_x = 119;
+    g.aim_y = 96;
+    game_fire(&g);
+    assert(g.clouds[0].alive && !g.clouds[1].alive);
+    assert(g.cloud_hit == 1);
+    assert(game_active_dream_orbs(&g) >= 3);
+    assert(g.session_species == -1 && g.session_item == -1);
+    assert(g.save.orbs == 0);
     /* End-to-end host gameplay acceptance: find a storm-cloud seed whose
        ordinary Basic search opens a real encounter, then follow the moving
        target using game_tick/game_fire until capture is awarded. This must
