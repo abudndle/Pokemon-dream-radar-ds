@@ -117,6 +117,28 @@ int main(void) {
     assert(strcmp(readback,"keep")==0);
     assert(remove(probe)==0);
     char sub[300];snprintf(sub,sizeof sub,"%sDreamRadarDSi",root);
+    assert(rmdir(sub)==0);
+    /* Redirecting DreamRadarDSi to another directory must not be considered
+       writable game storage or create a probe in the external directory. */
+    char outside[]="/tmp/dreamradar-outside-XXXXXX";
+    assert(mkdtemp(outside));
+    assert(symlink(outside,sub)==0);
+    assert(!dr_storage_ready(root));
+    char escaped_probe[320];
+    snprintf(escaped_probe,sizeof escaped_probe,"%s/.write_test.tmp",outside);
+    assert(access(escaped_probe,F_OK)!=0);
+    assert(unlink(sub)==0);
+    assert(rmdir(outside)==0);
+    /* The storage path could also already be a regular file. */
+    FILE *wrong=fopen(sub,"wb");assert(wrong);
+    assert(fputs("untouched",wrong)>=0 && fclose(wrong)==0);
+    assert(!dr_storage_ready(root));
+    char unchanged[16]={0};
+    wrong=fopen(sub,"rb");assert(wrong);
+    assert(fread(unchanged,1,9,wrong)==9 && fclose(wrong)==0);
+    assert(strcmp(unchanged,"untouched")==0);
+    assert(remove(sub)==0);
+    assert(dr_storage_ready(root));
     assert(rmdir(sub)==0);assert(rmdir(dir)==0);
     puts("PASS: camera-free DS/DSi menu routing and DLDI/SD filesystem detection");
     return 0;
