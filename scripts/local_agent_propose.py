@@ -79,6 +79,7 @@ def generate_plan(root: Path, focus: str, model: str, endpoint: str) -> dict:
         "Act as a cautious C developer. Find a real reproducible defect, fix it "
         "with one or two tiny changes, and add a regression assertion. "
         "If no defect exists, return an empty changes list. "
+        "Copy each old snippet byte-for-byte from the provided file, including whitespace, indentation and punctuation; never paraphrase. Use a short contiguous snippet that appears exactly once. Place each new C assert statement on its own line (not after another statement), and test the specific changed behavior rather than adding a tautology. "
         "Reply with ONE JSON object, never markdown or shell commands. "
         "Schema: {\"summary\":\"specific defect\", \"changes\": "
         "[{\"path\":\"source file\",\"old\":\"exact verbatim snippet\","
