@@ -44,6 +44,11 @@ for tutorial in ("intermediate/3d_graphics/", "advanced/advanced_3d/",
     assert "https://blocksds.skylyrac.net/tutorial/" + tutorial in guide
 assert "Do not replace or duplicate the libnds hardware layer" in guide
 assert "LibXM7" in guide and "Maxmod" in guide
+assert "additional_libs/" in guide and "blocksds-ulibrary" in guide
+assert "NightFox's Lib" in guide and "Woopsi" in guide
+assert "libslim" in guide and "not fully compatible with libfat" in guide
+assert "tutorial/basic/introduction_2d/" in guide
+assert "tutorial/basic/audio/" in guide
 assert "libteak" in guide and "DSWiFi" in guide
 assert "Nitro Engine" in guide and "DSMA" in guide
 print("PASS: Nitro Engine + DSMA 3D frontend reuses gameplay and documents verified BlocksDS core libraries")
