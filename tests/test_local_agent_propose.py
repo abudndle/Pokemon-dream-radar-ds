@@ -4,7 +4,12 @@ from pathlib import Path
 import sys
 import tempfile
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
-from local_agent_propose import validate_and_apply, TASKS
+from local_agent_propose import validate_and_apply, c_tokens_without_comments, TASKS
+
+# A comment must not count as changed C code, including multiline comments.
+assert c_tokens_without_comments("int n=1; /* one\ntwo */ // tail\nreturn n;") == c_tokens_without_comments("int n = 1; return n;")
+assert c_tokens_without_comments("int n=1;") != c_tokens_without_comments("int n=2;")
+assert c_tokens_without_comments("int n=1; // old\nreturn n;") == c_tokens_without_comments("int n=1; // new\nreturn n;")
 
 def change(path, old, new):
     return {"path": path, "old": old, "new": new}
@@ -26,10 +31,10 @@ with tempfile.TemporaryDirectory() as d:
     invalid = [
         {"summary": "Comment-only source edit is not implementation", "changes": [
             change(paths[0], "return 2;", "return 2; /* claimed fix */"),
-            change(paths[1], "assert(2);", "assert(2);\\n    assert(3);")]},
+            change(paths[1], "assert(2);", "assert(2);\n    assert(3);")]},
         {"summary": "Whitespace-only source edit is not implementation", "changes": [
             change(paths[0], "return 2;", "return   2;"),
-            change(paths[1], "assert(2);", "assert(2);\\n    assert(3);")]},
+            change(paths[1], "assert(2);", "assert(2);\n    assert(3);")]},
         {"summary": "Duplicate regression assertion", "changes": [
             change(paths[0], "return 2;", "return 3;"),
             change(paths[1], "assert(2);", "assert(2); assert(2);")]},

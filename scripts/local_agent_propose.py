@@ -27,8 +27,8 @@ TASKS = {
 
 def c_tokens_without_comments(value: str) -> list[str]:
     """Ignore comments and whitespace when comparing C implementation."""
-    value = re.sub(r"/\\*[\\s\\S]*?\\*/|//[^\\n]*", "", value)
-    return re.findall(r"[A-Za-z_][A-Za-z_0-9]*|[0-9]+|[^\\s]", value)
+    value = re.sub(r"/\*[\s\S]*?\*/|//[^\n]*", "", value)
+    return re.findall(r"[A-Za-z_][A-Za-z_0-9]*|[0-9]+|[^\s]", value)
 
 
 def validate_and_apply(root: Path, focus: str, plan: dict) -> list[str]:
