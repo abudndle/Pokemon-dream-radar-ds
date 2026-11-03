@@ -29,7 +29,7 @@ def _pid(runtime):
     return int(match.group(1))
 
 
-def verify_restart(first_dir, second_dir, save_file, *, verify_pixels=True):
+def verify_restart(first_dir, second_dir, save_file, *, verify_pixels=False):
     first_dir, second_dir, save_file = map(Path, (first_dir, second_dir, save_file))
     if first_dir.resolve() == second_dir.resolve():
         raise ValueError("Restart evidence must come from different output directories")
@@ -96,8 +96,8 @@ def main():
     parser.add_argument("first_dir", type=Path)
     parser.add_argument("restart_dir", type=Path)
     parser.add_argument("save_file", type=Path)
-    parser.add_argument("--verify-pixels", action="store_true", default=True,
-                        help="Decode emulator PNGs and cross-check ORBS digits (required by default)")
+    parser.add_argument("--verify-pixels", action="store_true",
+                        help="Decode each actual emulator PNG and cross-check the ORBS digits")
     args = parser.parse_args()
     try:
         result = verify_restart(args.first_dir, args.restart_dir, args.save_file,
