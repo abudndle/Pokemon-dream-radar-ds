@@ -23,6 +23,9 @@ int dr_camera_retry_latch(int camera_enabled,int previous_failure);
 /* The A key used to enter Search must be released before firing is allowed.
  * Call on each radar/capture frame and clear armed on entering Search. */
 int dr_search_fire_gate(int a_held,int *armed);
+/* Keep the capture beam active while A is held: fire immediately on the
+ * press edge, then once per three frames. Radar uses its own safety gate. */
+int dr_sphere_fire_repeat(int a_held,int a_pressed,unsigned frames_played);
 /* Fire once when L and R become jointly held, only in DSi mode. */
 int dr_photo_shortcut(int dsi_mode,int held,int down,int l_mask,int r_mask);
 /* Never save stale frames after the camera is stopped or unavailable. */

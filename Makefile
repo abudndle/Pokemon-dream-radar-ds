@@ -48,6 +48,8 @@ test-host:
 	./build/test_cloud_animation
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c tests/test_gameplay_integration.c -o build/test_gameplay_integration
 	./build/test_gameplay_integration
+	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c source/platform_compat.c tests/test_sphere_hold_capture.c -o build/test_sphere_hold_capture
+	./build/test_sphere_hold_capture
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c tests/test_capture_milestone_end_to_end.c -o build/test_capture_milestone_end_to_end
 	./build/test_capture_milestone_end_to_end
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/game.c tests/test_gameplay_save_roundtrip.c -o build/test_gameplay_save_roundtrip
