@@ -196,6 +196,7 @@ test-host:
 	python3 tests/test_melonds_aim.py
 	python3 tests/test_sphere_edge_recovery.py
 	python3 tests/test_sphere_fire_gating.py
+	python3 tests/test_prefire_correction_contract.py
 	python3 tests/test_melonds_dual_axis.py
 	python3 tests/test_sphere_prefire_gate.py
 	python3 tests/test_prefire_frame.py

@@ -32,8 +32,9 @@ for path in ("tools/verify_sphere_prefire_frame.py",
              "tests/test_prefire_frame.py", "scripts/melonds_smoke.sh"):
     assert f"      - '{path}'" in desmume, f"Missing DeSmuME PR trigger: {path}"
 assert script.count("--correct-unaligned") == 2
-assert script.count("camera_correction_executed") == 3
-assert 'recorrection_decision="$(python3 -c' in script
+assert script.count("tools/check_prefire_correction.py") == 2
+assert "camera_correction_executed" in (ROOT / "tools/check_prefire_correction.py").read_text()
+assert 'recorrection_decision="$(python3 tools/check_prefire_correction.py' in script
 assert 'if [[ "$recorrection_decision" == yes ]]; then' in script
 assert "python3 -m py_compile" in workflow
 assert re.search(r"python3 -m py_compile[^\n]*tools/sphere_prefire_gate.py", workflow)
