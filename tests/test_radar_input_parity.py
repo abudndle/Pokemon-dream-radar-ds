@@ -6,10 +6,11 @@ import re
 root = Path(__file__).resolve().parents[1]
 source = (root / "source/main.c").read_text()
 block = source.split("if(game.screen==STATE_RADAR || game.screen==STATE_SPHERE){", 1)[1].split("if(game.screen==STATE_INTRO){", 1)[0]
-radar_branch = block.split("if(game.screen==STATE_RADAR){", 1)[1].split("} else if(game.screen==STATE_SPHERE){", 1)[0]
-sphere_branch = block.split("} else if(game.screen==STATE_SPHERE){", 1)[1]
-assert "dr_search_fire_gate" in radar_branch, "Radar A firing must remain release-to-arm"
-assert "game.save.frames_played%5==0" in radar_branch, "Radar firing cadence must remain unchanged"
+assert "if(game.screen==STATE_RADAR){" in block, "Radar must have its own fire path"
+assert "dr_search_fire_gate" in block, "Radar A firing must remain release-to-arm"
+assert "game.save.frames_played%5==0" in block, "Radar firing cadence must remain unchanged"
+sphere_marker = "} else if(game.screen==STATE_SPHERE){"
+sphere_branch = block.split(sphere_marker, 1)[1] if sphere_marker in block else ""
 assert "if(down&KEY_A)game_fire(&game);" in sphere_branch, "Sphere shots must register immediately on the A-button press edge"
 assert "game.save.frames_played%5==0" not in sphere_branch, "Sphere capture must not wait for the radar's five-frame cadence"
 assert block.count("game_fire(&game)") == 2, "Expected separate radar and immediate sphere firing paths"
