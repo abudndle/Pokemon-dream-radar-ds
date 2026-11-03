@@ -44,20 +44,26 @@ def verify_restart(first_dir, second_dir, save_file, *, verify_pixels=False):
         raise ValueError("No nonempty writable DLDI save file")
     first_log = (first_dir / "runtime.log").read_text()
     second_log = (second_dir / "runtime.log").read_text()
+    # Reject concatenated session logs and require exactly one clean-exit
+    # record for each distinct emulator launcher.
+    for label, runtime in (("first", first_log), ("second", second_log)):
+        launchers = re.findall(r"^Emulator launcher PID: ([1-9][0-9]*)$", runtime, re.M)
+        if len(launchers) != 1:
+            raise ValueError(f"{label} log must identify exactly one emulator launcher")
     first_pid, second_pid = _pid(first_log), _pid(second_log)
-    # A SIGKILL may interrupt FAT/DLDI flushing. Never treat the cleanup
-    # trap's later "terminated" line as proof of a graceful save shutdown.
+    if first_pid == second_pid:
+        raise ValueError("Same emulator process cannot prove restart")
     for label, runtime, launcher_pid in (
         ("first", first_log, first_pid), ("second", second_log, second_pid)
     ):
-        if f"Emulator launcher PID {launcher_pid} force-killed" in runtime:
-            raise ValueError(f"{label} emulator was force-killed; save flush unverified")
-        if f"Emulator launcher PID {launcher_pid} still running" in runtime:
+        if (re.search(
+                rf"^Emulator launcher PID {launcher_pid} (?:force-killed|still running)(?:$|\\s)",
+                runtime, re.M)
+                or len(re.findall(
+                    rf"^Emulator launcher PID {launcher_pid} terminated$",
+                    runtime, re.M)) != 1):
             raise ValueError(f"{label} emulator did not terminate cleanly")
-    first_exited = f"Emulator launcher PID {first_pid} terminated" in first_log
-    second_exited = f"Emulator launcher PID {second_pid} terminated" in second_log
-    if not second_exited:
-        raise ValueError("Second emulator process termination not recorded")
+    first_exited = True
     first = _read_json(first_dir / "orb-balance-change.json")
     restarted = _read_json(second_dir / "orb-balance-before.json")
     if verify_pixels:
