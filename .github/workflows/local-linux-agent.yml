@@ -1,0 +1,169 @@
+name: Unattended Linux coding agent (draft PR only)
+
+on:
+  schedule:
+    # GitHub Actions shortest interval is 5 minutes; 1 minute needs an always-on host.
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+# Queues rather than overlapping costly Ollama model processes.
+concurrency:
+  group: dream-radar-local-code-agent
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  check-queue:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      proceed: ${{ steps.check.outputs.proceed }}
+    steps:
+      - id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if gh api 'repos/${{ github.repository }}/pulls?state=open&per_page=100' \
+            --jq '[.[] | select(.head.ref | startswith("agent/local-"))] | length' | grep -qx '0'; then
+            echo 'proceed=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'proceed=false' >> "$GITHUB_OUTPUT"
+            echo 'An agent PR is already open or queue discovery failed; skipping.'
+          fi
+
+  propose:
+    needs: check-queue
+    if: needs.check-queue.outputs.proceed == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    outputs:
+      ready: ${{ steps.generate.outputs.ready }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Start local Ollama on disposable Linux runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          # No external model API token; original private assets are absent.
+          curl -fsSL https://ollama.com/install.sh | sh
+          OLLAMA_HOST=127.0.0.1:11434 ollama serve >/tmp/ollama-agent.log 2>&1 &
+          for attempt in {1..60}; do
+            if curl -fsS http://127.0.0.1:11434/api/tags >/dev/null; then break; fi
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:11434/api/tags >/dev/null
+          ollama pull qwen2.5-coder:1.5b
+      - name: Generate one test-backed source improvement
+        id: generate
+        shell: bash
+        env:
+          LOCAL_AGENT_MODEL: qwen2.5-coder:1.5b
+        run: |
+          set -euo pipefail
+          echo 'ready=false' >> "$GITHUB_OUTPUT"
+          case "$(( ${{ github.run_number }} % 3 ))" in
+            0) focus=platform ;;
+            1) focus=album ;;
+            2) focus=cloud ;;
+          esac
+          if python3 scripts/local_agent_propose.py --focus "$focus" --output-dir agent-output; then
+            echo 'ready=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'No safe test-passing proposal: main remains unchanged.'
+          fi
+      - name: Upload validated patch for independent publisher
+        if: steps.generate.outputs.ready == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: local-agent-proposal
+          path: |
+            agent-output/proposal.patch
+            agent-output/proposal.json
+          if-no-files-found: error
+          retention-days: 7
+
+  open-draft-pr:
+    needs: propose
+    if: needs.propose.outputs.ready == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: local-agent-proposal
+          path: agent-output
+      - name: Recheck the patch allowlist without running model-generated code
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          from scripts.local_agent_propose import TASKS
+          report = json.loads(Path('agent-output/proposal.json').read_text())
+          assert report['validated'] is True
+          assert set(report['paths']) == set(TASKS[report['focus']][:2])
+          patch = Path('agent-output/proposal.patch').read_text()
+          seen = set()
+          for line in patch.splitlines():
+              if line.startswith('diff --git '):
+                  bits = line.split()
+                  assert len(bits) == 4 and bits[2].startswith('a/') and bits[3].startswith('b/')
+                  assert bits[2][2:] == bits[3][2:]
+                  seen.add(bits[2][2:])
+          assert seen == set(report['paths']), 'Model patch has extra paths'
+          assert len(patch) < 14000 and 'GIT binary patch' not in patch
+          print('PASS: patch restricted to allowed implementation/test files')
+          PY
+          git apply --check agent-output/proposal.patch
+          git apply agent-output/proposal.patch
+          git diff --check
+      - name: Publish draft PR only; never merge automatically
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          branch="agent/local-${{ github.run_id }}"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git switch -c "$branch"
+          git add -- source/ tests/
+          if git diff --cached --quiet; then echo 'No changes to publish'; exit 1; fi
+          git commit -m 'Propose bounded local-model DS code and regression improvement'
+          git -c http.extraheader="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)" \
+            push "https://github.com/${{ github.repository }}.git" "HEAD:refs/heads/$branch"
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          report = json.loads(Path('agent-output/proposal.json').read_text())
+          Path('agent-output/pr-body.md').write_text(
+              'Automated **draft** proposal by a small model running locally on Linux.\n\n'
+              'Suggested fix: ' + report['summary'] + '\n\n'
+              'Host tests and DS/DSi syntax checks passed in a read-only generation job. '
+              'Review carefully; require full BlocksDS and emulator CI before merging. '
+              'No proprietary Nintendo assets were used. **Never auto-merge this PR.**\n')
+          PY
+          gh pr create --draft --base main --head "$branch" \
+            --title 'Agent proposal: source and regression fix' \
+            --body-file agent-output/pr-body.md
+          # GitHub-token-generated PRs may not trigger other PR CI automatically.
+          gh workflow run blocksds.yml --ref "$branch"
+          gh workflow run capture-host-acceptance.yml --ref "$branch"
