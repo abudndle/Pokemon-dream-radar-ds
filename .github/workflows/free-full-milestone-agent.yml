@@ -21,6 +21,7 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+      actions: write
       issues: read
     steps:
       - name: Checkout latest main (no persisted GitHub credentials)
@@ -193,6 +194,10 @@ jobs:
             --head "$NEW_BRANCH" --draft \
             --title "agent: verify bounded DS/DSi milestone implementation" \
             --body "Automated draft only. Source allowlist and project source tests passed; existing full GitHub CI, gameplay, original 3DS asset fidelity, ROM and emulator acceptance must still be independently verified. Do not merge without reviewing all changes and applicable checks. No paid model API requests are made by the PR checks."
+          # GitHub's workflow token does not automatically trigger pull_request
+          # workflows for PRs it creates. Explicitly dispatch independent CI.
+          gh workflow run "blocksds.yml" --repo "$GITHUB_REPOSITORY" --ref "$NEW_BRANCH"
+                    gh workflow run "capture-host-acceptance.yml" --repo "$GITHUB_REPOSITORY" --ref "$NEW_BRANCH"
  <<< "$changed" ||
              ! grep -Eq '^tests/.*\\.(c|py)
 
