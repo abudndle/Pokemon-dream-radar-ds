@@ -53,6 +53,34 @@ int main(void) {
     uint32_t orbs=g.save.orbs;
     game_fire(&g);
     assert(g.save.orbs==orbs && g.save.searches==1);
+    /* Deterministic encounter fixture: keep Basic Extension's retail RNG
+       probability intact, but choose a post-search seed whose next xorshift
+       draw produces the encounter. This makes cloud->sphere acceptance
+       reproducible without forcing production gameplay or bypassing a hit. */
+    game_new(&g,0x13579u);
+    game_begin_search(&g,EXT_BASIC);
+    g.active_clouds=1;
+    g.clouds[0].alive=1;
+    g.clouds[0].kind=1;
+    g.clouds[0].x=128;
+    g.clouds[0].y=90;
+    g.aim_x=128;
+    g.aim_y=90;
+    uint32_t encounter_seed=1;
+    for(;;) {
+        uint32_t x=encounter_seed;
+        x^=x<<13; x^=x>>17; x^=x<<5;
+        if(x%3u==0u)break;
+        encounter_seed++;
+        assert(encounter_seed!=0);
+    }
+    g.save.random_seed=encounter_seed;
+    game_fire(&g);
+    assert(g.cloud_hit==1);
+    assert(!g.clouds[0].alive);
+    assert(g.screen==STATE_SPHERE);
+    assert(g.session_species>=0 || g.session_item>=0);
+
     /* Initial cloud placement should avoid visually stacked targets in
        ordinary searches while keeping all positions inside the play area. */
     game_new(&g,123);
