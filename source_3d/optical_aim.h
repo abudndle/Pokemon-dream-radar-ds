@@ -47,8 +47,10 @@ static inline int dr3d_optical_step(Dr3dOpticalAim *state, Game *game,
          * and 6-pixel gain; reject high-error/missing-motion frames. */
         if(best<150000u && (dxbest || dybest)) {
             int nx=game->aim_x+dxbest*6, ny=game->aim_y+dybest*6;
-            if(nx<6)nx=6; if(nx>250)nx=250;
-            if(ny<6)ny=6; if(ny>185)ny=185;
+            if(nx<6)nx=6;
+            if(nx>250)nx=250;
+            if(ny<6)ny=6;
+            if(ny>185)ny=185;
             changed=(nx!=game->aim_x || ny!=game->aim_y);
             game->aim_x=nx;game->aim_y=ny;
         }
