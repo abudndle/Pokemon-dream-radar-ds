@@ -1576,17 +1576,10 @@ static void handle_key(int keys,int down,touchPosition *touch) {
         if(game.aim_x>249)game.aim_x=249;
         if(game.aim_y<6)game.aim_y=6;
         if(game.aim_y>184)game.aim_y=184;
-        if(game.screen==STATE_RADAR) {
-            /* Radar clouds retain the release-to-arm gate and five-frame
-               cadence so one held A press cannot consume the whole cloud set. */
-            if(dr_search_fire_gate((keys&KEY_A)!=0,&radar_fire_armed) &&
-               (game.save.frames_played%5==0))game_fire(&game);
-        } else if(game.screen==STATE_SPHERE) {
-            /* A sphere moves during the five-frame radar cadence. Register
-               each discrete A press on its first input frame so the target
-               is tested against game_fire()'s real hit radius immediately. */
-            if(down&KEY_A)game_fire(&game);
-        }
+        /* The original game fires the beam with A in both radar search
+           and sphere encounters. Hold A for repeated shots. */
+        if(dr_search_fire_gate((keys&KEY_A)!=0,&radar_fire_armed) &&
+           (game.save.frames_played%5==0))game_fire(&game);
         if((down&KEY_TOUCH) && game.screen==STATE_SPHERE && touch->py>=58 && !back_touch) {
             int best=dr_support_at(touch->px,touch->py);
             if(best>=0) game_use_support(&game,best);
