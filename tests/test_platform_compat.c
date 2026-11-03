@@ -85,6 +85,16 @@ int main(void) {
     assert(!dr_camera_quick_open(1,1,1,0,1));
     assert(!dr_camera_quick_open(1,1,1,1,0));
     assert(dr_camera_quick_open(1,3,2,1,2));
+    /* Composite masks are not buttons; reject even disjoint combinations. */
+    assert(!dr_camera_quick_open(1,7,1,3,4));
+    assert(!dr_camera_quick_open(1,7,4,1,6));
+    assert(!dr_camera_quick_open(1,3,1,-1,2));
+    assert(!dr_camera_quick_open(1,3,1,1,-2));
+    assert(!dr_camera_quick_open(1,3,4,1,2));
+    assert(!dr_photo_shortcut(1,7,4,3,4));
+    assert(!dr_photo_shortcut(1,7,1,1,6));
+    assert(!dr_photo_shortcut(1,3,1,-1,2));
+    assert(!dr_photo_shortcut(1,3,1,1,-2));
     assert(!dr_photo_shortcut(1,1,1,1,1));
     assert(!dr_photo_shortcut(1,1,1,0,1));
     assert(!dr_photo_shortcut(1,1,1,1,0));
