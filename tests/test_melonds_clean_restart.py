@@ -97,7 +97,7 @@ with tempfile.TemporaryDirectory() as temporary:
     from unittest.mock import patch
     from verify_melonds_clean_restart import main as restart_cli
     with patch("sys.argv", ["verify_melonds_clean_restart.py", str(first),
-                            str(second), str(save)]), \\
+                            str(second), str(save)]), \
          patch("verify_melonds_clean_restart.verify_restart",
                return_value={"persistence_verified": True}) as verifier:
         restart_cli()
