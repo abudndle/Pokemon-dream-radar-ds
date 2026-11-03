@@ -132,6 +132,36 @@ int main(void) {
     assert(g.save.orbs == uncollected_currency);
     assert(g.session_orbs == 0);
     assert(g.save.searches == 1);
+    /* Expiring the loose Orbs must not finish an outing while another
+       discoverable cloud remains. The player can still shoot that cloud. */
+    game_new(&g, 0x6A19u);
+    game_begin_search(&g, EXT_BASIC);
+    assert(g.screen == STATE_RADAR && g.active_clouds >= 2);
+    g.active_clouds = 2;
+    g.clouds[0].alive = 1;
+    g.clouds[0].kind = 0;
+    g.clouds[0].x = 128;
+    g.clouds[0].y = 96;
+    g.clouds[1].alive = 1;
+    g.clouds[1].kind = 0;
+    g.clouds[1].x = 200;
+    g.clouds[1].y = 96;
+    g.aim_x = 128;
+    g.aim_y = 96;
+    game_fire(&g);
+    assert(!g.clouds[0].alive && g.clouds[1].alive);
+    assert(game_active_dream_orbs(&g) > 0);
+    for(int i = 0; i < MAX_DREAM_ORBS; ++i)
+        if(g.dream_orbs[i].alive) g.dream_orbs[i].ttl = 1;
+    game_tick(&g);
+    assert(game_active_dream_orbs(&g) == 0);
+    assert(g.screen == STATE_RADAR && g.clouds[1].alive);
+    assert(g.save.searches == 0 && g.save.orbs == 0);
+    g.aim_x = 200;
+    g.aim_y = 96;
+    game_fire(&g);
+    assert(!g.clouds[1].alive && g.cloud_hit == 2);
+    assert(game_active_dream_orbs(&g) > 0);
     /* A spawned Dream Orb directly over an untouched cloud must be collected
        first. A single shot cannot both award currency and discover a cloud. */
     game_new(&g, 0x6A19u);
