@@ -35,4 +35,15 @@ assert 'make -f Makefile.3d -j2' in ci
 assert 'dream_radar_3d.nds' in ci
 assert 'dream_radar.nds' not in ci
 assert 'persist-credentials: false' in ci
-print("PASS: Nitro Engine + DSMA 3D frontend reuses original gameplay and isolates private assets")
+guide = (root / "docs/NITRO_ENGINE_DSMA_3D.md").read_text()
+for library in ("#libnds", "#maxmod", "#dswifi", "#libxm7", "#libteak", "#grit"):
+    assert "https://blocksds.skylyrac.net/docs/libs/core_libs/" + library in guide
+for tutorial in ("intermediate/3d_graphics/", "advanced/advanced_3d/",
+                 "intermediate/nitrofs/", "intermediate/filesystems/",
+                 "basic/input/", "intermediate/dma/"):
+    assert "https://blocksds.skylyrac.net/tutorial/" + tutorial in guide
+assert "Do not replace or duplicate the libnds hardware layer" in guide
+assert "LibXM7" in guide and "Maxmod" in guide
+assert "libteak" in guide and "DSWiFi" in guide
+assert "Nitro Engine" in guide and "DSMA" in guide
+print("PASS: Nitro Engine + DSMA 3D frontend reuses gameplay and documents verified BlocksDS core libraries")
