@@ -135,7 +135,7 @@ with patch('verify_sphere_prefire_frame.subprocess.run') as run, \
         ['xdotool', 'keyup', 'z'],
         ['xdotool', 'keydown', '--clearmodifiers', 'Right'],
         ['xdotool', 'keyup', 'Right']]
-    sleep.assert_called_once_with(0.061)
+    sleep.assert_called_once_with(0.043)
 
 # Both camera axes move concurrently; the shorter key releases first.
 diagonal = {'candidate_spheres': 1, 'target_screen': {'x': 164, 'y': 114},
@@ -148,7 +148,7 @@ with patch('verify_sphere_prefire_frame.subprocess.run') as run, \
         ['xdotool', 'keydown', '--clearmodifiers', 'Right'],
         ['xdotool', 'keydown', '--clearmodifiers', 'Down'],
         ['xdotool', 'keyup', 'Down'], ['xdotool', 'keyup', 'Right']]
-    assert [round(c.args[0], 3) for c in sleep.call_args_list] == [0.05, 0.05]
+    assert [round(c.args[0], 3) for c in sleep.call_args_list] == [0.05, 0.02]
 
 # Live prefire residuals frequently exceed 43 pixels. A single fresh
 # observation can now command up to 0.20 seconds of CAMERA movement only.
@@ -171,8 +171,32 @@ moderate = {'candidate_spheres': 1, 'target_screen': {'x': 182, 'y': 96},
 with patch('verify_sphere_prefire_frame.subprocess.run') as run, \
      patch('verify_sphere_prefire_frame.time.sleep') as sleep:
     assert correct_if_unaligned('unaligned', moderate) is True
-    sleep.assert_called_once_with(0.15)
+    sleep.assert_called_once_with(0.105)
     assert run.call_args_list[-1].args[0] == ['xdotool', 'keyup', 'Right']
+
+# A Euclidean miss can still be inside both individual axis tolerances:
+# do not emit micro-pulses that cost time without independent benefit.
+diagonal_near = {'candidate_spheres': 1,
+                 'target_screen': {'x': 140, 'y': 108},
+                 'offset': {'x': 12, 'y': 12}}
+with patch('verify_sphere_prefire_frame.subprocess.run') as run, \
+     patch('verify_sphere_prefire_frame.time.sleep') as sleep:
+    assert correct_if_unaligned('unaligned', diagonal_near) is False
+    run.assert_not_called()
+    sleep.assert_not_called()
+
+# When only one axis needs movement, never move the already-aligned axis.
+one_axis = {'candidate_spheres': 1,
+            'target_screen': {'x': 140, 'y': 126},
+            'offset': {'x': 12, 'y': 30}}
+with patch('verify_sphere_prefire_frame.subprocess.run') as run, \
+     patch('verify_sphere_prefire_frame.time.sleep') as sleep:
+    assert correct_if_unaligned('unaligned', one_axis) is True
+    assert [c.args[0] for c in run.call_args_list] == [
+        ['xdotool', 'keyup', 'z'],
+        ['xdotool', 'keydown', '--clearmodifiers', 'Down'],
+        ['xdotool', 'keyup', 'Down']]
+    sleep.assert_called_once_with(0.083)
 
 # A second camera correction must NOT chase an observed near miss:
 # keep the reticle stationary and independently re-sample the sphere.
@@ -195,7 +219,7 @@ with patch('verify_sphere_prefire_frame.subprocess.run') as run, \
         ['xdotool', 'keyup', 'z'],
         ['xdotool', 'keydown', '--clearmodifiers', 'Right'],
         ['xdotool', 'keyup', 'Right']]
-    sleep.assert_called_once_with(0.075)
+    sleep.assert_called_once_with(round(27 * 0.70 / 360, 3))
 
 with patch('verify_sphere_prefire_frame.subprocess.run') as run:
     for invalid_threshold in (-1, 257, True, 26.0):

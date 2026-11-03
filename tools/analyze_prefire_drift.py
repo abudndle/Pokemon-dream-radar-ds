@@ -43,6 +43,29 @@ def distance_bands(values):
     }
 
 
+def observed_axis_sign_changes(rows, axis, center):
+    """Count observed reticle crossings, excluding zero/missing observations.
+
+    A sign change is NOT proof of camera overshoot: the moving sphere may
+    cross the reticle by itself between the two screenshot timestamps.
+    """
+    samples = []
+    for row in rows:
+        first = row['initial_observed_target']
+        if first is None:
+            continue
+        before = first[axis] - center
+        after = row['fresh_prefire_target'][axis] - center
+        if before and after:
+            samples.append((before, after))
+    return {
+        'comparable_observed_pairs': len(samples),
+        'reticle_side_reversals': sum(before * after < 0 for before, after in samples),
+        'median_initial_abs_offset_pixels': median(abs(before) for before, _ in samples) if samples else None,
+        'median_prefire_abs_offset_pixels': median(abs(after) for _, after in samples) if samples else None,
+    }
+
+
 def analyze(directory):
     directory = Path(directory)
     rows = []
@@ -98,12 +121,16 @@ def analyze(directory):
         'prefire_distance_bands': distance_bands(distances),
         'camera_plan_residual_bands': distance_bands(residuals),
         'prefire_fire_authorized': sum(row['prefire_fire_authorized'] for row in rows),
+        'observed_horizontal_sign_changes': observed_axis_sign_changes(rows, 'x', 128),
+        'observed_vertical_sign_changes': observed_axis_sign_changes(rows, 'y', 96),
         'rows': rows,
         'limitations': ('Camera plans may contain predictions, never firing authorization. '
                         'Initial-to-prefire motion uses only explicitly observed target positions. '
                         'The 43/72px bands are theoretical single-correction travel at 60 FPS, '
-                        'not calibrated live camera displacement. Reticle distance and '
-                        'displacement do not prove hits or persistent rewards.'),
+                        'not calibrated live camera displacement. Reticle-side reversals '
+                        'can arise from moving sphere motion, not necessarily camera '
+                        'overshoot. Reticle distance and displacement do not prove '
+                        'hits or persistent rewards.'),
     }
 
 

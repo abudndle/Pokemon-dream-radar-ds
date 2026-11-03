@@ -590,13 +590,28 @@ def plan_sphere_motion(previous_pixels, pixels, width, height):
     # Never force a valid observed y=0..29 target down to y=30.
     y = max(0, min(183, observed["y"] + lead_y))
     offset_x, offset_y = x - RETICLE_CENTER_X, y - RETICLE_CENTER_Y
+    # Archived real melonDS prefire pairs show repeated horizontal sign
+    # reversals after full-strength camera corrections (207/214 in one
+    # ERRATIC encounter). Dampen ONLY camera movement, never target evidence:
+    # a new screenshot still independently gates every A-button pulse.
+    # When the planned axis is already within the 15px firing radius, avoid
+    # a short X11 key pulse that adds latency while the sphere keeps moving.
+    horizontal_gain = 0.70
+    horizontal_key = ("none" if abs(offset_x) <= 15 else
+                      "Right" if offset_x > 0 else "Left")
+    vertical_key = ("none" if abs(offset_y) <= 15 else
+                    "Down" if offset_y > 0 else "Up")
     current.update({
         "target_screen": {"x": x, "y": y},
         "offset": {"x": offset_x, "y": offset_y},
-        "horizontal_key": "Right" if offset_x > 0 else "Left" if offset_x < 0 else "none",
-        "vertical_key": "Down" if offset_y > 0 else "Up" if offset_y < 0 else "none",
-        "horizontal_seconds": round(min(0.22, abs(offset_x) / 360), 3),
-        "vertical_seconds": round(min(0.22, abs(offset_y) / 360), 3),
+        "horizontal_key": horizontal_key,
+        "vertical_key": vertical_key,
+        "horizontal_seconds": (round(min(0.22, abs(offset_x) * horizontal_gain / 360), 3)
+                               if horizontal_key != "none" else 0),
+        "vertical_seconds": (round(min(0.22, abs(offset_y) / 360), 3)
+                             if vertical_key != "none" else 0),
+        "camera_horizontal_gain": horizontal_gain,
+        "camera_axis_deadzone_pixels": 15,
         "motion_prediction": "bounded",
         "observed_displacement": {"x": dx, "y": dy},
         "camera_only_lead_pixels": {"x": lead_x, "y": lead_y},

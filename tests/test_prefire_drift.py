@@ -6,7 +6,7 @@ import sys
 import tempfile
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
-from analyze_prefire_drift import analyze, distance_bands
+from analyze_prefire_drift import analyze, distance_bands, observed_axis_sign_changes
 from sphere_prefire_gate import evaluate
 
 
@@ -43,6 +43,11 @@ with tempfile.TemporaryDirectory() as tmp:
     assert result['median_prefire_reticle_distance_pixels'] == 16
     assert result['prefire_within_15_pixels'] == 1
     assert result['prefire_fire_authorized'] == 1
+    # Zero-offset and missing initial observations cannot establish a
+    # reticle-side reversal, even if the screenshot is a valid firing gate.
+    assert result['observed_horizontal_sign_changes']['comparable_observed_pairs'] == 0
+    assert result['observed_horizontal_sign_changes']['reticle_side_reversals'] == 0
+    assert result['observed_vertical_sign_changes']['comparable_observed_pairs'] == 0
     assert result['prefire_distance_bands'] == {
         'aligned_0_to_15': 1, 'old_correction_16_to_43': 1,
         'expanded_correction_44_to_72': 0,
@@ -87,4 +92,29 @@ with tempfile.TemporaryDirectory() as tmp:
         raise AssertionError('Boolean plan coordinate accepted')
     write(plan_path, original_plan)
     assert analyze(root)['prefire_fire_authorized'] == 1
+# Sign changes are measured only from two observed positions; a predicted
+# camera target must never substitute for a missing initial observation.
+observed_pairs = [
+    {'initial_observed_target': {'x': 160, 'y': 120},
+     'planned_camera_target': {'x': 128, 'y': 96},
+     'fresh_prefire_target': {'x': 100, 'y': 80}},
+    {'initial_observed_target': {'x': 90, 'y': 70},
+     'planned_camera_target': {'x': 200, 'y': 170},
+     'fresh_prefire_target': {'x': 100, 'y': 80}},
+    {'initial_observed_target': None,
+     'planned_camera_target': {'x': 255, 'y': 191},
+     'fresh_prefire_target': {'x': 120, 'y': 90}},
+    {'initial_observed_target': {'x': 128, 'y': 96},
+     'planned_camera_target': {'x': 0, 'y': 0},
+     'fresh_prefire_target': {'x': 110, 'y': 90}},
+]
+horizontal = observed_axis_sign_changes(observed_pairs, 'x', 128)
+vertical = observed_axis_sign_changes(observed_pairs, 'y', 96)
+assert horizontal['comparable_observed_pairs'] == 2
+assert horizontal['reticle_side_reversals'] == 1
+assert horizontal['median_initial_abs_offset_pixels'] == 35
+assert horizontal['median_prefire_abs_offset_pixels'] == 28
+assert vertical['comparable_observed_pairs'] == 2
+assert vertical['reticle_side_reversals'] == 1
+assert observed_axis_sign_changes([], 'x', 128)['median_prefire_abs_offset_pixels'] is None
 print('PASS: camera drift diagnostics distinguish observed motion from predictions and invalid gates')

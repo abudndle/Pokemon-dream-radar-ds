@@ -97,14 +97,23 @@ def correct_if_unaligned(status, aim, min_distance=0):
     # the next independently checked frame predictably out of alignment.
     # Allow one larger bounded no-fire correction (<=72 px at 60 FPS).
     # A fresh screenshot still gates every subsequent A pulse.
+    # Archived live melonDS pairs frequently reversed horizontal reticle
+    # side after full-strength movement. Dampen horizontal camera travel,
+    # including this inline correction path, while leaving the fresh-frame
+    # authorization gate and observed coordinates completely unchanged.
+    # Do not pulse an axis already within the 15px alignment tolerance.
     axes = []
-    for displacement, negative, positive in (
-            (dx, "Left", "Right"), (dy, "Up", "Down")):
-        if displacement:
+    for displacement, negative, positive, gain in (
+            (dx, "Left", "Right", 0.70),
+            (dy, "Up", "Down", 1.0)):
+        if abs(displacement) > 15:
             axes.append((negative if displacement < 0 else positive,
-                         round(min(0.20, abs(displacement) / 360), 3)))
+                         round(min(0.20, abs(displacement) * gain / 360), 3)))
     if not axes:
-        raise ValueError("Unaligned gate has no camera offset")
+        # An unaligned Euclidean distance can have both individual axes
+        # within 15px; waiting for another screenshot is safer than
+        # injecting sub-frame camera pulses or pretending a shot is safe.
+        return False
     held = []
     try:
         # No stale held A is allowed during camera motion.
