@@ -38,10 +38,15 @@ static void select_encounter_model(int species) {
     model=NE_ModelCreate(NE_Animated);
     if(!model || !NE_ModelLoadDSMFAT(model,mesh)) { release_model(); return; }
     animation=NE_AnimationCreate();
-    if(animation && NE_AnimationLoadFAT(animation,anim)) {
+    /* DSMA's official converter names the exported base pose name.dsa,
+       while a Walk.md5anim becomes name_walk.dsa. Prefer authentic motion. */
+    char walk[72];
+    snprintf(walk,sizeof(walk),"nitro:/models/pokemon_%02d_walk.dsa",species);
+    if(animation && (NE_AnimationLoadFAT(animation,walk) ||
+                     NE_AnimationLoadFAT(animation,anim))) {
         NE_ModelSetAnimation(model,animation);
         NE_ModelAnimStart(model,NE_ANIM_LOOP,floattof32(0.15));
-    }
+    } else { release_model(); return; }
     /* Texture size must match the converter's --texture 128 128 argument.
      * A missing private texture leaves the model using its source material. */
     material=NE_MaterialCreate();
