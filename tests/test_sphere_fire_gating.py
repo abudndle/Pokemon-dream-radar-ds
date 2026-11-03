@@ -44,7 +44,10 @@ assert loop.count('--correct-unaligned') == 2
 assert '--correct-min-distance 26' in loop
 assert 'recorrection_decision=' in loop
 assert loop.count('tools/check_prefire_correction.py') == 2
-assert '--require-corrected' in loop
+assert '--allow-near-miss' in loop
+assert '--max-distance 26' in loop
+assert 'correction_decision' in loop
+assert 'continue' in loop[loop.index('if [[ "$correction_decision" == "no" ]]'):loop.index('sphere_inline_corrections=$((sphere_inline_corrections + 1))')]
 assert 'camera_correction_executed' in (ROOT / 'tools/check_prefire_correction.py').read_text()
 assert 'sphere_inline_corrections=$((sphere_inline_corrections + 1))' in loop
 assert loop.index('sphere_fire_authorized=$((sphere_fire_authorized + 1))') > fourth
