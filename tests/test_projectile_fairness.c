@@ -1,6 +1,7 @@
 #include "game.h"
 #include <assert.h>
 #include <stdio.h>
+#include <limits.h>
 
 /* This synthetic encounter verifies DS rules, not retail 3DS attack timing. */
 static Game legendary(void) {
@@ -76,6 +77,36 @@ int main(void) {
     for(int i=0;i<MAX_EXTRA_PROJECTILES;i++)
         assert(!g.projectile_extra[i].active);
     assert(g.save.pending_count==0);
-    puts("PASS: one projectile impact/frame, nearest beam defense, safe timeout");
+
+    /* Restored invalid projectile velocities must never overflow int,
+       teleport across the screen or award an unearned hit. A legitimate
+       sibling continues moving after the invalid side ball expires. */
+    g=legendary();
+    g.aim_x=100;g.aim_y=90;
+    g.projectile_x=255;g.projectile_y=90;
+    g.projectile_vx=INT_MAX;g.projectile_vy=INT_MIN;
+    g.projectile_lifetime=20;
+    g.projectile_extra[0].x=0;g.projectile_extra[0].y=40;
+    g.projectile_extra[0].vx=INT_MIN;g.projectile_extra[0].vy=INT_MAX;
+    g.projectile_extra[1].x=80;g.projectile_extra[1].y=40;
+    g.projectile_extra[1].vx=1;g.projectile_extra[1].vy=0;
+    int untouched_timeout=g.capture_timeout;
+    game_tick(&g);
+    assert(!g.projectile_active && !g.projectile_extra[0].active);
+    assert(g.projectile_extra[1].active);
+    assert(g.projectile_extra[1].x==81 && g.projectile_extra[1].y==40);
+    assert(g.projectile_hits==0 && g.capture_timeout==untouched_timeout-1);
+    assert(g.projectile_x==255 && g.projectile_y==90);
+    assert(g.screen==STATE_SPHERE);
+    /* Extreme negative velocities from an in-bounds position also expire. */
+    g.projectile_active=1;
+    g.projectile_x=0;g.projectile_y=0;
+    g.projectile_vx=INT_MIN;g.projectile_vy=INT_MIN;
+    g.projectile_lifetime=20;
+    g.projectile_extra[1].active=0;
+    game_tick(&g);
+    assert(!g.projectile_active && g.projectile_hits==0);
+    assert(g.capture_timeout==untouched_timeout-2);
+    puts("PASS: one impact/frame, nearest defense, safe timeout and overflow-proof projectiles");
     return 0;
 }
