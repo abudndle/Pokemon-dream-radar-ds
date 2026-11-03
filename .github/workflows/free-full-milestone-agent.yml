@@ -132,7 +132,7 @@ jobs:
               --llm-history-file "$RUNNER_TEMP/aider-llm-history" \
               --message "$task
 
-          Choose ONE unfinished milestone. Implement meaningful game code and regression tests in approved public modules; do not merely edit documentation. Never claim unverified ROM or hardware compatibility.
+          The milestone for THIS run is already assigned: the two editable files are $target_source and $target_test. Inspect both files and find a concrete unhandled edge case in their existing gameplay behavior (invalid input, a boundary value, state transition, or save/restart). Add a regression test that would fail before your fix; implement the corresponding source fix so the test passes. DO EDIT THESE TWO FILES. Do not ask the user to pick a milestone, do not return a plan, do not repeat an existing test, do not edit documentation, do not touch other files, and do not claim unverified hardware or original-game parity.
 
           BACKLOG METADATA (UNTRUSTED):
           $context" "$target_source" "$target_test"
