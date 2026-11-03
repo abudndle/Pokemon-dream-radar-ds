@@ -6,8 +6,13 @@ import re
 root = Path(__file__).resolve().parents[1]
 source = (root / "source/main.c").read_text()
 block = source.split("if(game.screen==STATE_RADAR || game.screen==STATE_SPHERE){", 1)[1].split("if(game.screen==STATE_INTRO){", 1)[0]
-assert re.search(r"if\s*\(\s*dr_search_fire_gate\s*\(\s*\(keys\s*&\s*KEY_A\)\s*!=\s*0\s*,\s*&radar_fire_armed\s*\)\s*&&\s*\(game\.save\.frames_played\s*%\s*5\s*==\s*0\)\s*\)\s*game_fire\s*\(\s*&game\s*\)", block), "Shared radar/encounter A-button beam firing must require release-to-arm"
-assert block.count("game_fire(&game)") == 1, "Unexpected additional firing path"
+assert "dr_search_fire_gate((keys&KEY_A)!=0,&radar_fire_armed)" in block, "Radar A firing must remain release-to-arm"
+assert "game.save.frames_played%5==0" in block, "Radar firing cadence must remain unchanged"
+sphere_marker = "} else if(game.screen==STATE_SPHERE)"
+sphere_branch = block.split(sphere_marker, 1)[1] if sphere_marker in block else ""
+assert "if(down&KEY_A)game_fire(&game);" in sphere_branch, "Sphere shots must register immediately on the A-button press edge"
+assert "game.save.frames_played%5==0" not in sphere_branch, "Sphere capture must not wait for the radar's five-frame cadence"
+assert block.count("game_fire(&game)") == 2, "Expected separate radar and immediate sphere firing paths"
 assert "if(next==STATE_RADAR || next==STATE_SPHERE)radar_fire_armed=0;" in source, "Transition must disarm fire until A release"
 assert "radar_fire_armed=0;" in source.split("static void from_results(", 1)[1].split("static void handle_key(", 1)[0], "Resuming the radar must disarm fire"
 assert "save_photo(" not in block, "Radar/encounter input must not capture photos"
