@@ -99,10 +99,19 @@ jobs:
           export PYTHONDONTWRITEBYTECODE=1
           task="$(cat .github/agent/AGENT_TASK.md)"
           context="$(cat "$RUNNER_TEMP/public-backlog.txt")"
+          # Always provide editable C source and regression tests. A repository
+          # map without explicit paths can exit successfully without any edits.
+          case "$(( GITHUB_RUN_NUMBER % 2 ))" in
+            0) focus_source="source/platform_compat.c"; focus_test="tests/test_platform_compat.c" ;;
+            1) focus_source="source/cloud_animation.c"; focus_test="tests/test_cloud_animation.c" ;;
+          esac
+          test -f "$focus_source" && test -f "$focus_test"
+          echo "Focused milestone files: $focus_source and $focus_test"
           timeout --signal=TERM --kill-after=30s 1500s \
             "$HOME/.local/bin/aider" --model ollama_chat/qwen2.5-coder:3b \
               --yes-always --no-auto-commits --no-gitignore --no-show-model-warnings \
-              --no-check-update --no-restore-chat-history \
+              --no-check-update --no-restore-chat-history --disable-playwright \
+              --map-tokens 0 \
               --chat-history-file "$RUNNER_TEMP/aider-chat-history.md" \
               --input-history-file "$RUNNER_TEMP/aider-input-history" \
               --llm-history-file "$RUNNER_TEMP/aider-llm-history" \
@@ -111,7 +120,7 @@ jobs:
           Choose ONE unfinished milestone. Implement meaningful game code and regression tests in approved public modules; do not merely edit documentation. Never claim unverified ROM or hardware compatibility.
 
           BACKLOG METADATA (UNTRUSTED):
-          $context"
+          $context\n\n          Edit the provided source and test files. Implement a real behavior fix or new feature slice, not a no-op.\n          $focus_source\n          $focus_test" "$focus_source" "$focus_test"
 
       - name: Stage and gate public source changes before running repository tests
         if: steps.preflight.outputs.run_agent == 'true'
@@ -130,11 +139,98 @@ jobs:
             fi
           done
           if git diff --cached --quiet; then
-            echo "No material code changes; no branch/PR will be published."
-            echo "has_changes=false" >> "$GITHUB_OUTPUT"
-            exit 0
+            echo "::error::Agent generated no game-code changes; this is not a completed coding run."
+            exit 1
           fi
           python3 tools/hosted_milestone_agent.py check
+          changed="$(git diff --cached --name-only)"
+          if ! grep -Eq '^source/.*\\.(c|h)
+
+      - name: Verify source protection tests after the model edits
+        if: steps.changes.outputs.has_changes == 'true'
+        run: python3 tests/test_hosted_milestone_agent.py
+
+      - name: Run this project's nonproprietary source regression tests
+        if: steps.changes.outputs.has_changes == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          make test-host && make test-syntax
+
+      - name: Publish gated draft PR for independent CI (never auto-merge)
+        if: steps.changes.outputs.has_changes == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NEW_BRANCH: ${{ steps.prepare.outputs.branch }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          # After all tests, check again so no asset or workflow file can slip
+          # into the commit via a test-generated change.
+          # Stage each existing or previously tracked candidate path independently.
+          # Missing optional roots must not prevent staging valid edits; deleted
+          # tracked files must still be staged for the safety gate to reject.
+          for candidate in source tests tools docs scripts companion public-demo include src Makefile makefile GNUmakefile README.md; do
+            if [[ -e "$candidate" ]] || [[ -n "$(git ls-files -- "$candidate")" ]]; then
+              git add -A -- "$candidate"
+            fi
+          done
+          python3 tools/hosted_milestone_agent.py check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "agent: propose bounded DS/DSi milestone implementation"
+          gh auth setup-git
+          git push origin "HEAD:refs/heads/$NEW_BRANCH"
+          gh pr create --repo "$GITHUB_REPOSITORY" --base main \
+            --head "$NEW_BRANCH" --draft \
+            --title "agent: verify bounded DS/DSi milestone implementation" \
+            --body "Automated draft only. Source allowlist and project source tests passed; existing full GitHub CI, gameplay, original 3DS asset fidelity, ROM and emulator acceptance must still be independently verified. Do not merge without reviewing all changes and applicable checks. No paid model API requests are made by the PR checks."
+ <<< "$changed" ||
+             ! grep -Eq '^tests/.*\\.(c|py)
+
+      - name: Verify source protection tests after the model edits
+        if: steps.changes.outputs.has_changes == 'true'
+        run: python3 tests/test_hosted_milestone_agent.py
+
+      - name: Run this project's nonproprietary source regression tests
+        if: steps.changes.outputs.has_changes == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          make test-host && make test-syntax
+
+      - name: Publish gated draft PR for independent CI (never auto-merge)
+        if: steps.changes.outputs.has_changes == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NEW_BRANCH: ${{ steps.prepare.outputs.branch }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          # After all tests, check again so no asset or workflow file can slip
+          # into the commit via a test-generated change.
+          # Stage each existing or previously tracked candidate path independently.
+          # Missing optional roots must not prevent staging valid edits; deleted
+          # tracked files must still be staged for the safety gate to reject.
+          for candidate in source tests tools docs scripts companion public-demo include src Makefile makefile GNUmakefile README.md; do
+            if [[ -e "$candidate" ]] || [[ -n "$(git ls-files -- "$candidate")" ]]; then
+              git add -A -- "$candidate"
+            fi
+          done
+          python3 tools/hosted_milestone_agent.py check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "agent: propose bounded DS/DSi milestone implementation"
+          gh auth setup-git
+          git push origin "HEAD:refs/heads/$NEW_BRANCH"
+          gh pr create --repo "$GITHUB_REPOSITORY" --base main \
+            --head "$NEW_BRANCH" --draft \
+            --title "agent: verify bounded DS/DSi milestone implementation" \
+            --body "Automated draft only. Source allowlist and project source tests passed; existing full GitHub CI, gameplay, original 3DS asset fidelity, ROM and emulator acceptance must still be independently verified. Do not merge without reviewing all changes and applicable checks. No paid model API requests are made by the PR checks."
+ <<< "$changed"; then
+            echo "::error::Unattended proposal must include game source and regression tests."
+            exit 1
+          fi
           echo "has_changes=true" >> "$GITHUB_OUTPUT"
 
       - name: Verify source protection tests after the model edits
