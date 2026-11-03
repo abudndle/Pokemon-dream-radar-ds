@@ -996,6 +996,9 @@ void game_fire(Game *g) {
             complete_radar_if_empty(g);
         }
     } else if (g->screen==STATE_SPHERE) {
+        /* Expired encounters cannot defend hostile projectiles or damage
+           their target between timer expiry and the next simulation tick. */
+        if(g->capture_timeout<=0)return;
         /* One shot defends the nearest ball in the reticle, regardless of slot.
          * Ties prioritize the primary energy ball. */
         int defended=-2; /* -2 none, -1 primary, 0.. side projectile */
@@ -1019,8 +1022,6 @@ void game_fire(Game *g) {
         }
         if(defended>=0){g->projectile_extra[defended].active=0;return;}
         if(defended==-1){finish_projectile(g);return;}
-        /* An expired encounter must not be captured between timer ticks. */
-        if(g->capture_timeout<=0)return;
         /* Sphere coordinates must be on the DS viewport. Squaring two
            arbitrary signed 32-bit coordinates could overflow int64_t. */
         if(g->sphere_x<0 || g->sphere_x>255 ||
