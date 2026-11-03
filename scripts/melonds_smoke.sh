@@ -805,7 +805,14 @@ if [[ -f "$out/05-sphere-encounter.png" ]]; then
       # observed-only gate, BEFORE serializing JSON or returning to Bash.
       # It never fired on an unaligned frame. This is NOT authorization:
       # only the independent corrected screenshot may fire A.
-      python3 tools/check_prefire_correction.py "$out/sphere-prefire-inspection-$step.json" --require-corrected
+      correction_decision=$(python3 tools/check_prefire_correction.py \
+        "$out/sphere-prefire-inspection-$step.json" --allow-near-miss \
+        --aim "$out/sphere-prefire-aim-$step.json" --max-distance 26)
+      if [[ "$correction_decision" == "no" ]]; then
+        echo "INFO: sphere residual is inside the 26px no-chase radius; no camera pulse or shot, reacquiring a fresh frame" | tee -a "$out/runtime.log"
+        capture_last="$prefire_frame"
+        continue
+      fi
       sphere_inline_corrections=$((sphere_inline_corrections + 1))
       snapshot_fast "05-sphere-prefire-corrected-$step"
       prefire_frame="$out/05-sphere-prefire-corrected-$step.png"
