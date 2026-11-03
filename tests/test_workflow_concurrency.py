@@ -8,6 +8,12 @@ for filename in ("blocksds.yml", "emulator-smoke.yml",
     text = (ROOT / ".github/workflows" / filename).read_text()
     assert text.count("\nconcurrency:\n") == 1, filename
     assert "github.event.pull_request.number || github.ref" in text, filename
-    assert "github.event_name == 'workflow_dispatch' && github.run_id" in text, filename
-    assert "cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}" in text, filename
-print("PASS: long-running workflows cancel stale CI but preserve manual acceptance")
+    if filename == "melonds-smoke.yml":
+        # Daily strict capture/restart runs are as important as manual ones;
+        # a new push must not cancel them before collecting failure evidence.
+        assert "(github.event_name == 'workflow_dispatch' || github.event_name == 'schedule') && github.run_id" in text
+        assert "cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' && github.event_name != 'schedule' }}" in text
+    else:
+        assert "github.event_name == 'workflow_dispatch' && github.run_id" in text, filename
+        assert "cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}" in text, filename
+print("PASS: long-running workflows preserve manual and scheduled strict acceptance")
