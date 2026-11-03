@@ -48,12 +48,18 @@ jobs:
             echo "run_agent=true" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Set up supported Python for Aider
+        if: steps.preflight.outputs.run_agent == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
       - name: Install local open-source coding model and editor
         if: steps.preflight.outputs.run_agent == 'true'
         shell: bash
         run: |
           set -euo pipefail
-          python3 -m pip install --user --break-system-packages aider-chat==0.86.1
+          python -m pip install --user aider-chat==0.86.1
           curl -fsSL https://ollama.com/install.sh | sh
           OLLAMA_HOST=127.0.0.1:11434 ollama serve >/tmp/ollama-full-agent.log 2>&1 &
           for attempt in {1..60}; do
