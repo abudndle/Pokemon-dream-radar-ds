@@ -43,7 +43,7 @@ jobs:
           from datetime import datetime, timezone
           from urllib.parse import quote
 
-          CONFIG = json.loads(r'''{"allowedPrefixes":["agent/local-","agent/free-"],"allowedPairs":[["source/platform_compat.c","tests/test_platform_compat.c"],["source/photo_album.c","tests/test_photo_album.c"],["source/cloud_animation.c","tests/test_cloud_animation.c"]],"requiredWorkflows":["blocksds.yml","capture-host-acceptance.yml"]}''')
+          CONFIG = json.loads(r'''{"allowedPrefixes":["agent/local-","agent/free-","agent/run-"],"allowedPairs":[["source/platform_compat.c","tests/test_platform_compat.c"],["source/photo_album.c","tests/test_photo_album.c"],["source/cloud_animation.c","tests/test_cloud_animation.c"],["source/dr_animation.c","tests/test_dr_animation.c"],["source/game.c","tests/test_gameplay_integration.c"]],"requiredWorkflows":["blocksds.yml","capture-host-acceptance.yml"]}''')
           repo = os.environ['GH_REPO']
           tracking_issue = 66
 
