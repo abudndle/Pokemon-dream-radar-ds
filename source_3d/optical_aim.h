@@ -32,7 +32,7 @@ static inline int dr3d_optical_step(Dr3dOpticalAim *state, Game *game,
             samples[y*32+x]=dr3d_optical_luma(frame[(y*8+3)*256+x*8+3]);
     int changed=0;
     if(state->valid) {
-        unsigned best=~0u;
+        unsigned best=~0u, stationary=~0u;
         int dxbest=0,dybest=0;
         for(int dy=-2;dy<=2;dy++)for(int dx=-2;dx<=2;dx++) {
             unsigned error=0;
@@ -41,11 +41,16 @@ static inline int dr3d_optical_step(Dr3dOpticalAim *state, Game *game,
                           (int)state->previous[(y+dy)*32+x+dx];
                 error+=(unsigned)(delta*delta);
             }
+            if(!dx && !dy)stationary=error;
             if(error<best) { best=error;dxbest=dx;dybest=dy; }
         }
         /* Reuse the established provisional software optical-flow threshold
          * and 6-pixel gain; reject high-error/missing-motion frames. */
-        if(best<150000u && (dxbest || dybest)) {
+        /* Flat or repeated textures can match every displacement equally.
+         * Require a clear improvement over the stationary frame to avoid
+         * drifting the reticle when the camera is still. */
+        if(best<150000u && (dxbest || dybest) &&
+           (uint64_t)best*100u < (uint64_t)stationary*90u) {
             int nx=game->aim_x+dxbest*6, ny=game->aim_y+dybest*6;
             if(nx<6)nx=6;
             if(nx>250)nx=250;
