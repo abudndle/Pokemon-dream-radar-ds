@@ -149,16 +149,16 @@ def run(root: Path, output_dir: Path, focus: str, model: str, endpoint: str,
             print(f"Rejected candidate {attempt + 1}: {exc}", file=sys.stderr)
     raise ValueError("No passing proposal: " + str(last_error))
 
-def select_focus(requested: str, hour_slot: int) -> str:
-    """Deterministic rotation over explicitly permitted modules, never arbitrary files."""
+def select_focus(requested: str, run_slot: int) -> str:
+    """Rotate allowed modules on each five-minute CI interval."""
     if requested != "auto":
         if requested not in TASKS:
             raise ValueError("Unknown focus")
         return requested
-    if hour_slot < 0:
-        raise ValueError("Negative hour slot")
+    if run_slot < 0:
+        raise ValueError("Negative run slot")
     keys = tuple(TASKS)
-    return keys[hour_slot % len(keys)]
+    return keys[run_slot % len(keys)]
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
@@ -170,7 +170,7 @@ def main() -> int:
     args = parser.parse_args()
     if args.focus == "auto":
         from datetime import datetime, timezone
-        args.focus = select_focus("auto", int(datetime.now(timezone.utc).timestamp() // 3600))
+        args.focus = select_focus("auto", int(datetime.now(timezone.utc).timestamp() // 300))
         print(f"Autonomous module focus: {args.focus}")
     try:
         run(args.root, args.output_dir, args.focus, args.model, args.endpoint)
