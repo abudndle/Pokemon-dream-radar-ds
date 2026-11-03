@@ -1,5 +1,6 @@
 #include "platform_compat.h"
 #include <assert.h>
+#include <limits.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -48,6 +49,13 @@ int main(void) {
     assert(dr_sphere_fire_repeat(1,0,6));
     assert(!dr_sphere_fire_repeat(1,0,7));
     assert(!dr_sphere_fire_repeat(0,0,3));
+    /* A press edge sampled after release cannot create a phantom hit. */
+    assert(!dr_sphere_fire_repeat(0,1,3));
+    assert(!dr_sphere_fire_repeat(0,1,4));
+    assert(dr_sphere_fire_repeat(1,1,4));
+    assert(!dr_sphere_fire_repeat(1,0,4));
+    assert(dr_sphere_fire_repeat(1,0,UINT_MAX-(UINT_MAX%3u)));
+
     assert(!dr_sphere_fire_repeat(0,0,6));
     int held_shots=0;
     for(unsigned frame=1;frame<=60;frame++)

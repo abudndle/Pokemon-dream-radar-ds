@@ -13,7 +13,7 @@ sphere_branch = block.split(sphere_marker, 1)[1] if sphere_marker in block else 
 assert "dr_sphere_fire_repeat((keys&KEY_A)!=0,(down&KEY_A)!=0," in sphere_branch, "Sphere must sustain capture beam on held A"
 assert "game.save.frames_played))game_fire(&game);" in sphere_branch, "Sphere beam must use ordinary game_fire"
 compat = (root / "source/platform_compat.c").read_text()
-assert "return a_pressed || (a_held && frames_played%3u==0u);" in compat, "Sphere beam must fire on edge and held cadence"
+assert "return a_held && (a_pressed || frames_played%3u==0u);" in compat, "Sphere beam must require A held for edge and cadence"
 assert "game.save.frames_played%5==0" not in sphere_branch, "Sphere capture must not wait for the radar's five-frame cadence"
 assert block.count("game_fire(&game)") == 2, "Expected separate radar and immediate sphere firing paths"
 assert "if(next==STATE_RADAR || next==STATE_SPHERE)radar_fire_armed=0;" in source, "Transition must disarm fire until A release"
