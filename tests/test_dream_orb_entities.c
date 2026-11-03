@@ -2,6 +2,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <limits.h>
 
 static void fresh_cloud(Game *g,unsigned frames) {
     game_new(g,41);
@@ -48,6 +49,25 @@ int main(void) {
     game_tick(&g);
     assert(g.dream_orbs[first].ttl==start_ttl-1);
     assert(g.dream_orbs[first].x!=start_x);
+    /* Overflow-safe boundary handling must not reverse an Orb already
+       moving inwards along the edge; do not credit corrupted Orb state. */
+    g.dream_orbs[first].x=16;
+    g.dream_orbs[first].y=16;
+    g.dream_orbs[first].vx=2;
+    g.dream_orbs[first].vy=3;
+    game_tick(&g);
+    assert(g.dream_orbs[first].x==18 && g.dream_orbs[first].vx==2);
+    assert(g.dream_orbs[first].y==19 && g.dream_orbs[first].vy==3);
+    /* A fully corrupted velocity/position must clamp without C signed
+       overflow or undefined negation of INT_MIN. */
+    g.dream_orbs[first].x=INT_MAX;
+    g.dream_orbs[first].y=INT_MIN;
+    g.dream_orbs[first].vx=INT_MAX;
+    g.dream_orbs[first].vy=INT_MIN;
+    game_tick(&g);
+    assert(g.dream_orbs[first].x==239 && g.dream_orbs[first].vx==-INT_MAX);
+    assert(g.dream_orbs[first].y==16 && g.dream_orbs[first].vy==INT_MAX);
+    /* The Orb remains collectible after a damaged coordinate was repaired. */
     assert(shoot_all(&g)==3);
     assert(g.session_orbs==3 && g.save.orbs==3);
     assert(g.save.total_orbs==3 && g.save.searches==1);
