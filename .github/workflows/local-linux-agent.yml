@@ -55,7 +55,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - name: Start local Ollama on disposable Linux runner
+      - name: Start stronger local Ollama on disposable Linux runner
         shell: bash
         run: |
           set -euo pipefail
@@ -67,12 +67,12 @@ jobs:
             sleep 1
           done
           curl -fsS http://127.0.0.1:11434/api/tags >/dev/null
-          ollama pull qwen2.5-coder:1.5b
+          ollama pull qwen2.5-coder:3b
       - name: Generate one test-backed source improvement
         id: generate
         shell: bash
         env:
-          LOCAL_AGENT_MODEL: qwen2.5-coder:1.5b
+          LOCAL_AGENT_MODEL: qwen2.5-coder:3b
         run: |
           set -euo pipefail
           echo 'ready=false' >> "$GITHUB_OUTPUT"
