@@ -116,6 +116,22 @@ jobs:
           choice="${pairs[$((GITHUB_RUN_NUMBER % ${#pairs[@]}))]}"
           read -r target_source target_test <<<"$choice"
           test -f "$target_source" && test -f "$target_test"
+          # The 3B coding model needs an assigned, testable feature slice; never ask for a milestone.
+          case "$target_source" in
+            source/cloud_animation.c) target_focus='Audit cloud-search animation state transitions. Fix one actual frame-start, looping or rollover edge case and prove it with a focused failing-before-fix regression.' ;;
+            source/dr_animation.c) target_focus='Audit radar encounter animation playback. Correct one actual timing, bounds or loop-termination defect and prove it with a regression.' ;;
+            source/game.c) target_focus='Audit the cloud discovery-to-capture transition. Fix an actual search-gating or reward-visibility defect with a gameplay regression.' ;;
+            source/room.c) target_focus='Audit the room actor and touch-drag lifecycle. Correct an actual selection, delayed animation or room move timing defect with a room regression.' ;;
+            source/gallery_balloon_clan.c) target_focus='Audit favorite/copy balloon touch transitions. Fix an actual duplicate activation, cancel or release edge case with a regression.' ;;
+            source/exchange.c) target_focus='Audit received-Mii transfer state and error paths. Fix an actual ownership or failure-recovery defect with a regression.' ;;
+            source/title_idle.c) target_focus='Audit Pokédex idle-to-entry transitions. Fix an actual clock-rollover, timeout or resume edge case and assert it in the matching test.' ;;
+            source/animation_playback.c) target_focus='Audit animation playback bounds, looping and frame starts. Correct an actual edge case with a focused regression.' ;;
+            source/challenge.c) target_focus='Audit Pokémon Challenge completion and restart state transitions. Fix an actual invalid or repeated progression edge case with a regression.' ;;
+            source/visitor.c) target_focus='Audit validated full-Mii visitor import at duplicate and full-capacity boundaries. Find and fix the next untested recoverable import edge case with a regression; do not duplicate existing tests.' ;;
+            source/puzzle_swap.c) target_focus='Audit Puzzle Swap persistence and slot selection across v1/v2 saves. Fix an actual uncovered corruption or cursor boundary edge case with a regression.' ;;
+            source/relay.c) target_focus='Audit DS/3DS relay packet delivery and retry state. Correct an actual sent/failed transition or duplicate relay edge case with a regression.' ;;
+            *) echo "Unknown assigned source module" >&2; exit 2 ;;
+          esac
           # Fix missing CA file observed in LiteLLM's SSL initialization.
           ca_file="$(python -c 'import certifi; print(certifi.where())')"
           test -s "$ca_file"
@@ -132,7 +148,10 @@ jobs:
               --llm-history-file "$RUNNER_TEMP/aider-llm-history" \
               --message "$task
 
-          Choose ONE unfinished milestone. Implement meaningful game code and regression tests in approved public modules; do not merely edit documentation. Never claim unverified ROM or hardware compatibility.
+          ASSIGNED FEATURE MILESTONE FOR THIS RUN: $target_focus
+          Required code file: $target_source
+          Required regression file: $target_test
+          Read these two files and implement the fix NOW, rather than asking which milestone to do. First identify a specific preexisting defect and add a regression that would fail before your fix. Then patch the source and ensure the changed behavior is covered. Do not request clarification, fabricate original 3DS parity, or produce documentation-only/no-op changes. If no real defect is justified, report that with no source change and let CI mark this attempt unsuccessful.
 
           BACKLOG METADATA (UNTRUSTED):
           $context" "$target_source" "$target_test"
