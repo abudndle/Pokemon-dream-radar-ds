@@ -20,7 +20,9 @@ assert "dr_ui_title_rects(title_ui_scene," in renderer
 assert "dr_ui_title_hit(title_rows,touch->px,touch->py)" in renderer
 assert "dr_ui_scene_load(\"nitro:/title.drui\")" in renderer
 assert "dr_title_hit(touch->px,touch->py)" in renderer
-assert "original_title_art_loaded?117:29" in renderer
+assert "original_title_art_loaded?117:(original_cloud_icon_loaded?82:29)" in renderer
+assert "dr_original_cloud_icon_draw(bottom,&original_cloud_icon,8,4)" in renderer
+assert "if(!original_title_art_loaded && original_cloud_icon_loaded)" in renderer
 assert "original_title_art_loaded=1;" in renderer
 assert "dr_title_art_load(storage_root,bg_cache[7],bg_cache[5],PIXELS)" in renderer
 assert "for xx,yy,ww,hh in title_rects:" in generator
