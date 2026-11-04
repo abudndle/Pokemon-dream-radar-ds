@@ -44,6 +44,8 @@ build-all:
 
 test-host:
 	@mkdir -p build
+	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/dr_original_cloud_icon.c tests/test_dr_original_cloud_icon.c -o build/test_dr_original_cloud_icon
+	./build/test_dr_original_cloud_icon
 	python3 tests/test_local_agent_propose.py
 	$(HOSTCC) -std=gnu11 -O2 -Wall -Wextra -Werror -Isource source/cloud_animation.c tests/test_cloud_animation.c -o build/test_cloud_animation
 	./build/test_cloud_animation
