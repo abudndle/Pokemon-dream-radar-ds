@@ -25,6 +25,7 @@
 #include "dr_ui_scene.h"
 #include "dr_title_art.h"
 #include "dr_title_tiles.h"
+#include "dr_original_cloud_icon.h"
 #include "cloud_animation.h"
 #include "burnet_tips_generated.h"
 #include "dr_mesh.h"
@@ -73,6 +74,8 @@ static u8 bg_valid[11];
 static int original_title_art_loaded;
 static DrTitleTiles original_title_tiles;
 static int original_title_tiles_loaded;
+static DrOriginalCloudIcon original_cloud_icon;
+static int original_cloud_icon_loaded;
 static u16 *top_vram, *bottom_vram;
 static int have_storage, have_romfs, camera_busy, camera_frames, photo_index;
 static int running_dsi, camera_failed_this_run;
@@ -817,7 +820,9 @@ static void render(void) {
         snprintf(tx,sizeof tx,"CLOUDS %d/%d",game.save.cloud_count,max_clouds);
         /* Preserve the original cloud icon embedded in the private title
            backdrop. The recreated public fallback has no source icon. */
-        print(bottom,original_title_art_loaded?117:29,19,WHITE,tx);
+        if(!original_title_art_loaded && original_cloud_icon_loaded)
+            dr_original_cloud_icon_draw(bottom,&original_cloud_icon,8,4);
+        print(bottom,original_title_art_loaded?117:(original_cloud_icon_loaded?82:29),19,WHITE,tx);
         const char *opts[]={"Start","Send Research Data","Credits","Records"};
         DrUiRect title_rows[4];
         title_live_rects(title_rows);
@@ -1974,6 +1979,8 @@ running_dsi=isDSiMode();
     if(have_storage && storage_root)
         original_title_tiles_loaded=dr_title_tiles_load(storage_root,
                                                         &original_title_tiles);
+    if(have_storage && storage_root)
+        original_cloud_icon_loaded=dr_original_cloud_icon_load(storage_root,&original_cloud_icon);
     for(int i=0;i<68;i++)load_sprite(i);
     /* Geometry-only title scene is generated during the build. Private
        user-staged original CLPA animations override it from SD/FAT. */
