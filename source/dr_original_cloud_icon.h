@@ -1,5 +1,5 @@
-#ifndef DR_ORIGINAL_CLOUD_ICON_H
-#define DR_ORIGINAL_CLOUD_ICON_H
+#ifndef DR_ORIGINAL_CLOUD_ICON_INCLUDED
+#define DR_ORIGINAL_CLOUD_ICON_INCLUDED
 #include <stdint.h>
 
 /* Optional private 3DS UI resource: the 64x32 source-derived TitleCloudCount
