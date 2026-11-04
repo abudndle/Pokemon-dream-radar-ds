@@ -6,6 +6,7 @@ int main(void) {
         int bob=dr_cloud_bob(f,i);
         assert(bob>=0 && bob<=3);
         assert(bob==dr_cloud_bob(f+64,i));
+        assert(bob==dr_cloud_bob(f+128,i));
     }
     /* All 30 cloud slots must keep their distinct phased bob animation.
        A misleading local coding-agent draft once disabled every slot >=3;
