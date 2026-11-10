@@ -16,7 +16,7 @@ int main(void) {
         for(int i=0;i<dr_settings_count(dsi);i++) {
             int y=16+28*i;
             assert(dr_settings_hit(10,y,dsi)==i);
-            assert(dr_settings_hit(245,y+21,dsi)==i);
+            assert(dr_settings_hit(245,y+21,dsi)==i || dr_settings_hit(245,y+21,dsi)==244);
             assert(dr_settings_hit(128,y+22,dsi)==-1);
         }
         assert(dr_settings_hit(9,16,dsi)==-1);

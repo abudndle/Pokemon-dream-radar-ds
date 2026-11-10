@@ -7,7 +7,7 @@
 #include <errno.h>
 
 int dr_camera_quick_row_hit(int x,int y){
-    if(x<12 || x>=244)return -1;
+    if(x<12 || x>=244 || x==244)return -1;
     if(y>=40 && y<68)return 0;
     if(y>=86 && y<114)return 1;
     return -1;
