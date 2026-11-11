@@ -129,6 +129,33 @@ jobs:
                   print('SKIP:', number, 'no new regression assertion')
                   close_stalled(p, 'No additional regression assertion', 0)
                   continue
+              # A new assertion must not camouflage removal or weakening of
+              # an existing one. Such proposals require human review instead
+              # of unattended merging.
+              if any(line.startswith('-') and not line.startswith('---') and
+                     'assert(' in line for line in test_patch.splitlines()):
+                  print('SKIP:', number, 'existing regression assertion changed')
+                  close_stalled(p, 'Changed existing assertion needs review', 0)
+                  continue
+              source_patch = next((f['patch'] for f in files
+                                   if f['filename'] != test_path), '')
+              semantic_changes = [
+                  line[1:].strip() for line in source_patch.splitlines()
+                  if line[:1] in ('+', '-') and
+                  not line.startswith(('+++', '---')) and
+                  line[1:].strip()
+              ]
+              # Reject cosmetic source patches (e.g. added spaces around an
+              # unchanged expression). This is necessary, not sufficient:
+              # CI and independent review still establish correctness.
+              removed = [''.join(line.split()) for line in source_patch.splitlines()
+                         if line.startswith('-') and not line.startswith('---')]
+              added = [''.join(line.split()) for line in source_patch.splitlines()
+                       if line.startswith('+') and not line.startswith('+++')]
+              if not semantic_changes or sorted(removed) == sorted(added):
+                  print('SKIP:', number, 'no semantic source change')
+                  close_stalled(p, 'Whitespace-only or empty source edit', 0)
+                  continue
 
               if not all(successful_workflow(w, branch, sha)
                          for w in CONFIG['requiredWorkflows']):
