@@ -9,9 +9,8 @@ on:
       - 'scripts/local_agent_propose.py'
       - 'AGENTS.md'
       - 'tests/test_local_agent_propose.py'
-  schedule:
-    # GitHub Actions shortest interval is 5 minutes; 1 minute needs an always-on host.
-    - cron: '*/5 * * * *'
+  # Manual fallback only; free-full-milestone-agent.yml owns the single
+  # five-minute coding schedule so two models cannot compete for source PRs.
   workflow_dispatch:
 
 # Queues rather than overlapping costly Ollama model processes.
