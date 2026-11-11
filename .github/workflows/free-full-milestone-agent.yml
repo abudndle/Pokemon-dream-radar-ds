@@ -145,7 +145,7 @@ jobs:
             "$HOME/.local/bin/aider" --model ollama_chat/qwen2.5-coder:3b \
               --yes-always --no-auto-commits --no-gitignore --no-show-model-warnings \
               --no-check-update --no-restore-chat-history --no-detect-urls \
-              --map-tokens 0 \
+              --edit-format diff --map-tokens 0 \
               --chat-history-file "$RUNNER_TEMP/aider-chat-history.md" \
               --input-history-file "$RUNNER_TEMP/aider-input-history" \
               --llm-history-file "$RUNNER_TEMP/aider-llm-history" \
