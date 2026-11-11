@@ -222,6 +222,15 @@ jobs:
             exit 1
           fi
           python3 tools/hosted_milestone_agent.py check
+          # Do not publish a new proposal based on a stale main checkout.
+          # Scheduled jobs may run for many minutes while independent fixes land.
+          # The next scheduled invocation will pick up the current main.
+          initial_main_sha="$(git rev-parse HEAD)"
+          current_main_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')"
+          if [[ "$initial_main_sha" != "$current_main_sha" ]]; then
+            echo "::notice::Main advanced during agent inference; reject stale proposal and retry next schedule."
+            exit 0
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "agent: propose bounded DS/DSi milestone implementation"
