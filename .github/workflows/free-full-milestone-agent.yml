@@ -189,12 +189,12 @@ jobs:
             exit 1
           fi
           if git diff --cached --unified=0 -- "$AGENT_TARGET_TEST" |
-             grep -E '^-[^-].*assert\(' >/dev/null; then
+             grep -E '^-[^-]*assert\(' >/dev/null; then
             echo "::error::Existing regression assertion modified or removed."
             exit 1
           fi
           if ! git diff --cached --unified=0 -- "$AGENT_TARGET_TEST" |
-                grep -E '^\+[^+].*assert\(' >/dev/null; then
+                grep -E '^\+[^+]*assert\(' >/dev/null; then
             echo "::error::No added regression assertion for assigned fix."
             exit 1
           fi
@@ -246,12 +246,12 @@ jobs:
             exit 1
           fi
           if git diff --cached --unified=0 -- "$AGENT_TARGET_TEST" |
-             grep -E '^-[^-].*assert\(' >/dev/null; then
+             grep -E '^-[^-]*assert\(' >/dev/null; then
             echo "::error::Existing regression assertion modified or removed."
             exit 1
           fi
           if ! git diff --cached --unified=0 -- "$AGENT_TARGET_TEST" |
-                grep -E '^\+[^+].*assert\(' >/dev/null; then
+                grep -E '^\+[^+]*assert\(' >/dev/null; then
             echo "::error::No added regression assertion for assigned fix."
             exit 1
           fi
