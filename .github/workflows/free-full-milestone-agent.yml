@@ -262,8 +262,8 @@ jobs:
           initial_main_sha="$(git rev-parse HEAD)"
           current_main_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')"
           if [[ "$initial_main_sha" != "$current_main_sha" ]]; then
-            echo "::notice::Main advanced during agent inference; reject stale proposal and retry next schedule."
-            exit 0
+            echo "::error::Main advanced during agent inference; no proposal published. Next scheduled run starts from current main."
+            exit 1
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
