@@ -116,6 +116,7 @@ jobs:
           choice="${pairs[$((GITHUB_RUN_NUMBER % ${#pairs[@]}))]}"
           read -r target_source target_test <<<"$choice"
           test -f "$target_source" && test -f "$target_test"
+          printf 'AGENT_TARGET_SOURCE=%s\nAGENT_TARGET_TEST=%s\n' "$target_source" "$target_test" >> "$GITHUB_ENV"
           # Fix missing CA file observed in LiteLLM's SSL initialization.
           ca_file="$(python -c 'import certifi; print(certifi.where())')"
           test -s "$ca_file"
@@ -172,6 +173,14 @@ jobs:
             echo "has_changes=false" >> "$GITHUB_OUTPUT"
             exit 1
           fi
+          mapfile -t changed_paths < <(git diff --cached --name-only)
+          if [[ "${#changed_paths[@]}" -ne 2 ]] ||
+             ! printf '%s\n' "${changed_paths[@]}" | grep -Fxq -- "$AGENT_TARGET_SOURCE" ||
+             ! printf '%s\n' "${changed_paths[@]}" | grep -Fxq -- "$AGENT_TARGET_TEST"; then
+            echo "::error::Agent proposal must change exactly its assigned source and regression test."
+            printf 'Assigned: %s %s; changed: %s\n' "$AGENT_TARGET_SOURCE" "$AGENT_TARGET_TEST" "${changed_paths[*]}" >&2
+            exit 1
+          fi
           python3 tools/hosted_milestone_agent.py check
           echo "has_changes=true" >> "$GITHUB_OUTPUT"
 
@@ -204,6 +213,14 @@ jobs:
               git add -A -- "$candidate"
             fi
           done
+          mapfile -t changed_paths < <(git diff --cached --name-only)
+          if [[ "${#changed_paths[@]}" -ne 2 ]] ||
+             ! printf '%s\n' "${changed_paths[@]}" | grep -Fxq -- "$AGENT_TARGET_SOURCE" ||
+             ! printf '%s\n' "${changed_paths[@]}" | grep -Fxq -- "$AGENT_TARGET_TEST"; then
+            echo "::error::Agent proposal must change exactly its assigned source and regression test."
+            printf 'Assigned: %s %s; changed: %s\n' "$AGENT_TARGET_SOURCE" "$AGENT_TARGET_TEST" "${changed_paths[*]}" >&2
+            exit 1
+          fi
           python3 tools/hosted_milestone_agent.py check
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
