@@ -181,6 +181,23 @@ jobs:
             printf 'Assigned: %s %s; changed: %s\n' "$AGENT_TARGET_SOURCE" "$AGENT_TARGET_TEST" "${changed_paths[*]}" >&2
             exit 1
           fi
+          # Reject cosmetic source changes and regression-test weakening before
+          # burning CI or opening a draft PR. Human-authored proposals may still
+          # use the normal pull-request review flow for intentional test changes.
+          if git diff --cached --ignore-all-space --quiet -- "$AGENT_TARGET_SOURCE"; then
+            echo "::error::Assigned source contains no non-whitespace change."
+            exit 1
+          fi
+          if git diff --cached --unified=0 -- "$AGENT_TARGET_TEST" |
+             grep -E '^-[^-].*assert\(' >/dev/null; then
+            echo "::error::Existing regression assertion modified or removed."
+            exit 1
+          fi
+          if ! git diff --cached --unified=0 -- "$AGENT_TARGET_TEST" |
+                grep -E '^\+[^+].*assert\(' >/dev/null; then
+            echo "::error::No added regression assertion for assigned fix."
+            exit 1
+          fi
           python3 tools/hosted_milestone_agent.py check
           echo "has_changes=true" >> "$GITHUB_OUTPUT"
 
@@ -219,6 +236,23 @@ jobs:
              ! printf '%s\n' "${changed_paths[@]}" | grep -Fxq -- "$AGENT_TARGET_TEST"; then
             echo "::error::Agent proposal must change exactly its assigned source and regression test."
             printf 'Assigned: %s %s; changed: %s\n' "$AGENT_TARGET_SOURCE" "$AGENT_TARGET_TEST" "${changed_paths[*]}" >&2
+            exit 1
+          fi
+          # Reject cosmetic source changes and regression-test weakening before
+          # burning CI or opening a draft PR. Human-authored proposals may still
+          # use the normal pull-request review flow for intentional test changes.
+          if git diff --cached --ignore-all-space --quiet -- "$AGENT_TARGET_SOURCE"; then
+            echo "::error::Assigned source contains no non-whitespace change."
+            exit 1
+          fi
+          if git diff --cached --unified=0 -- "$AGENT_TARGET_TEST" |
+             grep -E '^-[^-].*assert\(' >/dev/null; then
+            echo "::error::Existing regression assertion modified or removed."
+            exit 1
+          fi
+          if ! git diff --cached --unified=0 -- "$AGENT_TARGET_TEST" |
+                grep -E '^\+[^+].*assert\(' >/dev/null; then
+            echo "::error::No added regression assertion for assigned fix."
             exit 1
           fi
           python3 tools/hosted_milestone_agent.py check
