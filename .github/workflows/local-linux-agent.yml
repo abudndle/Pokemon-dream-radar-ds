@@ -170,6 +170,7 @@ jobs:
           report = json.loads(Path('agent-output/proposal.json').read_text())
           Path('agent-output/pr-body.md').write_text(
               'Automated **draft** proposal by a small model running locally on Linux.\n\n'
+              'Milestone issue: #' + str(report['milestone_issue']) + '\n\n' +
               'Suggested fix: ' + report['summary'] + '\n\n'
               'Host tests and DS/DSi syntax checks passed in a read-only generation job. '
               'Review carefully; require full BlocksDS and emulator CI before merging. '
