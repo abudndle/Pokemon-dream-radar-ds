@@ -7,7 +7,7 @@ on:
     paths:
       - '.github/workflows/free-full-milestone-agent.yml'
   schedule:
-    - cron: '17 * * * *'
+    - cron: '*/5 * * * *'
   workflow_dispatch:
 
 concurrency:
@@ -44,7 +44,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          pending="$(gh pr list --repo "$GITHUB_REPOSITORY" --state open --limit 100 --json headRefName --jq '[.[] | select(.headRefName | startswith("agent/"))] | length')"
+          pending="$(gh pr list --repo "$GITHUB_REPOSITORY" --state open --limit 100 --json headRefName --jq '[.[] | select(.headRefName | startswith("agent/run-"))] | length')"
           if (( pending > 0 )); then
             echo "Agent PR already open; defer new milestone."
             echo "run_agent=false" >> "$GITHUB_OUTPUT"
@@ -139,8 +139,8 @@ jobs:
             *) echo "No approved concrete assignment for $target_source" >&2; exit 2 ;;
           esac
           task="Implement this already-selected DS/DSi milestone in $target_source and $target_test.
-Required behavior: $objective.
-First inspect both files. Identify a real missing edge case matching that behavior. Add a regression that would fail against the old code, then implement the smallest correct source fix. Make actual code and test edits now. Do not ask which milestone, ask for permission, or merely describe a plan. If the requested edge case is already handled, find another real uncovered case in the same two files; do not make cosmetic edits or claim original 3DS parity. Preserve public source safety; never access proprietary assets, secrets, or workflows. Keep all changes within these two files."
+          Required behavior: $objective.
+          First inspect both files. Identify a real missing edge case matching that behavior. Add a regression that would fail against the old code, then implement the smallest correct source fix. Make actual code and test edits now. Do not ask which milestone, ask for permission, or merely describe a plan. If the requested edge case is already handled, find another real uncovered case in the same two files; do not make cosmetic edits or claim original 3DS parity. Preserve public source safety; never access proprietary assets, secrets, or workflows. Keep all changes within these two files."
           timeout --signal=TERM --kill-after=30s 1500s \
             "$HOME/.local/bin/aider" --model ollama_chat/qwen2.5-coder:3b \
               --yes-always --no-auto-commits --no-gitignore --no-show-model-warnings \
