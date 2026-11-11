@@ -44,7 +44,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          pending="$(gh pr list --repo "$GITHUB_REPOSITORY" --state open --limit 100 --json headRefName --jq '[.[] | select(.headRefName | startswith("agent/run-") or startswith("agent/free-") or startswith("agent/local-"))] | length')"
+          # Ignore expired bot proposals after the same two-hour period used
+          # by guarded-local-agent-merge.yml. A stale draft must not block
+          # all future five-minute coding attempts if merge CI is congested.
+          pending="$(gh pr list --repo "$GITHUB_REPOSITORY" --state open --limit 100 --json headRefName,createdAt --jq '[.[] | select((.headRefName | startswith("agent/run-") or startswith("agent/free-") or startswith("agent/local-")) and (now - (.createdAt | fromdateiso8601) < 7200))] | length')"
           if (( pending > 0 )); then
             echo "Agent PR already open; defer new milestone."
             echo "run_agent=false" >> "$GITHUB_OUTPUT"
