@@ -1,16 +1,8 @@
 name: Unattended Linux coding agent (draft PR only)
 
+# Opt-in fallback only. The full-module agent owns the scheduled cadence.
+# Source or workflow commits must not trigger a second LLM job.
 on:
-  # Run this workflow once when its own configuration is changed.
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/local-linux-agent.yml'
-      - 'scripts/local_agent_propose.py'
-      - 'AGENTS.md'
-      - 'tests/test_local_agent_propose.py'
-  # Manual fallback only; free-full-milestone-agent.yml owns the single
-  # five-minute coding schedule so two models cannot compete for source PRs.
   workflow_dispatch:
 
 # Queues rather than overlapping costly Ollama model processes.
