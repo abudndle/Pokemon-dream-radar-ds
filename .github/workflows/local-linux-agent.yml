@@ -129,9 +129,10 @@ jobs:
           python3 - <<'PY'
           import json
           from pathlib import Path
-          from scripts.local_agent_propose import TASKS
+          from scripts.local_agent_propose import TASKS, MILESTONE_ISSUES
           report = json.loads(Path('agent-output/proposal.json').read_text())
           assert report['validated'] is True
+          assert report['milestone_issue'] == MILESTONE_ISSUES[report['focus']]
           assert set(report['paths']) == set(TASKS[report['focus']][:2])
           patch = Path('agent-output/proposal.patch').read_text()
           seen = set()
