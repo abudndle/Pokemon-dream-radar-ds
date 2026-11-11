@@ -25,6 +25,15 @@ TASKS = {
         "Preserve public API and add a regression assertion."),
 }
 
+# Exact existing milestone issue mapping. No issue-title text or user-supplied
+# GitHub content enters the model instructions or the privileged publisher.
+MILESTONE_ISSUES = {
+    "platform": 64,  # DS renderer, controls and DSi camera
+    "album": 65,     # Save, resume and storage compatibility
+    "cloud": 63,     # Radar gameplay, cloud and encounter logic
+}
+assert set(MILESTONE_ISSUES) == set(TASKS)
+
 def c_tokens_without_comments(value: str) -> list[str]:
     """Ignore comments and whitespace when comparing C implementation."""
     value = re.sub(r"/\*[\s\S]*?\*/|//[^\n]*", "", value)
@@ -98,7 +107,8 @@ def generate_plan(root: Path, focus: str, model: str, endpoint: str) -> dict:
         "\"new\":\"replacement\"},{\"path\":\"test file\","
         "\"old\":\"exact verbatim snippet\",\"new\":\"replacement with assertion\"}]}. "
         "Do not modify file paths, build scripts, workflows, networking or assets. "
-        "Preserve all existing APIs and tests. Task: " + goal + "\n"
+        "Preserve all existing APIs and tests. Work toward existing milestone "
+        + str(MILESTONE_ISSUES[focus]) + " using this source/test pair only. Task: " + goal + "\n"
         + "SOURCE [" + source + "]:\n" + (root/source).read_text(encoding="utf-8")
         + "\nTEST [" + test + "]:\n" + (root/test).read_text(encoding="utf-8")
     )
@@ -137,7 +147,8 @@ def run(root: Path, output_dir: Path, focus: str, model: str, endpoint: str,
                 raise ValueError("No bounded code patch produced")
             (output_dir / "proposal.patch").write_text(patch, encoding="utf-8")
             (output_dir / "proposal.json").write_text(json.dumps({
-                "summary": plan["summary"], "focus": focus, "paths": paths,
+                "summary": plan["summary"], "focus": focus,
+                "milestone_issue": MILESTONE_ISSUES[focus], "paths": paths,
                 "model": model, "validated": bool(validate)}, indent=2) + "\n",
                 encoding="utf-8")
             return True
