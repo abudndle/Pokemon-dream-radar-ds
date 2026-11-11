@@ -14,4 +14,19 @@ static inline int dr3d_camera_can_start(const Game *g, int dsi_mode,
                                         int failed_this_run, int active) {
     return !failed_this_run && !active && dr3d_camera_should_run(g,dsi_mode);
 }
+/* Y in an active DSi sphere encounter is an explicit camera control.
+ * A failed transfer is retried without forcing the player to leave the
+ * encounter; otherwise Y disables/enables the camera. DS never changes. */
+static inline int dr3d_camera_toggle(Game *g, int dsi_mode, int *failed) {
+    if(!g || !failed || !dsi_mode || g->screen != STATE_SPHERE)
+        return 0;
+    if(*failed) {
+        *failed = 0;
+        g->save.camera_enabled = 1;
+    } else {
+        g->save.camera_enabled = !g->save.camera_enabled;
+    }
+    g->camera_error = 0;
+    return 1;
+}
 #endif

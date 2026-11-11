@@ -192,6 +192,7 @@ int main(int argc,char **argv) {
     printf("D-pad/touch: aim\\n");
     printf("Camera: DSi sphere only\\n");
     printf("DSi sphere X: optical aim\\n");
+    printf("DSi sphere Y: camera/retry\\n");
     printf("Only private DSM/DSA renders.\\n");
     for(;;) {
         NE_WaitForVBL(NE_UPDATE_ANIMATIONS);
@@ -201,6 +202,11 @@ int main(int argc,char **argv) {
         const unsigned held=keysHeld();
         if(running_dsi && game.screen==STATE_SPHERE && (down & KEY_X)) {
             game.save.optical_aim=!game.save.optical_aim;
+            dr3d_optical_reset(&optical_state);
+        }
+        if((down & KEY_Y) &&
+           dr3d_camera_toggle(&game,running_dsi,&dsi_camera_failed)) {
+            /* Switching camera modes must not reuse old motion samples. */
             dr3d_optical_reset(&optical_state);
         }
         if(held & KEY_TOUCH) {
