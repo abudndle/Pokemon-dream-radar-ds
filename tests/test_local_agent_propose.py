@@ -4,7 +4,7 @@ from pathlib import Path
 import sys
 import tempfile
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
-from local_agent_propose import validate_and_apply, c_tokens_without_comments, TASKS
+from local_agent_propose import validate_and_apply, c_tokens_without_comments, TASKS, MILESTONE_ISSUES
 
 # A comment must not count as changed C code, including multiline comments.
 assert c_tokens_without_comments("int n=1; /* one\ntwo */ // tail\nreturn n;") == c_tokens_without_comments("int n = 1; return n;")
@@ -59,6 +59,10 @@ with tempfile.TemporaryDirectory() as d:
             raise AssertionError("Unsafe proposal accepted: " + bad["summary"])
     assert "return 2;" in (root / paths[0]).read_text()
     assert "assert(2);" in (root / paths[1]).read_text()
+
+# Every selected module maps to one existing substantive implementation issue.
+assert MILESTONE_ISSUES == {"platform": 64, "album": 65, "cloud": 63}
+assert set(MILESTONE_ISSUES) == set(TASKS)
 
 # Automatic runs cover every allowlisted module without expanding write permissions.
 if "module" in globals():
